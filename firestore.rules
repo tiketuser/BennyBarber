@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Admin numbers come from shop.config.ts adminPhones. The app's admin view is only a convenience; this is the real check.
     function isAdmin() {
-      return request.auth != null && request.auth.token.phone_number in ["+972500000000"];
+      return request.auth != null && request.auth.token.phone_number in ["+972544437070"];
     }
     function signedIn() {
       return request.auth != null && request.auth.token.phone_number is string;

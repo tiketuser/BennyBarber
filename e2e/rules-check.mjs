@@ -1,3 +1,4 @@
+import shop from '../shop.config.ts';
 // Tries what a malicious customer could do straight against the Firebase emulators and expects the rules to refuse.
 // Usage: npm run test:rules
 const PROJECT = 'barber-bennycohen';
@@ -46,7 +47,7 @@ const commitUrl = (token, writes) =>
   fetch(`${DOCS}:commit`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ writes }) });
 
 const me = await signIn('+972521112233');
-const admin = await signIn('+972500000000');
+const admin = await signIn('+972' + shop.adminPhones[0].replace(/\D/g, '').slice(1));
 const appt = {
   date: '2099-01-04',
   start: 600,

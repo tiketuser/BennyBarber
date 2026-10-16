@@ -19,7 +19,7 @@ const shop = {
   /** Shop WhatsApp / phone number. */
   phone: '050-0000000',
   /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
-  adminPhones: ['050-0000000'],
+  adminPhones: ['054-4437070'],
   /** Instagram handle without "@", or null to hide Instagram. */
   instagram: '[שם באינסטגרם]' as string | null,
   /** Barbering course lead form. Set to null to hide the course everywhere. */

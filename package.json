@@ -14,10 +14,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs",
+    "test:e2e": "node --experimental-strip-types --no-warnings e2e/run.mjs",
     "firebase:rules": "node --experimental-strip-types --no-warnings scripts/firebase-rules.mjs",
-    "test:e2e:firebase": "firebase emulators:exec --only auth,firestore,storage \"E2E_BACKEND=firebase node e2e/run.mjs\"",
-    "test:rules": "firebase emulators:exec --only auth,firestore,storage \"node e2e/rules-check.mjs\"",
+    "test:e2e:firebase": "firebase emulators:exec --only auth,firestore,storage \"E2E_BACKEND=firebase node --experimental-strip-types --no-warnings e2e/run.mjs\"",
+    "test:rules": "firebase emulators:exec --only auth,firestore,storage \"node --experimental-strip-types --no-warnings e2e/rules-check.mjs\"",
     "deploy": "npm run build && npm run firebase:rules && firebase deploy --only hosting,firestore:rules,storage"
   },
   "dependencies": {

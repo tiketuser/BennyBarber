@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Backend } from '../backend';
 import { appt, emptyDb, MONDAY_MORNING, TUESDAY } from '@/test/fixtures';
 import { createMockBackend } from './mockBackend';
+import { ADMIN_PHONES } from '@/config/shop';
 
-const ADMIN = '050-0000000';
+const ADMIN = ADMIN_PHONES[0];
 const ME = '052-1234567';
 
 async function signIn(b: Backend, phone: string, name = 'יוסי לוי') {

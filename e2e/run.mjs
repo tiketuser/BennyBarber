@@ -3,7 +3,9 @@
 //        npm run test:e2e:firebase   the same steps against the Firebase emulators, with the real security rules
 import { execSync, spawn } from 'node:child_process';
 import { chromium, devices } from 'playwright';
+import shop from '../shop.config.ts';
 
+const ADMIN = shop.adminPhones[0].replace(/\D/g, '');
 const FIREBASE = process.env.E2E_BACKEND === 'firebase';
 const PROJECT = 'barber-bennycohen';
 const PORT = 5199;
@@ -223,7 +225,7 @@ await step('customer signs out', async () => {
 });
 
 await step('admin signs in to the day view', async () => {
-  await login('0500000000');
+  await login(ADMIN);
   await see('חלונות פנויים');
 });
 
@@ -340,7 +342,7 @@ await step('desktop shop page: gallery filter, course form', async () => {
 await step('desktop customer signs out from the header', async () => logout());
 
 await step('admin desktop: day dashboard with side menu', async () => {
-  await login('0500000000');
+  await login(ADMIN);
   await see('ברשימת המתנה');
   await role('button', 'יום הבא').click();
   await role('button', 'יום הבא').click();
