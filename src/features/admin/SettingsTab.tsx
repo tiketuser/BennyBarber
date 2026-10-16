@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Coffee, Eye, EyeOff, Images, LogOut, Minus, MessageCircle, Palmtree, Plus, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, Eye, EyeOff, ImagePlus, Images, Loader2, LogOut, Minus, MessageCircle, Palmtree, Plus, Trash2 } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import type { Appointment, Service, Weekday } from '@/domain/types';
+import type { Appointment, GalleryCategory, GalleryItem, Service, Weekday } from '@/domain/types';
+import { shrinkImage } from '@/lib/image';
 import { haptic } from '@/lib/platform';
 import { DAY_LETTERS, MONTHS, fmtDayMonth, fmtDayMonthRange, fmtRange, fmtTime, fromKey, toKey, todayKey } from '@/lib/time';
-import { Button, Stepper, Switch, TextInput } from '@/ui/controls';
+import { Button, Chip, Stepper, Switch, TextInput } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
 import { useOnChange } from '@/ui/useOnChange';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { useToast } from '@/ui/useToast';
 import { customerPrice, firstName, money } from '../format';
+import { GALLERY_CATEGORIES } from '../shared/gallery';
 import { GalleryTile } from '../shared/GalleryTile';
 import { groupHours } from '../shared/hours';
 import { useSendQueue } from './useSendQueue';
@@ -45,7 +47,7 @@ export function SettingsTab({ layout = 'phone', onVacations }: { layout?: 'phone
       <HoursSheet open={hoursOpen} onClose={() => setHoursOpen(false)} />
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <VacationSheet open={vacationOpen} onClose={() => setVacationOpen(false)} />
-      <GalleryPinsSheet open={galleryOpen} onClose={() => setGalleryOpen(false)} />
+      <GallerySheet open={galleryOpen} onClose={() => setGalleryOpen(false)} />
     </>
   );
 
@@ -180,8 +182,8 @@ export function SettingsTab({ layout = 'phone', onVacations }: { layout?: 'phone
         className="press mx-4 mt-4 flex h-14 w-[calc(100%-32px)] items-center gap-3 rounded-2xl border border-line px-4 text-right"
       >
         <Images size={20} />
-        <span className="flex-1 text-[15px] font-medium">תמונות נבחרות בדף המספרה</span>
-        <span className="text-[13px] text-ink-soft">{db.gallery.filter((g) => g.pinned).length} מתוך 4</span>
+        <span className="flex-1 text-[15px] font-medium">גלריה: העלאה ובחירת תמונות</span>
+        <span className="text-[13px] text-ink-soft">{db.gallery.length} תמונות</span>
         <ChevronLeft size={18} />
       </button>
 
@@ -491,8 +493,8 @@ function DeskSettings({ services, onRemove, onEdit, onHours, onGallery, onVacati
           <button type="button" onClick={onGallery} className="press flex items-center gap-3 rounded-[20px] border border-line p-[18px] text-right hover:border-ink-faint">
             <Images size={22} />
             <span className="flex flex-1 flex-col gap-0.5">
-              <span className="text-base font-bold">תמונות נבחרות בדף המספרה</span>
-              <span className="text-[13px] text-ink-soft">{db.gallery.filter((g) => g.pinned).length} מתוך 4 נעוצות</span>
+              <span className="text-base font-bold">גלריה</span>
+              <span className="text-[13px] text-ink-soft">{db.gallery.length} תמונות • העלאה, מחיקה ו-4 נבחרות</span>
             </span>
             <ChevronLeft size={18} />
           </button>
@@ -912,47 +914,111 @@ export function VacationSheet({ open, onClose }: { open: boolean; onClose: () =>
   );
 }
 
-function GalleryPinsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function GallerySheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const backend = useBackend();
   const db = useDb();
   const toast = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [category, setCategory] = useState<GalleryCategory>('haircut');
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const items = [...db.gallery].sort((a, b) => a.order - b.order);
   const pinnedCount = items.filter((g) => g.pinned).length;
+
+  const upload = async (files: File[]) => {
+    if (!files.length) return;
+    let done = 0;
+    setProgress({ done, total: files.length });
+    try {
+      for (const f of files) {
+        await backend.gallery.upload(await shrinkImage(f), category);
+        setProgress({ done: ++done, total: files.length });
+      }
+      haptic('success');
+      toast({ text: done === 1 ? 'התמונה נוספה לגלריה' : `${done} תמונות נוספו לגלריה` });
+    } catch (e) {
+      haptic('warning');
+      toast({ text: (e as Error).message });
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  const remove = (g: GalleryItem) => {
+    backend.gallery.remove(g.id);
+    haptic();
+    toast({ text: 'התמונה נמחקה', action: { label: 'ביטול', run: () => backend.gallery.restore(g) } });
+  };
+
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      label="תמונות נבחרות"
+      label="גלריה"
       footer={
         <Button block onClick={onClose}>
           סיום
         </Button>
       }
     >
-      <SheetTitle aside={`${pinnedCount} מתוך 4`}>תמונות נבחרות</SheetTitle>
-      <p className="m-0 mt-1 text-[13px] text-ink-soft">4 התמונות שמופיעות ראשונות בדף המספרה. לחץ על תמונה כדי לבחור או להסיר.</p>
-      <div className="mt-3 grid grid-cols-3 gap-1 pb-2">
+      <SheetTitle aside={`${items.length} תמונות`}>גלריה</SheetTitle>
+
+      <div className="mt-3 flex flex-col gap-2.5 rounded-2xl bg-surface p-3.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] text-ink-soft">סוג:</span>
+          {GALLERY_CATEGORIES.map((c) => (
+            <Chip key={c.id} on={category === c.id} onClick={() => setCategory(c.id)} className="h-9 px-3 text-[13px]">
+              {c.label}
+            </Chip>
+          ))}
+        </div>
+        <Button block disabled={!!progress} onClick={() => fileRef.current?.click()} icon={progress ? <Loader2 size={20} className="animate-spin" /> : <ImagePlus size={20} />}>
+          {progress ? `מעלה ${progress.done + 1} מתוך ${progress.total}` : 'העלאת תמונות'}
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          aria-label="בחירת תמונות"
+          onChange={(e) => {
+            upload([...(e.target.files ?? [])]);
+            e.target.value = '';
+          }}
+        />
+      </div>
+
+      <p className="m-0 mt-3.5 text-[13px] text-ink-soft">לחץ על תמונה כדי לבחור אותה לאחת מ-4 התמונות הראשונות בדף המספרה ({pinnedCount} מתוך 4).</p>
+      <div className="mt-2.5 grid grid-cols-3 gap-1 pb-2">
         {items.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            aria-pressed={g.pinned}
-            aria-label={g.pinned ? 'הסר מהנבחרות' : 'הוסף לנבחרות'}
-            onClick={() => {
-              if (!g.pinned && pinnedCount >= 4) {
-                toast({ text: 'אפשר לבחור עד 4 תמונות. הסר אחת קודם.' });
-                return;
-              }
-              backend.gallery.togglePin(g.id);
-              haptic();
-            }}
-            className={cx('press overflow-hidden rounded-lg', g.pinned && 'ring-2 ring-brand ring-offset-1')}
-          >
-            <GalleryTile item={g} className="h-[100px]" />
-          </button>
+          <div key={g.id} className="relative">
+            <button
+              type="button"
+              aria-pressed={g.pinned}
+              aria-label={g.pinned ? 'הסר מהנבחרות' : 'הוסף לנבחרות'}
+              onClick={() => {
+                if (!g.pinned && pinnedCount >= 4) {
+                  toast({ text: 'אפשר לבחור עד 4 תמונות. הסר אחת קודם.' });
+                  return;
+                }
+                backend.gallery.togglePin(g.id);
+                haptic();
+              }}
+              className={cx('press block w-full overflow-hidden rounded-lg', g.pinned && 'ring-2 ring-brand ring-offset-1')}
+            >
+              <GalleryTile item={g} className="h-[100px]" />
+            </button>
+            <button
+              type="button"
+              aria-label="מחק תמונה"
+              onClick={() => remove(g)}
+              className="press absolute bottom-1 left-1 flex size-8 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
         ))}
       </div>
-      <p className="m-0 text-xs text-ink-mute">העלאת תמונות חדשות תתווסף עם החיבור ל-Firebase Storage.</p>
     </Sheet>
   );
 }

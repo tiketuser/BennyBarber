@@ -118,4 +118,21 @@ describe('mock backend', () => {
     expect(b.getSnapshot()).not.toBe(before);
     expect(listener).toHaveBeenCalled();
   });
+
+  it('lets only the admin upload, delete and restore gallery photos', async () => {
+    const photo = new Blob(['x'], { type: 'image/jpeg' });
+    await signIn(b, ME);
+    await expect(b.gallery.upload(photo, 'beard')).rejects.toThrow();
+    await b.auth.signOut();
+    await signIn(b, ADMIN);
+    await expect(b.gallery.upload(new Blob(['x'], { type: 'text/plain' }), 'beard')).rejects.toThrow();
+    const item = await b.gallery.upload(photo, 'beard');
+    const first = [...b.getSnapshot().gallery].sort((x, y) => x.order - y.order)[0];
+    expect(first.id).toBe(item.id);
+    expect(item.src).toMatch(/^data:image\/jpeg/);
+    await b.gallery.remove(item.id);
+    expect(b.getSnapshot().gallery.some((g) => g.id === item.id)).toBe(false);
+    await b.gallery.restore(item);
+    expect(b.getSnapshot().gallery[0].id).toBe(item.id);
+  });
 });

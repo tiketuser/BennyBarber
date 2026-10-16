@@ -13,6 +13,7 @@ import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { GalleryTile } from '../shared/GalleryTile';
 import { groupHours } from '../shared/hours';
+import { GALLERY_FILTERS } from '../shared/gallery';
 
 /** Tab 3: gallery preview, hours, navigation/contact, course lead. */
 export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onCourse: () => void }) {
@@ -127,13 +128,6 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
   );
 }
 
-const FILTERS: { id: GalleryCategory | 'all'; label: string }[] = [
-  { id: 'all', label: 'הכל' },
-  { id: 'haircut', label: 'תספורות' },
-  { id: 'beard', label: 'זקן' },
-  { id: 'kids', label: 'ילדים' },
-];
-
 export function GalleryScreen({ onBack }: { onBack: () => void }) {
   const db = useDb();
   const [filter, setFilter] = useState<GalleryCategory | 'all'>('all');
@@ -158,7 +152,7 @@ export function GalleryScreen({ onBack }: { onBack: () => void }) {
         }
       />
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 pt-2">
-        {FILTERS.map((f) => (
+        {GALLERY_FILTERS.map((f) => (
           <Chip key={f.id} on={filter === f.id} onClick={() => setFilter(f.id)} className="h-10 shrink-0">
             {f.label}
           </Chip>

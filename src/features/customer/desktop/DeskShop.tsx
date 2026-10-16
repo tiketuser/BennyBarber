@@ -11,15 +11,9 @@ import { cx } from '@/ui/cx';
 import { GalleryTile } from '../../shared/GalleryTile';
 import { groupHours } from '../../shared/hours';
 import { useOpenStatus } from '../hooks';
+import { GALLERY_FILTERS } from '../../shared/gallery';
 
 export type ShopSection = 'gallery' | 'course';
-
-const FILTERS: { id: GalleryCategory | 'all'; label: string }[] = [
-  { id: 'all', label: 'הכל' },
-  { id: 'haircut', label: 'תספורות' },
-  { id: 'beard', label: 'זקן' },
-  { id: 'kids', label: 'ילדים' },
-];
 
 const EXPERIENCE = ['אין בכלל', 'קצת', 'כבר עובד'] as const;
 
@@ -127,7 +121,7 @@ export function DeskShop({ onBook }: { onBook: () => void }) {
               עבודות אחרונות
             </h2>
             <div aria-label="סינון" className="mr-4 flex gap-2">
-              {FILTERS.map((f) => (
+              {GALLERY_FILTERS.map((f) => (
                 <button
                   key={f.id}
                   type="button"

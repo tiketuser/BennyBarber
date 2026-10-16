@@ -25,14 +25,24 @@ function load<T>(key: string): T | null {
   }
 }
 
+/** False when the browser refused (storage full or blocked); the app keeps working in memory. */
 function save(key: string, value: unknown) {
   try {
     if (value === null) localStorage.removeItem(key);
     else localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    /* storage full or blocked: keep working in memory */
+    return false;
   }
 }
+
+const dataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(new Error('לא הצלחנו לקרוא את התמונה'));
+    r.readAsDataURL(blob);
+  });
 
 export function createMockBackend(): Backend {
   let db: DbSnapshot = load<DbSnapshot>(DB_KEY) ?? buildSeed();
@@ -279,9 +289,27 @@ export function createMockBackend(): Backend {
     },
 
     gallery: {
+      async upload(photo, category) {
+        requireAdmin();
+        if (!photo.type.startsWith('image/')) throw new Error('אפשר להעלות רק תמונות');
+        // The demo keeps photos inside the browser's storage; Firebase Storage replaces this.
+        const item = { id: uid(), src: await dataUrl(photo), category, pinned: false, order: Math.min(0, ...db.gallery.map((g) => g.order)) - 1 };
+        const next = { ...db, gallery: [item, ...db.gallery] };
+        if (!save(DB_KEY, next)) throw new Error('אין מקום לעוד תמונות בגרסה הזו. מחק כמה ונסה שוב.');
+        commit(next);
+        return item;
+      },
       async togglePin(id) {
         requireAdmin();
         commit({ ...db, gallery: db.gallery.map((g) => (g.id === id ? { ...g, pinned: !g.pinned } : g)) });
+      },
+      async remove(id) {
+        requireAdmin();
+        commit({ ...db, gallery: db.gallery.filter((g) => g.id !== id) });
+      },
+      async restore(item) {
+        requireAdmin();
+        commit({ ...db, gallery: [...db.gallery.filter((g) => g.id !== item.id), item].sort((a, b) => a.order - b.order) });
       },
     },
   };

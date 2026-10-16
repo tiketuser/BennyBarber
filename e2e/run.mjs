@@ -356,9 +356,30 @@ await step('admin desktop: hours panel and break edit', async () => {
   await see('13:00 - 13:45');
 });
 
-await step('admin desktop: gallery pins panel', async () => {
-  await tap('תמונות נבחרות בדף המספרה');
-  await wait(400);
+await step('admin desktop: gallery upload, pin, delete with undo', async () => {
+  // A real photo-sized PNG drawn in the page, as if picked from the computer's pictures.
+  const png = await page.evaluate(() => {
+    const c = Object.assign(document.createElement('canvas'), { width: 2400, height: 1600 });
+    const g = c.getContext('2d');
+    g.fillStyle = '#7a5c3e';
+    g.fillRect(0, 0, 2400, 1600);
+    return c.toDataURL('image/png').split(',')[1];
+  });
+  await page.locator('button', { hasText: 'העלאה, מחיקה' }).click();
+  const before = await page.locator('[role=dialog] img').count();
+  await page.locator('[role=dialog] button', { hasText: 'זקן' }).click();
+  await page.setInputFiles('input[type=file]', { name: 'cut.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await see('התמונה נוספה לגלריה');
+  expect((await page.locator('[role=dialog] img').count()) === before + 1, 'photo not in the gallery');
+  const src = await page.locator('[role=dialog] img').first().getAttribute('src');
+  expect(src.startsWith('data:image/jpeg') && src.length < 400000, 'photo was not shrunk');
+  await page.locator('[role=dialog] [aria-label="הוסף לנבחרות"]').first().click();
+  await see('אפשר לבחור עד 4 תמונות', { exact: false });
+  await page.locator('[role=dialog] [aria-label="מחק תמונה"]').first().click();
+  await see('התמונה נמחקה');
+  await tap('ביטול');
+  await wait(300);
+  expect((await page.locator('[role=dialog] img').count()) === before + 1, 'undo did not bring it back');
   await page.keyboard.press('Escape');
 });
 
