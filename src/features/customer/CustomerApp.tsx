@@ -65,12 +65,18 @@ export function CustomerApp() {
           onOpenMine={() => setTab('mine')}
         />
       )}
-      {tab === 'mine' && (
-        <MyAppointments onReschedule={(a) => startFlow(a.serviceId, a.id)} onBookAgain={(id) => startFlow(id)} onBookNew={() => setTab('book')} />
-      )}
+      {tab === 'mine' && <MyAppointments onReschedule={(a) => startFlow(a.serviceId, a.id)} onBookAgain={(id) => startFlow(id)} onBookNew={() => setTab('book')} />}
       {tab === 'shop' && <ShopScreen onGallery={() => setShopPage('gallery')} onCourse={() => setShopPage('course')} />}
 
-      <TabBar label="ניווט ראשי" items={TABS} active={tab} onSelect={(t) => { setTab(t); setShopPage(null); }} />
+      <TabBar
+        label="ניווט ראשי"
+        items={TABS}
+        active={tab}
+        onSelect={(t) => {
+          setTab(t);
+          setShopPage(null);
+        }}
+      />
 
       <AnimatePresence>
         {timeOpen && service && (

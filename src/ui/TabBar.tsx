@@ -19,7 +19,7 @@ export function TabBar<T extends string>({ items, active, onSelect, label }: { i
             type="button"
             aria-current={on ? 'page' : undefined}
             onClick={() => onSelect(t.id)}
-            className={cx('press flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[11px]', on ? 'font-semibold text-beitar-black' : 'font-medium text-ink-soft')}
+            className={cx('press flex min-h-12 flex-1 flex-col items-center justify-center gap-1 text-[11px]', on ? 'font-semibold text-brand' : 'font-medium text-ink-soft')}
           >
             {t.icon}
             {t.label}

@@ -8,9 +8,7 @@ import { fromKey } from './time';
 const isNative = () => Capacitor.isNativePlatform();
 
 export const isStandalone = () =>
-  isNative() ||
-  window.matchMedia?.('(display-mode: standalone)').matches ||
-  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  isNative() || window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
 export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
@@ -45,7 +43,11 @@ export async function shareText(text: string): Promise<void> {
   openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
-const icsStamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+const icsStamp = (d: Date) =>
+  d
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 const icsDate = (date: DateKey, m: Minutes) => {
   const d = fromKey(date);
   d.setHours(Math.floor(m / 60), m % 60, 0, 0);
@@ -59,9 +61,9 @@ export function addToCalendar(opts: { title: string; date: DateKey; start: Minut
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//BennyBarber//HE',
+    'PRODID:-//Barbershop booking//HE',
     'BEGIN:VEVENT',
-    `UID:${Date.now()}@bennybarber`,
+    `UID:${Date.now()}@barber-booking`,
     `DTSTAMP:${icsStamp(new Date())}`,
     `DTSTART:${icsDate(opts.date, opts.start)}`,
     `DTEND:${icsDate(opts.date, opts.end)}`,

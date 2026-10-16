@@ -29,13 +29,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
                 transition={spring.ui}
-                className={`pointer-events-auto flex min-h-12 items-center gap-3 rounded-2xl px-4 py-2 text-[15px] font-medium shadow-[0_8px_30px_rgba(28,25,23,0.22)] ${t.tone === 'error' ? 'bg-danger text-white' : 'bg-beitar-black text-white'}`}
+                className={`pointer-events-auto flex min-h-12 items-center gap-3 rounded-2xl px-4 py-2 text-[15px] font-medium shadow-[0_8px_30px_rgba(28,25,23,0.22)] ${t.tone === 'error' ? 'bg-danger text-white' : 'bg-brand text-white'}`}
               >
                 <span>{t.text}</span>
                 {t.action && (
                   <button
                     type="button"
-                    className="press h-9 rounded-lg px-2 font-semibold text-beitar-yellow"
+                    className="press h-9 rounded-lg px-2 font-semibold text-brand-accent"
                     onClick={() => {
                       t.action!.run();
                       setItems([]);

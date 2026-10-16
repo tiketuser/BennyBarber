@@ -61,14 +61,15 @@ export function slotsFor(db: DbSnapshot, date: DateKey, durationMin: number, now
   const candidates = new Set<number>();
   for (let t = h.from; t + durationMin <= h.to; t += SLOT_STEP) candidates.add(t);
   for (const b of busy) if (b.to % 15 === 0 && b.to + durationMin <= h.to && b.to % SLOT_STEP !== 0) candidates.add(b.to);
-  return [...candidates]
-    .sort((a, b) => a - b)
-    .filter((t) => t >= minStart)
-    .map((start) => ({ start, available: !overlaps(start, start + durationMin, busy) }))
-    // Off-grid candidates are only worth showing when they are actually free.
-    .filter((s) => s.start % SLOT_STEP === 0 || s.available);
+  return (
+    [...candidates]
+      .sort((a, b) => a - b)
+      .filter((t) => t >= minStart)
+      .map((start) => ({ start, available: !overlaps(start, start + durationMin, busy) }))
+      // Off-grid candidates are only worth showing when they are actually free.
+      .filter((s) => s.start % SLOT_STEP === 0 || s.available)
+  );
 }
-
 
 export type DayStatus = 'open' | 'closed' | 'vacation' | 'full' | 'almost-full';
 
@@ -76,6 +77,8 @@ export function dayStatus(db: DbSnapshot, date: DateKey, durationMin: number, no
   if (isVacation(db.settings, date)) return 'vacation';
   if (!hoursFor(db.settings, date)) return 'closed';
   const slots = slotsFor(db, date, durationMin, now);
+  // Today after the last possible start: the day is over, not full (no point in a waitlist).
+  if (slots.length === 0) return 'closed';
   const free = slots.filter((s) => s.available).length;
   if (free === 0) return 'full';
   if (free <= 2) return 'almost-full';

@@ -1,20 +1,7 @@
 // The one contract between the UI and any backend.
 // Today: MockBackend (in-memory + localStorage). Next: FirebaseBackend (Firestore + Firebase phone auth)
 // implementing exactly this interface, so no screen has to change.
-import type {
-  Appointment,
-  Block,
-  DateKey,
-  DayHours,
-  DayPart,
-  DbSnapshot,
-  Minutes,
-  Service,
-  Session,
-  TimeRange,
-  Vacation,
-  Weekday,
-} from '@/domain/types';
+import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Service, Session, TimeRange, Vacation, Weekday } from '@/domain/types';
 
 export interface BookingInput {
   serviceId: string;
@@ -32,6 +19,8 @@ export interface WalkInInput {
   date: DateKey;
   start: Minutes;
   customerName?: string;
+  phone?: string;
+  notes?: string;
 }
 
 export interface Backend {

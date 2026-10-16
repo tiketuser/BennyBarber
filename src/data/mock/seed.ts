@@ -1,29 +1,8 @@
 // Deterministic demo data relative to "today", so the app always looks lived-in.
-import type { Appointment, DbSnapshot, GalleryItem, Service, Settings, WaitlistEntry } from '@/domain/types';
+import type { Appointment, DbSnapshot, GalleryItem, Settings, WaitlistEntry } from '@/domain/types';
+import { DEFAULTS } from '@/config/shop';
 import { addDays, todayKey } from '@/lib/time';
 import { hoursFor, slotsFor } from '@/domain/schedule';
-
-const DEFAULT_SERVICES: Service[] = [
-  { id: 'cut', name: 'תספורת גבר', shortName: 'תספורת', price: 70, durationMin: 30, priceHidden: false, order: 0 },
-  { id: 'cut-beard', name: 'תספורת + זקן', shortName: 'תספורת + זקן', price: 100, durationMin: 45, priceHidden: false, popular: true, order: 1 },
-  { id: 'soldier', name: 'חייל / סטודנט HIT', shortName: 'חייל', price: 60, durationMin: 30, priceHidden: false, order: 2 },
-  { id: 'beard', name: 'עיצוב וגילוח זקן', shortName: 'זקן', price: 50, durationMin: 20, priceHidden: false, order: 3 },
-  { id: 'kid', name: 'תספורת ילד', shortName: 'ילד', price: 60, durationMin: 30, priceHidden: true, order: 4 },
-];
-
-const DEFAULT_SETTINGS: Settings = {
-  hours: {
-    0: { open: true, from: 9 * 60, to: 20 * 60 },
-    1: { open: true, from: 9 * 60, to: 20 * 60 },
-    2: { open: true, from: 9 * 60, to: 20 * 60 },
-    3: { open: true, from: 9 * 60, to: 20 * 60 },
-    4: { open: true, from: 9 * 60, to: 20 * 60 },
-    5: { open: true, from: 8 * 60 + 30, to: 14 * 60 + 30 },
-    6: { open: false, from: 9 * 60, to: 14 * 60 },
-  },
-  breakTime: { from: 13 * 60, to: 13 * 60 + 30 },
-  vacations: [],
-};
 
 const FIRST = ['יוסי', 'דניאל', 'משה', 'רון', 'אלון', 'שי', 'עומר', 'נתנאל', 'ליאור', 'אבי', 'איתי', 'עידן', 'אורי', 'מתן', 'יונתן', 'אליה', 'תומר', 'גיא', 'עמית', 'נועם'];
 const LAST = ['לוי', 'כהן', 'אזולאי', 'ביטון', 'פרץ', 'גבאי', 'דהן', 'אוחיון', 'חדד', 'מזרחי', 'שושן', 'אברהם', 'פרידמן', 'מלכה', 'עמר'];
@@ -37,14 +16,14 @@ function rng(seed: number) {
   };
 }
 
-const pick = <T,>(r: () => number, arr: readonly T[]) => arr[Math.floor(r() * arr.length)];
+const pick = <T>(r: () => number, arr: readonly T[]) => arr[Math.floor(r() * arr.length)];
 
 export function buildSeed(now = new Date()): DbSnapshot {
   const r = rng(20261016);
   const today = todayKey(now);
   const db: DbSnapshot = {
-    services: DEFAULT_SERVICES.map((s) => ({ ...s })),
-    settings: structuredClone(DEFAULT_SETTINGS),
+    services: DEFAULTS.services.map((s) => ({ ...s })),
+    settings: structuredClone(DEFAULTS.settings),
     appointments: [],
     blocks: [],
     waitlist: [],
@@ -63,8 +42,13 @@ export function buildSeed(now = new Date()): DbSnapshot {
     if (!h) return;
     const day: DbSnapshot = { ...db, appointments: [] };
     for (let guard = 0; guard < 40; guard++) {
-      const svc = r() < 0.4 ? db.services[1] : pick(r, db.services);
-      const free = slotsFor(day, date, svc.durationMin, new Date(0)).filter((s) => s.available);
+      let svc = r() < 0.4 ? db.services[1] : pick(r, db.services);
+      let free = slotsFor(day, date, svc.durationMin, new Date(0)).filter((s) => s.available);
+      // A long service may not fit while short ones still do: keep filling with the shortest one.
+      if (!free.length) {
+        svc = db.services.reduce((a, b) => (b.durationMin < a.durationMin ? b : a));
+        free = slotsFor(day, date, svc.durationMin, new Date(0)).filter((s) => s.available);
+      }
       if (!free.length) break;
       const filled = day.appointments.reduce((t, a) => t + (a.end - a.start), 0);
       if (filled / (h.to - h.from) >= density) break;
@@ -123,7 +107,11 @@ export function buildSeed(now = new Date()): DbSnapshot {
     ['נתנאל אוחיון', 'any', 4],
     ['ליאור חדד', 'evening', 1],
   ]);
-  if (fullDay) waitlist(fullDay, [['גיא מלכה', 'any', 30], ['תומר עמר', 'evening', 6]]);
+  if (fullDay)
+    waitlist(fullDay, [
+      ['גיא מלכה', 'any', 30],
+      ['תומר עמר', 'evening', 6],
+    ]);
 
   db.appointments.sort((a, b) => (a.date === b.date ? a.start - b.start : a.date < b.date ? -1 : 1));
   return db;
@@ -139,6 +127,22 @@ function nextOpenDay(settings: Settings, from: string, skip: number): string | n
 }
 
 function buildGallery(): GalleryItem[] {
-  const cats: GalleryItem['category'][] = ['haircut', 'beard', 'haircut', 'kids', 'haircut', 'beard', 'haircut', 'haircut', 'kids', 'beard', 'haircut', 'haircut', 'beard', 'haircut', 'kids'];
+  const cats: GalleryItem['category'][] = [
+    'haircut',
+    'beard',
+    'haircut',
+    'kids',
+    'haircut',
+    'beard',
+    'haircut',
+    'haircut',
+    'kids',
+    'beard',
+    'haircut',
+    'haircut',
+    'beard',
+    'haircut',
+    'kids',
+  ];
   return cats.map((category, i) => ({ id: `g${i + 1}`, category, pinned: i < 4, order: i }));
 }

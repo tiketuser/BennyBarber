@@ -23,13 +23,20 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
   const wd = weekdayOf(today);
   const h = hoursFor(db.settings, today);
   const openNow = !!h && nowMinutes(now) >= h.from && nowMinutes(now) < h.to;
-  const pinned = useMemo(() => [...db.gallery].filter((g) => g.pinned).sort((a, b) => a.order - b.order).slice(0, 4), [db.gallery]);
+  const pinned = useMemo(
+    () =>
+      [...db.gallery]
+        .filter((g) => g.pinned)
+        .sort((a, b) => a.order - b.order)
+        .slice(0, 4),
+    [db.gallery],
+  );
 
   const links = [
     { label: 'Waze', icon: <Navigation size={20} />, url: SHOP.wazeUrl, dark: true },
     { label: 'Google Maps', icon: <Map size={20} />, url: SHOP.mapsUrl },
     { label: 'התקשר', icon: <Phone size={20} />, url: telUrl(SHOP.phone) },
-    { label: 'Instagram', icon: <Instagram size={20} />, url: SHOP.instagramUrl },
+    ...(SHOP.instagramUrl ? [{ label: 'Instagram', icon: <Instagram size={20} />, url: SHOP.instagramUrl }] : []),
   ];
 
   return (
@@ -56,7 +63,15 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
         {groupHours(db.settings).map((r, i, all) => {
           const isToday = r.days.includes(wd);
           return (
-            <div key={r.label} className={cx('flex h-10 items-center justify-between text-[15px]', i < all.length - 1 && 'border-b border-line-soft', isToday && 'font-semibold', !r.open && 'text-ink-soft')}>
+            <div
+              key={r.label}
+              className={cx(
+                'flex h-10 items-center justify-between text-[15px]',
+                i < all.length - 1 && 'border-b border-line-soft',
+                isToday && 'font-semibold',
+                !r.open && 'text-ink-soft',
+              )}
+            >
               <span className="flex items-center gap-2">
                 {r.label}
                 {isToday && (
@@ -79,7 +94,7 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
             key={l.label}
             type="button"
             onClick={() => openExternal(l.url)}
-            className={cx('press flex h-[60px] items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold', l.dark ? 'bg-beitar-black text-white' : 'bg-surface text-ink')}
+            className={cx('press flex h-[60px] items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold', l.dark ? 'bg-brand text-white' : 'bg-surface text-ink')}
           >
             {l.icon}
             {l.label}
@@ -87,16 +102,22 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
         ))}
       </div>
 
-      <button type="button" onClick={onCourse} className="press mx-4 mt-4 flex h-[72px] w-[calc(100%-32px)] items-center gap-3 rounded-[18px] bg-beitar-black pe-3.5 ps-4 text-right text-white">
-        <span className="flex size-11 items-center justify-center rounded-full bg-beitar-yellow text-beitar-black">
-          <GraduationCap size={22} />
-        </span>
-        <span className="flex flex-1 flex-col gap-[3px]">
-          <span className="text-base font-semibold">רוצה ללמוד לספר?</span>
-          <span className="text-[13px] text-line-strong">קורס ספרות גברים</span>
-        </span>
-        <ChevronLeft size={20} />
-      </button>
+      {SHOP.course && (
+        <button
+          type="button"
+          onClick={onCourse}
+          className="press mx-4 mt-4 flex h-[72px] w-[calc(100%-32px)] items-center gap-3 rounded-[18px] bg-brand pe-3.5 ps-4 text-right text-white"
+        >
+          <span className="flex size-11 items-center justify-center rounded-full bg-brand-accent text-brand">
+            <GraduationCap size={22} />
+          </span>
+          <span className="flex flex-1 flex-col gap-[3px]">
+            <span className="text-base font-semibold">רוצה ללמוד לספר?</span>
+            <span className="text-[13px] text-line-strong">קורס ספרות גברים</span>
+          </span>
+          <ChevronLeft size={20} />
+        </button>
+      )}
 
       <button type="button" onClick={() => backend.auth.signOut()} className="mx-auto mt-6 flex h-11 items-center gap-2 px-4 text-sm font-medium text-ink-soft">
         <LogOut size={16} />
@@ -116,19 +137,24 @@ const FILTERS: { id: GalleryCategory | 'all'; label: string }[] = [
 export function GalleryScreen({ onBack }: { onBack: () => void }) {
   const db = useDb();
   const [filter, setFilter] = useState<GalleryCategory | 'all'>('all');
-  const items = [...db.gallery]
-    .filter((g) => filter === 'all' || g.category === filter)
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.order - b.order);
+  const items = [...db.gallery].filter((g) => filter === 'all' || g.category === filter).sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.order - b.order);
   return (
     <>
       <ScreenHeader
         title="גלריה"
         onBack={onBack}
         aside={
-          <button type="button" onClick={() => openExternal(SHOP.instagramUrl)} aria-label="עוד עבודות באינסטגרם" className="press ml-2 flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-semibold">
-            <Instagram size={16} />
-            <span dir="ltr">@{SHOP.instagram}</span>
-          </button>
+          SHOP.instagramUrl && (
+            <button
+              type="button"
+              onClick={() => openExternal(SHOP.instagramUrl!)}
+              aria-label="עוד עבודות באינסטגרם"
+              className="press ml-2 flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-semibold"
+            >
+              <Instagram size={16} />
+              <span dir="ltr">@{SHOP.instagram}</span>
+            </button>
+          )
         }
       />
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 pt-2">
@@ -162,11 +188,11 @@ export function CourseScreen({ onBack }: { onBack: () => void }) {
     <>
       <ScreenHeader onBack={onBack} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        <section className="mx-4 mt-1 flex flex-col gap-2 rounded-[22px] bg-beitar-black p-5 text-white">
-          <span className="self-start rounded-full bg-beitar-yellow px-2.5 py-1 text-xs font-semibold text-beitar-black">קורס ספרות גברים</span>
+        <section className="mx-4 mt-1 flex flex-col gap-2 rounded-[22px] bg-brand p-5 text-white">
+          <span className="self-start rounded-full bg-brand-accent px-2.5 py-1 text-xs font-semibold text-brand">קורס ספרות גברים</span>
           <h1 className="m-0 mt-1 font-brand text-[28px] font-normal leading-tight">ללמוד לספר</h1>
           <p className="m-0 text-[15px] leading-normal text-line-strong">משאירים פרטים ונחזור אליך עם כל המידע על הקורס.</p>
-          <div className="mt-1 text-[13px] text-line-strong">{SHOP.course.details}</div>
+          <div className="mt-1 text-[13px] text-line-strong">{SHOP.course?.details}</div>
         </section>
         <div className="flex flex-col gap-3.5 px-4 pt-5">
           <Field id="cname" label="שם מלא">
@@ -184,7 +210,7 @@ export function CourseScreen({ onBack }: { onBack: () => void }) {
                   type="button"
                   aria-pressed={exp === e}
                   onClick={() => setExp(e)}
-                  className={cx('press h-11 flex-1 rounded-xl text-sm', exp === e ? 'bg-beitar-black font-semibold text-beitar-yellow' : 'border border-line font-medium')}
+                  className={cx('press h-11 flex-1 rounded-xl text-sm', exp === e ? 'bg-brand font-semibold text-brand-accent' : 'border border-line font-medium')}
                 >
                   {e}
                 </button>

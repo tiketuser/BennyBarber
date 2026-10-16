@@ -32,7 +32,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
       <div className="min-h-0 flex-1 overflow-y-auto pt-safe" style={{ paddingBottom: `calc(${TAB_BAR_SPACE} + 84px)` }}>
         <header className="flex items-center justify-between gap-3 px-5 pt-[18px]">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-beitar-black text-beitar-yellow">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-accent">
               <Scissors size={20} />
             </div>
             <div className="flex min-w-0 flex-col gap-[3px]">
@@ -45,7 +45,12 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <button type="button" aria-label="ניווט ב-Waze" onClick={() => openExternal(SHOP.wazeUrl)} className="press flex size-11 items-center justify-center rounded-full border border-line bg-surface">
+            <button
+              type="button"
+              aria-label="ניווט ב-Waze"
+              onClick={() => openExternal(SHOP.wazeUrl)}
+              className="press flex size-11 items-center justify-center rounded-full border border-line bg-surface"
+            >
               <Navigation size={18} />
             </button>
             <button
@@ -63,7 +68,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
 
         {next && (
           <section aria-label="התור הקרוב שלך" className="mx-4 mt-[18px] flex items-center gap-3.5 rounded-[20px] border border-line bg-surface px-4 py-3.5">
-            <div className="flex h-14 w-[52px] flex-col items-center justify-center rounded-[14px] bg-beitar-black leading-tight text-beitar-yellow">
+            <div className="flex h-14 w-[52px] flex-col items-center justify-center rounded-[14px] bg-brand leading-tight text-brand-accent">
               <span className="text-[11px] font-medium">{relativeDayLabel(next.date, todayKey(now)) ?? `יום ${DAY_LETTERS[weekdayOf(next.date)]}`}</span>
               <span className="text-xl font-bold">{fromKey(next.date).getDate()}</span>
             </div>
@@ -96,20 +101,22 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
                 onClick={() => onSelectService(s.id)}
                 className={cx(
                   'press flex min-h-16 items-center gap-3 rounded-2xl px-4 text-right transition-colors duration-150',
-                  on ? 'border-2 border-beitar-black bg-white' : 'border border-line bg-surface',
+                  on ? 'border-2 border-brand bg-white' : 'border border-line bg-surface',
                 )}
               >
                 {on && (
-                  <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-beitar-black text-beitar-yellow">
+                  <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-brand text-brand-accent">
                     <Check size={14} strokeWidth={3} />
                   </span>
                 )}
                 <span className={cx('flex flex-1 flex-wrap items-center gap-2 py-3 text-base', on ? 'font-semibold' : 'font-medium')}>
                   {s.name}
-                  {s.popular && <span className="rounded-full bg-beitar-yellow px-2 py-[3px] text-[11px] font-semibold text-beitar-black">הכי מוזמן</span>}
+                  {s.popular && <span className="rounded-full bg-brand-accent px-2 py-[3px] text-[11px] font-semibold text-brand">הכי מוזמן</span>}
                 </span>
                 <span className="text-[13px] text-ink-soft">{s.durationMin} דק׳</span>
-                <span className={cx('w-[52px] text-left', s.priceHidden ? 'text-xs font-medium leading-tight text-ink-soft' : on ? 'text-base font-bold' : 'text-base font-semibold')}>
+                <span
+                  className={cx('w-[52px] text-left', s.priceHidden ? 'text-xs font-medium leading-tight text-ink-soft' : on ? 'text-base font-bold' : 'text-base font-semibold')}
+                >
                   {customerPrice(s)}
                 </span>
               </button>

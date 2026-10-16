@@ -21,7 +21,7 @@ export function useMyAppointments() {
   }, [db, session, now]);
 }
 
-/** "פתוח עכשיו" / "סגור • נפתח מחר ב-09:00" */
+/** "פתוח עכשיו" (with its closing time) / "סגור • נפתח מחר ב-09:00" */
 export function useOpenStatus() {
   const db = useDb();
   const now = useNow();
@@ -29,7 +29,7 @@ export function useOpenStatus() {
     const today = todayKey(now);
     const t = nowMinutes(now);
     const h = hoursFor(db.settings, today);
-    if (h && t >= h.from && t < h.to) return { open: true, text: 'פתוח עכשיו' };
+    if (h && t >= h.from && t < h.to) return { open: true, text: 'פתוח עכשיו', closesAt: fmtTime(h.to) };
     if (h && t < h.from) return { open: false, text: `סגור • נפתח ב-${fmtTime(h.from)}` };
     for (let d = 1; d < 14; d++) {
       const date = addDays(today, d);

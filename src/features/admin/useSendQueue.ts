@@ -16,14 +16,11 @@ interface Outgoing {
  */
 export function useSendQueue(list: Outgoing[]) {
   const [sent, setSent] = useState<Record<string, true>>({});
-  const send = useCallback(
-    (o: Outgoing) => {
-      openExternal(whatsappUrl(o.phone, o.text));
-      haptic();
-      setSent((s) => ({ ...s, [o.key]: true }));
-    },
-    [],
-  );
+  const send = useCallback((o: Outgoing) => {
+    openExternal(whatsappUrl(o.phone, o.text));
+    haptic();
+    setSent((s) => ({ ...s, [o.key]: true }));
+  }, []);
   const pending = list.filter((o) => !sent[o.key]);
   return {
     isSent: (key: string) => !!sent[key],

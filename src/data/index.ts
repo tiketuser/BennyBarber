@@ -5,4 +5,3 @@ import { createMockBackend } from './mock/mockBackend';
 export function createBackend(): Backend {
   return createMockBackend();
 }
-

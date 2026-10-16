@@ -16,8 +16,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "types": ["vite/client", "vite-plugin-pwa/client"]
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts", "capacitor.config.ts"]
+  "include": ["src", "vite.config.ts", "vitest.config.ts", "capacitor.config.ts", "shop.config.ts", "tailwind.config.ts"]
 }

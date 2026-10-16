@@ -55,6 +55,11 @@ describe('dayStatus', () => {
     db.blocks.push({ id: 'b2', date: FRIDAY, start: 810, end: 870 });
     expect(dayStatus(db, FRIDAY, 30, MONDAY_MORNING)).toBe('full');
   });
+
+  it('calls today closed, not full, once the last start time has passed', () => {
+    const evening = new Date(2026, 9, 19, 19, 55);
+    expect(dayStatus(emptyDb(), '2026-10-19', 30, evening)).toBe('closed');
+  });
 });
 
 describe('freeGaps', () => {

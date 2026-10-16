@@ -69,8 +69,12 @@ export function SlideToConfirm({ label, doneLabel, onConfirm, disabled }: Props)
       }}
       className={`relative h-[60px] select-none overflow-hidden rounded-full transition-colors duration-300 ${done ? 'bg-open' : 'bg-surface'} ${disabled ? 'opacity-40' : ''}`}
     >
-      <motion.div aria-hidden className={`absolute inset-y-0 right-0 rounded-full ${done ? 'bg-open' : 'bg-beitar-black'}`} style={{ width: fill }} />
-      <motion.div aria-hidden style={{ opacity: done ? 0 : labelOpacity }} className="pointer-events-none absolute inset-0 flex items-center justify-center pr-10 text-base font-semibold text-ink">
+      <motion.div aria-hidden className={`absolute inset-y-0 right-0 rounded-full ${done ? 'bg-open' : 'bg-brand'}`} style={{ width: fill }} />
+      <motion.div
+        aria-hidden
+        style={{ opacity: done ? 0 : labelOpacity }}
+        className="pointer-events-none absolute inset-0 flex items-center justify-center pr-10 text-base font-semibold text-ink"
+      >
         {label}
       </motion.div>
       <div
@@ -81,7 +85,7 @@ export function SlideToConfirm({ label, doneLabel, onConfirm, disabled }: Props)
       </div>
       <motion.div
         aria-hidden
-        className={`absolute right-1 top-1 flex size-[52px] cursor-grab touch-none items-center justify-center rounded-full bg-beitar-black text-beitar-yellow shadow-[0_2px_8px_rgba(17,17,17,0.25)] transition-opacity active:cursor-grabbing ${done ? 'opacity-0' : ''}`}
+        className={`absolute right-1 top-1 flex size-[52px] cursor-grab touch-none items-center justify-center rounded-full bg-brand text-brand-accent shadow-[0_2px_8px_rgba(17,17,17,0.25)] transition-opacity active:cursor-grabbing ${done ? 'opacity-0' : ''}`}
         style={{ x }}
         drag="x"
         dragListener={!disabled && state === 'idle'}

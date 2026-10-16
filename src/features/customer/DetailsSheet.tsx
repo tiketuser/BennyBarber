@@ -118,7 +118,7 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="למשל: קצר בצדדים, להשאיר אורך למעלה"
-            className="h-[76px] w-full resize-none rounded-[14px] border border-line bg-white px-4 py-3 text-base outline-none focus:border-2 focus:border-beitar-black"
+            className="h-[76px] w-full resize-none rounded-[14px] border border-line bg-white px-4 py-3 text-base outline-none focus:border-2 focus:border-brand"
           />
         </Field>
         <div className="flex items-center gap-2 text-[13px] text-ink-soft">

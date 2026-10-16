@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-// Sheets and toasts render into the app frame (not <body>), so they stay inside the phone frame on desktop.
+// Sheets and toasts render into the app frame (not <body>), so they stay inside the app column on wide screens.
 const HostContext = createContext<HTMLElement | null>(null);
 
 export function OverlayHost({ children }: { children: ReactNode }) {

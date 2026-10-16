@@ -1,7 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useDragControls } from 'motion/react';
+import { X } from 'lucide-react';
 import { Portal } from './Overlay';
 import { project, spring } from './motion';
+import { useIsDesktop } from './useIsDesktop';
 
 interface SheetProps {
   open: boolean;
@@ -16,13 +18,20 @@ interface SheetProps {
 }
 
 /**
- * Native-style bottom sheet. Drag the grabber down to dismiss: it follows the finger 1:1,
+ * Native-style bottom sheet on phones. Drag the grabber down to dismiss: it follows the finger 1:1,
  * and on release the flick velocity is projected forward to decide close vs. snap back.
+ * On desktop the same content opens as a side panel on the left edge, like the desktop design.
  */
 export function Sheet({ open, onClose, label, children, footer, onExited }: SheetProps) {
   return (
     <Portal>
-      <AnimatePresence onExitComplete={onExited}>{open && <SheetPanel key="sheet" onClose={onClose} label={label} footer={footer}>{children}</SheetPanel>}</AnimatePresence>
+      <AnimatePresence onExitComplete={onExited}>
+        {open && (
+          <SheetPanel key="sheet" onClose={onClose} label={label} footer={footer}>
+            {children}
+          </SheetPanel>
+        )}
+      </AnimatePresence>
     </Portal>
   );
 }
@@ -30,6 +39,7 @@ export function Sheet({ open, onClose, label, children, footer, onExited }: Shee
 function SheetPanel({ onClose, label, children, footer }: Omit<SheetProps, 'open' | 'onExited'>) {
   const controls = useDragControls();
   const panel = useRef<HTMLElement>(null);
+  const desktop = useIsDesktop();
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -44,17 +54,52 @@ function SheetPanel({ onClose, label, children, footer }: Omit<SheetProps, 'open
     };
   }, []);
 
+  const scrim = (
+    <motion.div
+      aria-hidden
+      className="absolute inset-0 bg-[rgba(28,25,23,0.32)]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={onClose}
+    />
+  );
+
+  if (desktop)
+    return (
+      <div className="absolute inset-0">
+        {scrim}
+        <motion.section
+          ref={panel}
+          role="dialog"
+          aria-modal="true"
+          aria-label={label}
+          tabIndex={-1}
+          className="absolute bottom-0 left-0 top-0 flex w-[460px] max-w-full flex-col rounded-r-3xl bg-white shadow-[12px_0_48px_rgba(28,25,23,0.22)] outline-none"
+          initial={{ x: '-100%' }}
+          animate={{ x: 0, transition: spring.sheet }}
+          exit={{ x: '-100%', transition: spring.exit }}
+        >
+          <div className="flex shrink-0 justify-end px-4 pt-4">
+            <button
+              type="button"
+              aria-label="סגור"
+              onClick={onClose}
+              className="flex size-10 items-center justify-center rounded-full text-ink-soft hover:bg-surface hover:text-ink"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-7 pb-4">{children}</div>
+          {footer && <div className="shrink-0 px-7 pb-7 pt-2">{footer}</div>}
+        </motion.section>
+      </div>
+    );
+
   return (
     <div className="absolute inset-0">
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 bg-[rgba(28,25,23,0.32)]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        onClick={onClose}
-      />
+      {scrim}
       <motion.section
         ref={panel}
         role="dialog"

@@ -38,12 +38,14 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
         transition={{ ...spring.sheet, delay: 0.2 }}
         className="mt-7 w-[calc(100%-48px)] max-w-[342px] shrink-0 overflow-hidden rounded-[22px] bg-white shadow-[0_8px_30px_rgba(28,25,23,0.08)]"
       >
-        <div className="flex items-center justify-between bg-beitar-black px-5 py-[18px] text-white">
+        <div className="flex items-center justify-between bg-brand px-5 py-[18px] text-white">
           <div className="flex flex-col gap-0.5">
-            <span className="font-brand text-2xl leading-tight text-beitar-yellow">{SHOP.brand}</span>
-            <span className="text-xs text-line-strong">ברברשופ • {SHOP.address}</span>
+            <span className="font-brand text-2xl leading-tight text-brand-accent">{SHOP.brand}</span>
+            <span className="text-xs text-line-strong">
+              {SHOP.kind} • {SHOP.address}
+            </span>
           </div>
-          <Scissors size={26} className="text-beitar-yellow" />
+          <Scissors size={26} className="text-brand-accent" />
         </div>
         <div className="grid grid-cols-2 gap-4 p-5">
           {[

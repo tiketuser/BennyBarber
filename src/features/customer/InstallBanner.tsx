@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Download, Share, X } from 'lucide-react';
+import { SHOP } from '@/config/shop';
 import { isIOS, isStandalone } from '@/lib/platform';
 import { Button } from '@/ui/controls';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
@@ -69,8 +70,8 @@ export function InstallBanner() {
           >
             <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
               <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="" className="size-11 rounded-xl" />
-              <p className="m-0 flex-1 text-[13px] leading-snug">התקן את האפליקציה של בני כהן למסך הבית לגישה מהירה</p>
-              <button type="button" onClick={install} className="press h-9 rounded-full bg-beitar-black px-3.5 text-[13px] font-semibold text-beitar-yellow">
+              <p className="m-0 flex-1 text-[13px] leading-snug">התקן את האפליקציה של {SHOP.brand} למסך הבית לגישה מהירה</p>
+              <button type="button" onClick={install} className="press h-9 rounded-full bg-brand px-3.5 text-[13px] font-semibold text-brand-accent">
                 התקנה
               </button>
               <button type="button" aria-label="סגור" onClick={dismiss} className="press -me-1 flex size-9 items-center justify-center rounded-full text-ink-soft">
@@ -81,7 +82,16 @@ export function InstallBanner() {
         )}
       </AnimatePresence>
 
-      <Sheet open={help} onClose={() => setHelp(false)} label="התקנה למסך הבית" footer={<Button block onClick={() => setHelp(false)}>הבנתי</Button>}>
+      <Sheet
+        open={help}
+        onClose={() => setHelp(false)}
+        label="התקנה למסך הבית"
+        footer={
+          <Button block onClick={() => setHelp(false)}>
+            הבנתי
+          </Button>
+        }
+      >
         <SheetTitle>התקנה למסך הבית</SheetTitle>
         <ol className="m-0 mt-4 flex list-none flex-col gap-3 p-0 text-[15px]">
           {isIOS() ? (

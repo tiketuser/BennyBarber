@@ -12,7 +12,7 @@ import { waitingFor } from './openings';
 import { useSendQueue } from './useSendQueue';
 
 /** "התפנה תור": one-tap WhatsApp to everyone waiting, first come first served. */
-export function OpeningAlert({ appt }: { appt: Appointment }) {
+export function OpeningAlert({ appt, className = 'mx-4 mt-4' }: { appt: Appointment; className?: string }) {
   const backend = useBackend();
   const db = useDb();
   const now = useNow();
@@ -26,10 +26,18 @@ export function OpeningAlert({ appt }: { appt: Appointment }) {
   const part = partOf(from);
 
   return (
-    <motion.section layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} transition={spring.ui} aria-live="polite" className="mx-4 mt-4 overflow-hidden">
-      <div className="flex flex-col gap-3 rounded-[20px] bg-beitar-black p-4 text-white">
+    <motion.section
+      layout
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={spring.ui}
+      aria-live="polite"
+      className={cx('overflow-hidden', className)}
+    >
+      <div className="flex flex-col gap-3 rounded-[20px] bg-brand p-4 text-white">
         <div className="flex items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-beitar-yellow text-beitar-black">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand">
             <Bell size={20} />
           </span>
           <div className="flex flex-1 flex-col gap-[3px]">
@@ -40,7 +48,12 @@ export function OpeningAlert({ appt }: { appt: Appointment }) {
               {appt.customerName} ביטל {fmtAgo(appt.cancelledAt ?? Date.now())} • תור של {money(appt.price)}
             </span>
           </div>
-          <button type="button" aria-label="סגור התראה" onClick={() => backend.appointments.markOpeningHandled(appt.id)} className="press -me-1 flex size-10 items-center justify-center rounded-full text-line-strong">
+          <button
+            type="button"
+            aria-label="סגור התראה"
+            onClick={() => backend.appointments.markOpeningHandled(appt.id)}
+            className="press -me-1 flex size-10 items-center justify-center rounded-full text-line-strong"
+          >
             <X size={18} />
           </button>
         </div>

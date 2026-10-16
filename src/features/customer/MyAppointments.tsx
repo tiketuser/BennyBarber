@@ -59,7 +59,7 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
               className="overflow-hidden rounded-[20px] border border-line"
             >
               <div className="flex items-center gap-3.5 p-4">
-                <div className="flex h-[60px] w-14 flex-col items-center justify-center rounded-[14px] bg-beitar-black leading-tight text-beitar-yellow">
+                <div className="flex h-[60px] w-14 flex-col items-center justify-center rounded-[14px] bg-brand leading-tight text-brand-accent">
                   <span className="text-[11px] font-medium">{MONTHS_SHORT[fromKey(a.date).getMonth()]}</span>
                   <span className="text-[22px] font-bold">{fromKey(a.date).getDate()}</span>
                 </div>

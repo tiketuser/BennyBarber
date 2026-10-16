@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Bell, Check, ChevronLeft, Scissors } from 'lucide-react';
-import { useBackend, useDb, useNow, useSession } from '@/data/store';
-import { PARTS, PART_LABELS, dayStatus, slotsFor, type DayStatus } from '@/domain/schedule';
-import type { DateKey, DayPart, Minutes, Service, WaitlistEntry } from '@/domain/types';
+import { Bell, ChevronLeft, Scissors } from 'lucide-react';
+import { useDb, useNow } from '@/data/store';
+import { PARTS, dayStatus, slotsFor, type DayStatus } from '@/domain/schedule';
+import type { DateKey, Minutes, Service } from '@/domain/types';
 import { addDays, DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, todayKey, weekdayOf } from '@/lib/time';
 import { haptic } from '@/lib/platform';
 import { Button, ScreenHeader } from '@/ui/controls';
 import { cx } from '@/ui/cx';
-import { spring } from '@/ui/motion';
-import { useToast } from '@/ui/useToast';
 import { customerPrice } from '../format';
+import { useWaitlist } from './useWaitlist';
+import { WaitlistCard } from './WaitlistCard';
 
 const DAYS = 14;
 
@@ -44,24 +44,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
     }
   }, [date, days, onPick]);
 
-  const backend = useBackend();
-  const session = useSession();
-  const toast = useToast();
-  const [part, setPart] = useState<DayPart>('any');
-  const [joining, setJoining] = useState(false);
-  const myWait = date ? db.waitlist.find((w) => w.date === date && session && w.customerPhone === session.phone) : undefined;
-  const join = async () => {
-    if (!session || !date) return;
-    setJoining(true);
-    try {
-      await backend.waitlist.join(date, part, session.name ?? '', session.phone);
-      haptic('success');
-    } catch (e) {
-      toast({ text: (e as Error).message, tone: 'error' });
-    } finally {
-      setJoining(false);
-    }
-  };
+  const waitlist = useWaitlist(date);
 
   const selected = days.find((d) => d.date === date);
   const slots = useMemo(() => (date ? slotsFor(db, date, service.durationMin, now) : []), [db, date, service.durationMin, now]);
@@ -81,14 +64,14 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
     <>
       <ScreenHeader title={rescheduling ? 'שינוי מועד' : 'מתי נוח לך?'} onBack={onBack} aside={<span className="pl-3 text-[13px] text-ink-soft">שלב 2 מתוך 3</span>} />
       <div aria-hidden className="mx-5 mt-1 flex gap-1.5">
-        <span className="h-1 flex-1 rounded bg-beitar-black" />
-        <span className="h-1 flex-1 rounded bg-beitar-black" />
+        <span className="h-1 flex-1 rounded bg-brand" />
+        <span className="h-1 flex-1 rounded bg-brand" />
         <span className="h-1 flex-1 rounded bg-line" />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-36">
         <div className="mx-4 mt-4 flex h-[52px] items-center gap-2.5 rounded-[14px] bg-surface px-3.5">
-          <Scissors size={20} className="text-beitar-black" />
+          <Scissors size={20} className="text-brand" />
           <span className="flex-1 truncate text-[15px] font-medium">
             {service.name}{' '}
             <span className="font-normal text-ink-soft">
@@ -110,7 +93,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={date ?? 'none'} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
             {isFull && date ? (
-              <WaitlistCard date={date} part={part} setPart={setPart} mine={myWait} onLeave={(id) => backend.waitlist.leave(id).catch((e: Error) => toast({ text: e.message, tone: 'error' }))} />
+              <WaitlistCard date={date} waitlist={waitlist} />
             ) : (
               <div className="flex flex-col gap-[18px] px-4 pt-[22px]">
                 {PARTS.map((p) => {
@@ -132,13 +115,19 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
                               }}
                               className={cx(
                                 'press num h-11 rounded-xl text-[15px] transition-colors duration-150',
-                                s.start === start ? 'bg-beitar-black font-bold text-beitar-yellow' : 'border border-line font-medium',
+                                s.start === start ? 'bg-brand font-bold text-brand-accent' : 'border border-line font-medium',
                               )}
                             >
                               {fmtTime(s.start)}
                             </button>
                           ) : (
-                            <button key={s.start} type="button" disabled aria-label={`${fmtTime(s.start)} תפוס`} className="num h-11 rounded-xl bg-surface text-[15px] text-ink-faint line-through">
+                            <button
+                              key={s.start}
+                              type="button"
+                              disabled
+                              aria-label={`${fmtTime(s.start)} תפוס`}
+                              className="num h-11 rounded-xl bg-surface text-[15px] text-ink-faint line-through"
+                            >
                               {fmtTime(s.start)}
                             </button>
                           ),
@@ -154,9 +143,9 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
         </AnimatePresence>
       </div>
 
-      {isFull && !myWait && (
+      {isFull && !waitlist.mine && (
         <div className="glass absolute inset-x-0 bottom-0 z-[5] border-t border-line-soft px-4 pt-3 pb-bar-lg">
-          <Button block disabled={joining} onClick={join} icon={<Bell size={20} />}>
+          <Button block disabled={waitlist.joining} onClick={waitlist.join} icon={<Bell size={20} />}>
             היום מלא? היכנס לרשימת המתנה
           </Button>
         </div>
@@ -194,69 +183,13 @@ function DayPill({ date, today, status, on, onPick }: { date: DateKey; today: Da
       onClick={onPick}
       className={cx(
         'press flex h-[72px] w-14 shrink-0 snap-start flex-col items-center justify-center rounded-2xl transition-colors duration-150',
-        on ? 'bg-beitar-black text-white' : closed ? 'bg-surface text-ink-faint' : 'border border-line',
+        on ? 'bg-brand text-white' : closed ? 'bg-surface text-ink-faint' : 'border border-line',
         sub ? 'gap-0.5' : 'gap-1',
       )}
     >
       <span className={cx('text-xs', on ? 'font-medium' : closed ? '' : 'text-ink-soft')}>{top}</span>
-      <span className={cx('text-xl', on ? 'font-bold text-beitar-yellow' : 'font-semibold')}>{fromKey(date).getDate()}</span>
+      <span className={cx('text-xl', on ? 'font-bold text-brand-accent' : 'font-semibold')}>{fromKey(date).getDate()}</span>
       {sub && <span className={cx('text-[10px]', on ? 'text-line-strong' : 'text-danger')}>{sub}</span>}
     </button>
-  );
-}
-
-function WaitlistCard({ date, part, setPart, mine, onLeave }: { date: DateKey; part: DayPart; setPart: (p: DayPart) => void; mine?: WaitlistEntry; onLeave: (id: string) => void }) {
-  const dayLabel = `יום ${DAY_LETTERS[weekdayOf(date)]}`;
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-        {mine ? (
-          <motion.section
-            key="joined"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={spring.ui}
-            className="mx-4 mt-5 flex flex-col items-center gap-2.5 rounded-[22px] border border-open-line bg-open-soft px-5 py-6 text-center"
-          >
-            <span className="flex size-14 items-center justify-center rounded-full bg-open text-white">
-              <Check size={28} strokeWidth={2.5} />
-            </span>
-            <span className="text-xl font-bold">אתה ברשימת ההמתנה</span>
-            <span className="text-[15px] leading-normal">
-              {fmtShortDate(date)} • {mine.part === 'any' ? 'כל שעה' : 'ב' + PART_LABELS[mine.part]}
-              <br />
-              ברגע שמתפנה תור נשלח לך הודעה בוואטסאפ. מי שעונה ראשון תופס.
-            </span>
-            <button type="button" onClick={() => onLeave(mine.id)} className="h-11 text-sm font-semibold text-ink-soft underline">
-              צא מהרשימה
-            </button>
-          </motion.section>
-        ) : (
-          <motion.section key="join" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-4 mt-5 flex flex-col gap-3.5 rounded-[22px] bg-surface p-5">
-            <div className="flex items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white">
-                <Bell size={20} />
-              </span>
-              <div className="flex flex-col gap-[3px]">
-                <span className="text-lg font-bold">{dayLabel} מלא לגמרי</span>
-                <span className="text-sm text-ink-soft">אבל כמעט תמיד מישהו מבטל ברגע האחרון</span>
-              </div>
-            </div>
-            <div className="text-sm font-semibold">מתי יתאים לך אם יתפנה?</div>
-            <div className="grid grid-cols-2 gap-2">
-              {(['morning', 'noon', 'evening', 'any'] as DayPart[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  aria-pressed={p === part}
-                  onClick={() => setPart(p)}
-                  className={cx('press h-12 rounded-[14px] text-[15px] font-semibold', p === part ? 'bg-beitar-black text-beitar-yellow' : 'border border-line bg-white')}
-                >
-                  {PART_LABELS[p]}
-                </button>
-              ))}
-            </div>
-          </motion.section>
-        )}
-    </AnimatePresence>
   );
 }

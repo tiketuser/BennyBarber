@@ -91,11 +91,13 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
           <h2 className="m-0 mt-5 text-[22px] font-bold">לחסום זמן</h2>
           <p className="m-0 mt-1 text-[13px] text-ink-soft">לקוחות לא יוכלו לקבוע בזמן הזה. החל מ-{fmtTime(from)}.</p>
           <div className="mt-3.5 grid grid-cols-3 gap-2 pb-2">
-            {([
-              [30, '30 דק׳'],
-              [60, 'שעה'],
-              ['end', 'עד הסוף'],
-            ] as const).map(([len, label]) => (
+            {(
+              [
+                [30, '30 דק׳'],
+                [60, 'שעה'],
+                ['end', 'עד הסוף'],
+              ] as const
+            ).map(([len, label]) => (
               <Button key={label} variant="danger" size="lg" className="text-base" onClick={() => block(len)}>
                 {label}
               </Button>

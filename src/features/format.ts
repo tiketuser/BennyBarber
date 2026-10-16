@@ -6,7 +6,6 @@ export const money = (v: number) => '₪' + v.toLocaleString('en-US');
 export const customerPrice = (s: Pick<Service, 'price' | 'priceHidden'>) => (s.priceHidden ? 'מחיר במספרה' : money(s.price));
 
 /** Price of a booked appointment as the customer sees it: what they booked at, unless the price is hidden. */
-export const appointmentPrice = (a: Appointment, services: Service[]) =>
-  services.find((s) => s.id === a.serviceId)?.priceHidden ? 'מחיר במספרה' : money(a.price);
+export const appointmentPrice = (a: Appointment, services: Service[]) => (services.find((s) => s.id === a.serviceId)?.priceHidden ? 'מחיר במספרה' : money(a.price));
 
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;

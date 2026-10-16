@@ -6,15 +6,15 @@ No screen changes.
 
 ## Collections (Firestore)
 
-| Collection | Doc shape | Notes |
-| --- | --- | --- |
-| `services/{id}` | `Service` | Public read, admin write. |
-| `settings/shop` | `Settings` | One doc: weekly hours, fixed break, vacations. Public read, admin write. |
-| `appointments/{id}` | `Appointment` | Customer creates own (`customerPhone == auth phone`), reads own; admin reads/writes all. |
-| `blocks/{id}` | `Block` | Admin only; customers need only busy ranges (see below). |
-| `waitlist/{id}` | `WaitlistEntry` | Customer creates/deletes own; admin reads all. |
-| `gallery/{id}` | `GalleryItem` | `src` points to Firebase Storage. Admin write. |
-| `admins/{phone}` | `{}` | Admin phone numbers. Drives the `admin` custom claim. |
+| Collection          | Doc shape       | Notes                                                                                    |
+| ------------------- | --------------- | ---------------------------------------------------------------------------------------- |
+| `services/{id}`     | `Service`       | Public read, admin write.                                                                |
+| `settings/shop`     | `Settings`      | One doc: weekly hours, fixed break, vacations. Public read, admin write.                 |
+| `appointments/{id}` | `Appointment`   | Customer creates own (`customerPhone == auth phone`), reads own; admin reads/writes all. |
+| `blocks/{id}`       | `Block`         | Admin only; customers need only busy ranges (see below).                                 |
+| `waitlist/{id}`     | `WaitlistEntry` | Customer creates/deletes own; admin reads all.                                           |
+| `gallery/{id}`      | `GalleryItem`   | `src` points to Firebase Storage. Admin write.                                           |
+| `admins/{phone}`    | `{}`            | Admin phone numbers. Drives the `admin` custom claim.                                    |
 
 `getSnapshot()` stays the same: keep one `DbSnapshot` object in memory and replace it on every
 `onSnapshot` callback, then notify subscribers. Customers should not download everyone's appointments:

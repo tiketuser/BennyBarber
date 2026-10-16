@@ -55,7 +55,9 @@ export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; 
         )
       }
     >
-      <SheetTitle aside={gaps.length ? `${gaps.length === 1 ? 'חלון אחד' : `${gaps.length} חלונות`} • ${totalLabel} בסך הכל` : undefined}>{isToday ? 'פנוי היום' : `פנוי ב${fmtShortDate(date)}`}</SheetTitle>
+      <SheetTitle aside={gaps.length ? `${gaps.length === 1 ? 'חלון אחד' : `${gaps.length} חלונות`} • ${totalLabel} בסך הכל` : undefined}>
+        {isToday ? 'פנוי היום' : `פנוי ב${fmtShortDate(date)}`}
+      </SheetTitle>
       {gaps.length === 0 && <p className="py-6 text-center text-ink-soft">היומן מלא. אין חלונות פנויים.</p>}
       <div className="mt-4 flex flex-col gap-2.5 pb-2">
         {gaps.map((g, i) => (
@@ -74,13 +76,7 @@ export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; 
               <Button size="sm" className="flex-1" icon={<Plus size={18} />} onClick={() => onAdd(g.from)}>
                 הוסף לקוח
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                className="flex-1"
-                icon={<Ban size={18} />}
-                onClick={() => block(g.from, g.to)}
-              >
+              <Button size="sm" variant="danger" className="flex-1" icon={<Ban size={18} />} onClick={() => block(g.from, g.to)}>
                 חסום
               </Button>
             </div>
@@ -102,10 +98,7 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
   const now = useNow();
   const today = todayKey(now);
   const upcoming = useMemo(
-    () =>
-      db.appointments
-        .filter((a) => a.date === today && a.status === 'booked' && a.end > nowMinutes(now) && a.phone)
-        .sort((a, b) => a.start - b.start),
+    () => db.appointments.filter((a) => a.date === today && a.status === 'booked' && a.end > nowMinutes(now) && a.phone).sort((a, b) => a.start - b.start),
     [db.appointments, today, now],
   );
   const [delay, setDelay] = useState(15);
@@ -116,7 +109,8 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
   useOnChange(open, (isOpen) => isOpen && setUntil(upcoming[Math.min(1, upcoming.length - 1)]?.start ?? 0));
 
   const hit = upcoming.filter((a) => a.start <= until);
-  const msg = (a: Appointment) => `היי ${firstName(a.customerName)}, יש עיכוב של בערך ${delay} דק׳. התור שלך יתחיל ב-${fmtTime(a.start + delay)} במקום ${fmtTime(a.start)}. סליחה ותודה על הסבלנות!`;
+  const msg = (a: Appointment) =>
+    `היי ${firstName(a.customerName)}, יש עיכוב של בערך ${delay} דק׳. התור שלך יתחיל ב-${fmtTime(a.start + delay)} במקום ${fmtTime(a.start)}. סליחה ותודה על הסבלנות!`;
   const queue = useSendQueue(hit.map((a) => ({ key: a.id, name: a.customerName, phone: a.phone, text: msg(a) })));
   const step = (dir: 1 | -1) => {
     // Move the "until" cursor to the next/previous appointment start.
@@ -177,7 +171,7 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
                 type="button"
                 aria-pressed={n === delay}
                 onClick={() => setDelay(n)}
-                className={cx('press h-10 flex-1 rounded-xl text-sm font-semibold', n === delay ? 'bg-beitar-black text-beitar-yellow' : 'border border-line bg-white')}
+                className={cx('press h-10 flex-1 rounded-xl text-sm font-semibold', n === delay ? 'bg-brand text-brand-accent' : 'border border-line bg-white')}
               >
                 {n === 60 ? 'שעה' : n}
               </button>
@@ -213,7 +207,12 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
                 <span className="num text-ink-mute line-through">{fmtTime(a.start)}</span>
                 <ArrowLeft size={14} className="text-ink-mute" />
                 <span className="num font-bold">{fmtTime(a.start + delay)}</span>
-                <button type="button" aria-label={`שלח ל${a.customerName}`} onClick={() => queue.send({ key: a.id, name: a.customerName, phone: a.phone, text: msg(a) })} className="press flex size-9 items-center justify-center rounded-full text-open-text">
+                <button
+                  type="button"
+                  aria-label={`שלח ל${a.customerName}`}
+                  onClick={() => queue.send({ key: a.id, name: a.customerName, phone: a.phone, text: msg(a) })}
+                  className="press flex size-9 items-center justify-center rounded-full text-open-text"
+                >
                   {queue.isSent(a.id) ? <Check size={18} /> : <MessageCircle size={18} />}
                 </button>
               </div>
@@ -271,8 +270,26 @@ export function BlockSheet({ block, onClose }: { block: Block | null; onClose: (
     >
       <SheetTitle>עריכת חסימה</SheetTitle>
       <div className="mt-4 flex flex-col gap-2.5">
-        <Stepper label="מ-" value={fmtTime(from)} decLabel="מוקדם יותר" incLabel="מאוחר יותר" canDec={!!h && from > h.from} canInc={from + 15 < to} onDec={() => setFrom((v) => v - 15)} onInc={() => setFrom((v) => v + 15)} />
-        <Stepper label="עד" value={fmtTime(to)} decLabel="מוקדם יותר" incLabel="מאוחר יותר" canDec={to - 15 > from} canInc={!!h && to < h.to} onDec={() => setTo((v) => v - 15)} onInc={() => setTo((v) => v + 15)} />
+        <Stepper
+          label="מ-"
+          value={fmtTime(from)}
+          decLabel="מוקדם יותר"
+          incLabel="מאוחר יותר"
+          canDec={!!h && from > h.from}
+          canInc={from + 15 < to}
+          onDec={() => setFrom((v) => v - 15)}
+          onInc={() => setFrom((v) => v + 15)}
+        />
+        <Stepper
+          label="עד"
+          value={fmtTime(to)}
+          decLabel="מוקדם יותר"
+          incLabel="מאוחר יותר"
+          canDec={to - 15 > from}
+          canInc={!!h && to < h.to}
+          onDec={() => setTo((v) => v - 15)}
+          onInc={() => setTo((v) => v + 15)}
+        />
       </div>
     </Sheet>
   );
@@ -293,7 +310,9 @@ export function AdminCancelSheet({ appt, onClose }: { appt: Appointment | null; 
     }
     haptic();
     if (notify && a.phone) {
-      openExternal(whatsappUrl(a.phone, `היי ${firstName(a.customerName)}, נאלצתי לבטל את התור שלך ב${fmtShortDate(a.date)} ב-${fmtTime(a.start)}. סליחה! אפשר לקבוע מועד חדש באפליקציה.`));
+      openExternal(
+        whatsappUrl(a.phone, `היי ${firstName(a.customerName)}, נאלצתי לבטל את התור שלך ב${fmtShortDate(a.date)} ב-${fmtTime(a.start)}. סליחה! אפשר לקבוע מועד חדש באפליקציה.`),
+      );
     }
     toast({ text: 'התור בוטל' });
   };

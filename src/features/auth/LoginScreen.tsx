@@ -13,7 +13,7 @@ import { firstName } from '../format';
 type Step = 'phone' | 'code' | 'name' | 'done';
 
 /** Phone number + 4-digit SMS code. New customers give their name once; the admin number opens the admin view. */
-export function LoginScreen({ onDone }: { onDone: () => void }) {
+export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without the logo header, inside the desktop card. */ bare?: boolean }) {
   const backend = useBackend();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
@@ -80,13 +80,17 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-white pt-safe">
-      <div className="flex flex-col items-center gap-3 px-6 pt-14 text-center">
-        <div className="flex size-[72px] items-center justify-center rounded-full bg-beitar-black text-beitar-yellow">
-          <Scissors size={32} />
+      {!bare && (
+        <div className="flex flex-col items-center gap-3 px-6 pt-14 text-center">
+          <div className="flex size-[72px] items-center justify-center rounded-full bg-brand text-brand-accent">
+            <Scissors size={32} />
+          </div>
+          <div className="font-brand text-[30px] leading-none">{SHOP.brand}</div>
+          <div className="text-sm text-ink-soft">
+            {SHOP.kind} • {SHOP.address}
+          </div>
         </div>
-        <div className="font-brand text-[30px] leading-none">{SHOP.brand}</div>
-        <div className="text-sm text-ink-soft">ברברשופ • {SHOP.address}</div>
-      </div>
+      )}
 
       <form
         className="flex min-h-0 flex-1 flex-col"
@@ -95,7 +99,7 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
           if (cta.ok && !busy) cta.run();
         }}
       >
-        <div className="relative mt-10 flex-1 overflow-hidden px-6">
+        <div className={cx('relative flex-1 overflow-hidden px-6', bare ? 'mt-8' : 'mt-10')}>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.section
               key={step}
@@ -112,7 +116,7 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
                   <label htmlFor="lphone" className="sr-only">
                     מספר נייד
                   </label>
-                  <PhoneInput id="lphone" autoFocus value={phone} onChange={setPhone} className="mt-2 h-[60px] rounded-2xl border-2 border-beitar-black text-[22px] font-semibold" />
+                  <PhoneInput id="lphone" autoFocus value={phone} onChange={setPhone} className="mt-2 h-[60px] rounded-2xl border-2 border-brand text-[22px] font-semibold" />
                 </>
               )}
 
@@ -132,7 +136,7 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
                         aria-hidden
                         className={cx(
                           'num flex h-16 flex-1 items-center justify-center rounded-2xl text-[28px] font-bold transition-colors',
-                          i === code.length ? 'border-2 border-beitar-black bg-white' : code[i] ? 'border border-line bg-surface' : 'border border-line bg-white',
+                          i === code.length ? 'border-2 border-brand bg-white' : code[i] ? 'border border-line bg-surface' : 'border border-line bg-white',
                         )}
                       >
                         {code[i] ?? ''}
@@ -170,13 +174,26 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
                   <label htmlFor="lname" className="sr-only">
                     שם מלא
                   </label>
-                  <TextInput id="lname" autoFocus autoComplete="name" placeholder="שם מלא" value={name} onChange={(e) => setName(e.target.value)} className="mt-2 h-[60px] rounded-2xl border-2 border-beitar-black text-xl font-medium" />
+                  <TextInput
+                    id="lname"
+                    autoFocus
+                    autoComplete="name"
+                    placeholder="שם מלא"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="mt-2 h-[60px] rounded-2xl border-2 border-brand text-xl font-medium"
+                  />
                 </>
               )}
 
               {step === 'done' && (
                 <div className="flex flex-col items-center gap-2.5 text-center">
-                  <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.4, duration: 0.5 }} className="flex size-[60px] items-center justify-center rounded-full bg-open text-white">
+                  <motion.span
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0.4, duration: 0.5 }}
+                    className="flex size-[60px] items-center justify-center rounded-full bg-open text-white"
+                  >
                     <Check size={30} strokeWidth={2.5} />
                   </motion.span>
                   <h1 className="m-0 mt-1.5 text-2xl font-bold">{role === 'admin' ? 'שלום, מנהל' : `היי ${firstName(name || backend.auth.getSession()?.name || '')}, הכל מוכן`}</h1>

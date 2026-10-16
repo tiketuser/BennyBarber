@@ -3,6 +3,7 @@
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
 import { assertBookable } from '@/domain/schedule';
+import { ADMIN_PHONES } from '@/config/shop';
 import { phoneDigits } from '@/lib/phone';
 import { buildSeed } from './seed';
 
@@ -11,7 +12,6 @@ const SESSION_KEY = 'bb.session.v1';
 /** Names customers saved once, by phone, so a returning number skips the name step. */
 const NAMES_KEY = 'bb.names.v1';
 /** Demo admin number. In production the admin list lives on the server (Firestore `admins` / custom claims). */
-const ADMIN_PHONES = ['0500000000'];
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
@@ -176,7 +176,8 @@ export function createMockBackend(): Backend {
           serviceName: svc.name,
           price: svc.price,
           customerName: input.customerName?.trim() || 'לקוח מזדמן',
-          phone: '',
+          phone: phoneDigits(input.phone ?? ''),
+          notes: input.notes?.trim() || undefined,
           status: 'booked',
           source: 'walkin',
           createdAt: Date.now(),
@@ -264,7 +265,9 @@ export function createMockBackend(): Backend {
         const v = { id: uid(), from, to };
         // Appointments in the vacation are cancelled; the admin is offered to message each client.
         const appointments = db.appointments.map((a) =>
-          a.status === 'booked' && a.date >= from && a.date <= to ? { ...a, status: 'cancelled' as const, cancelledAt: Date.now(), cancelledBy: 'admin' as const, openingHandled: true } : a,
+          a.status === 'booked' && a.date >= from && a.date <= to
+            ? { ...a, status: 'cancelled' as const, cancelledAt: Date.now(), cancelledBy: 'admin' as const, openingHandled: true }
+            : a,
         );
         commit({ ...db, appointments, settings: { ...db.settings, vacations: [...db.settings.vacations, v] } });
         return v;
