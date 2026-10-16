@@ -20,8 +20,11 @@ export const SHOP = {
   mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place),
   course: config.course,
   /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */
-  appUrl: import.meta.env.VITE_APP_URL ?? location.origin,
+  appUrl: import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '',
 } as const;
 
 export const ADMIN_PHONES = config.adminPhones.map(phoneDigits);
 export const DEFAULTS = config.defaults;
+/** Where the data lives; VITE_BACKEND overrides it (the e2e tests and the shareable demo use 'demo'). */
+export const BACKEND: 'demo' | 'firebase' = (import.meta.env.VITE_BACKEND as 'demo' | 'firebase' | undefined) ?? config.backend;
+export const FIREBASE = { config: config.firebase, shopId: config.shopId };

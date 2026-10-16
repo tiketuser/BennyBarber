@@ -12,10 +12,13 @@ npm run lint       # eslint
 npm run format     # prettier
 npm test           # unit tests for the scheduling and backend rules (vitest)
 npm run test:e2e   # every feature on a phone and a desktop screen in Chromium (Playwright)
+npm run test:e2e:firebase  # the same against the Firebase emulators, with the real security rules
+npm run test:rules         # what a malicious customer might try, refused by the rules
 ```
 
-Sign in: any `05X` number signs in as a customer, the numbers in `adminPhones` (`050-0000000`) open the admin view.
-Until Firebase phone auth is connected, the data is local demo data and any 4-digit code is accepted.
+Sign in: any `05X` number signs in as a customer, the numbers in `adminPhones` open the admin view.
+`backend` in `shop.config.ts` picks the data: `'demo'` keeps sample data in the browser and accepts any 6-digit
+code; `'firebase'` uses the shop's Firebase project (real SMS, Firestore, Storage). See `src/data/firebase/README.md`.
 
 The layout follows the device: phones and tablets get the mobile screens, screens 1024px and wider get the desktop
 pages (top navigation for customers, side menu for the admin, sheets open as a side panel).

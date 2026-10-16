@@ -1,12 +1,30 @@
 // End-to-end check of every feature, on a phone and on a desktop screen, in the bundled Chromium.
-// Usage: npm run test:e2e   (starts its own dev server on port 5199)
-import { spawn } from 'node:child_process';
+// Usage: npm run test:e2e            demo data (starts its own dev server on port 5199)
+//        npm run test:e2e:firebase   the same steps against the Firebase emulators, with the real security rules
+import { execSync, spawn } from 'node:child_process';
 import { chromium, devices } from 'playwright';
 
+const FIREBASE = process.env.E2E_BACKEND === 'firebase';
+const PROJECT = 'barber-bennycohen';
 const PORT = 5199;
 const URL = `http://localhost:${PORT}/`;
-const server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
-const stop = () => server.kill();
+const env = { ...process.env, VITE_BACKEND: FIREBASE ? 'firebase' : 'demo', ...(FIREBASE && { VITE_FIREBASE_EMULATOR: '127.0.0.1' }) };
+if (
+  await fetch(URL).then(
+    () => true,
+    () => false,
+  )
+)
+  throw new Error(`port ${PORT} is busy: stop the old dev server first`);
+const server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', env, detached: true });
+// Kill the whole group: npx -> vite would otherwise outlive us and keep the port.
+const stop = () => {
+  try {
+    process.kill(-server.pid);
+  } catch {
+    /* already gone */
+  }
+};
 process.on('exit', stop);
 
 for (let i = 0; i < 60; i++) {
@@ -35,7 +53,27 @@ async function step(name, fn) {
   }
 }
 
+/** Fresh emulator data for every screen size: empty accounts, the demo sample data in Firestore. */
+async function resetFirebase() {
+  await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: 'DELETE' });
+  await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/accounts`, { method: 'DELETE' });
+  execSync('npx vite-node e2e/seed-firebase.ts', { stdio: 'ignore' });
+}
+
+/** The SMS code the auth emulator "sent" to this number. */
+async function smsCode(phone) {
+  const e164 = '+972' + phone.replace(/\D/g, '').slice(1);
+  for (let i = 0; i < 20; i++) {
+    const { verificationCodes = [] } = await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/verificationCodes`)).json();
+    const mine = verificationCodes.filter((c) => c.phoneNumber === e164);
+    if (mine.length) return mine.at(-1).code;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error('no SMS code from the emulator');
+}
+
 async function open(viewport) {
+  if (FIREBASE) await resetFirebase();
   const ctx = await browser.newContext(viewport === 'phone' ? { ...devices['iPhone 13'], locale: 'he-IL' } : { viewport: { width: 1440, height: 950 }, locale: 'he-IL' });
   // wa.me / tel / calendar links: record instead of leaving the page.
   await ctx.addInitScript(() => {
@@ -53,7 +91,9 @@ async function open(viewport) {
   ctx.setDefaultTimeout(5000);
   page = await ctx.newPage();
   errors = [];
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // Under the emulators, reCAPTCHA can't reach Google and the auth emulator answers 501 to its config call: not app errors.
+  const emulatorNoise = (t) => FIREBASE && /ERR_TUNNEL_CONNECTION_FAILED|status of 501/.test(t);
+  page.on('console', (m) => m.type() === 'error' && !emulatorNoise(m.text()) && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
@@ -73,7 +113,8 @@ const expect = (cond, msg) => {
 async function login(phone, name) {
   await page.fill('#lphone', phone);
   await tap('שלח לי קוד');
-  await page.fill('input[autocomplete="one-time-code"]', '1234');
+  if (FIREBASE) await page.locator('input[autocomplete="one-time-code"]').waitFor();
+  await page.fill('input[autocomplete="one-time-code"]', FIREBASE ? await smsCode(phone) : '123456');
   await wait(800);
   if (name) {
     await page.fill('input[autocomplete="name"]', name);
@@ -372,7 +413,11 @@ await step('admin desktop: gallery upload, pin, delete with undo', async () => {
   await see('התמונה נוספה לגלריה');
   expect((await page.locator('[role=dialog] img').count()) === before + 1, 'photo not in the gallery');
   const src = await page.locator('[role=dialog] img').first().getAttribute('src');
-  expect(src.startsWith('data:image/jpeg') && src.length < 400000, 'photo was not shrunk');
+  if (FIREBASE) {
+    // Uploaded to Storage: the file there must be the shrunk JPEG.
+    const res = await fetch(src);
+    expect(res.headers.get('content-type') === 'image/jpeg' && (await res.arrayBuffer()).byteLength < 400000, 'photo was not shrunk');
+  } else expect(src.startsWith('data:image/jpeg') && src.length < 400000, 'photo was not shrunk');
   await page.locator('[role=dialog] [aria-label="הוסף לנבחרות"]').first().click();
   await see('אפשר לבחור עד 4 תמונות', { exact: false });
   await page.locator('[role=dialog] [aria-label="מחק תמונה"]').first().click();

@@ -1,40 +1,56 @@
-# Plugging in Firebase
+# Firebase
 
-The UI only talks to the `Backend` interface in `src/data/backend.ts`. Today `createBackend()` returns the
-mock (in-memory + localStorage). To go live, add `createFirebaseBackend()` here and switch in `src/data/index.ts`.
-No screen changes.
+`firebaseBackend.ts` implements the same `Backend` contract as the demo (`../mock`), so no screen knows which one runs.
+`shop.config.ts` picks it: `backend: 'firebase'` (or `VITE_BACKEND=firebase` for one build). The Firebase code is
+loaded only in that case, so demo builds don't carry it.
 
-## Collections (Firestore)
+## Going live for a shop
 
-| Collection          | Doc shape       | Notes                                                                                         |
-| ------------------- | --------------- | --------------------------------------------------------------------------------------------- |
-| `services/{id}`     | `Service`       | Public read, admin write.                                                                     |
-| `settings/shop`     | `Settings`      | One doc: weekly hours, fixed break, vacations. Public read, admin write.                      |
-| `appointments/{id}` | `Appointment`   | Customer creates own (`customerPhone == auth phone`), reads own; admin reads/writes all.      |
-| `blocks/{id}`       | `Block`         | Admin only; customers need only busy ranges (see below).                                      |
-| `waitlist/{id}`     | `WaitlistEntry` | Customer creates/deletes own; admin reads all.                                                |
-| `gallery/{id}`      | `GalleryItem`   | `upload()` puts the shrunk photo in Firebase Storage, `src` is its download URL. Admin write. |
-| `admins/{phone}`    | `{}`            | Admin phone numbers. Drives the `admin` custom claim.                                         |
+1. In the Firebase console of the shop's project: Blaze plan, Authentication > Phone (SMS region policy: Israel),
+   Firestore (me-west1, production mode), Storage (same region), and the site's domain under Authentication >
+   Settings > Authorized domains.
+2. Put the web config, `shopId` and the real admin numbers (`adminPhones`) in `shop.config.ts`.
+3. `npx firebase-tools login` once, then `npm run firebase:deploy`. It regenerates `firestore.rules` /
+   `storage.rules` from `shop.config.ts` and deploys them. Run it again whenever `adminPhones` change.
+4. Set `backend: 'firebase'` and build. The first admin sign-in writes the starting services and hours from
+   `shop.config.ts`.
 
-`getSnapshot()` stays the same: keep one `DbSnapshot` object in memory and replace it on every
-`onSnapshot` callback, then notify subscribers. Customers should not download everyone's appointments:
-publish a `busy/{date}` doc (ranges only, no names) from a Cloud Function and build the customer
-snapshot from that.
+## Data (all under `shops/{shopId}`)
 
-## Auth
+| Path                | What                                  | Who                                                       |
+| ------------------- | ------------------------------------- | --------------------------------------------------------- |
+| `meta/settings`     | `Settings`: hours, break, vacations   | Everyone reads, admin writes                              |
+| `services/{id}`     | `Service`                             | Everyone reads, admin writes                              |
+| `gallery/{id}`      | `GalleryItem`, `src` is a Storage URL | Everyone reads, admin writes                              |
+| `appointments/{id}` | `Appointment`                         | Customer: own (`customerPhone`); admin: all               |
+| `days/{date}`       | `{ busy: [{ id, start, end }] }`      | Everyone reads (no names). Kept in step with appointments |
+| `blocks/{id}`       | `Block`                               | Admin only (also listed in `days`)                        |
+| `waitlist/{id}`     | `WaitlistEntry`                       | Customer: own; admin: all                                 |
+| `users/{uid}`       | `{ name, phone }`                     | The user; admin reads                                     |
 
-- `sendCode` / `verifyCode` → `signInWithPhoneNumber` with an invisible reCAPTCHA on the web,
-  `@capacitor-firebase/authentication` in the native apps (no reCAPTCHA, SMS auto-fill on Android).
-- `role` comes from the `admin` custom claim (set by a function when the phone is in `admins/`), never from the client.
-- `saveName` writes `users/{uid}.name`.
+Storage: `shops/{shopId}/gallery/{id}.jpg`, public read, admin write, images under 3 MB.
 
-## Booking safety
+## How booking stays safe
 
-`book()` must run in a transaction (or a callable function) that re-checks `assertBookable`
-from `src/domain/schedule.ts`, so two people can't grab the same slot.
+`days/{date}` is the day's ledger of busy ranges. Booking, cancelling, walk-ins and blocks run in a transaction
+that reads the ledger, re-checks `assertBookable` and writes the appointment and the ledger together, so two
+people can't take the same slot. The rules only let a customer add their own new appointment to a ledger or take
+their own cancelled one off it, and an appointment can't be created unless it is in the ledger.
+
+Admin = a phone number listed in `adminPhones`; the rules check the signed-in phone number, never the client.
+
+## Tests
+
+- `npm run test:e2e:firebase` runs every e2e step against the emulators with the real rules (the auth emulator
+  hands out the SMS codes, `e2e/seed-firebase.ts` loads the demo sample data).
+- `npm run test:rules` tries what a malicious customer could do and expects the rules to refuse.
+
+## Native apps
+
+Phone sign-in on the web uses an invisible reCAPTCHA. Inside the Capacitor apps switch `sendCode`/`verifyCode`
+to `@capacitor-firebase/authentication` (no reCAPTCHA; Android needs the app's SHA-1 in the console).
 
 ## WhatsApp
 
-Screens open `wa.me` links one chat at a time (`useSendQueue`). With the WhatsApp Business Cloud API,
-a callable function can send the delay notice, waitlist alert, vacation notice and reminders in one call;
-the UI keeps the same per-person "sent" state.
+Screens open `wa.me` links one chat at a time (`useSendQueue`). With the WhatsApp Business Cloud API, a function
+could send the delay notice, waitlist alert and vacation notice in one call; the UI keeps the same per-person state.

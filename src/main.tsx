@@ -6,14 +6,15 @@ import { createBackend } from './data';
 import { BackendProvider } from './data/BackendProvider';
 import './index.css';
 
-const backend = createBackend();
-
 if (import.meta.env.PROD) registerSW({ immediate: true });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BackendProvider backend={backend}>
-      <App />
-    </BackendProvider>
-  </StrictMode>,
+// Render once the backend knows who is signed in, so a returning user never sees the login screen flash.
+createBackend().then((backend) =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <BackendProvider backend={backend}>
+        <App />
+      </BackendProvider>
+    </StrictMode>,
+  ),
 );

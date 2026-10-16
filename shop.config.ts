@@ -18,7 +18,7 @@ const shop = {
   address: { street: 'אריה שנקר 65', city: 'חולון' },
   /** Shop WhatsApp / phone number. */
   phone: '050-0000000',
-  /** Numbers that open the admin view after signing in. */
+  /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
   adminPhones: ['050-0000000'],
   /** Instagram handle without "@", or null to hide Instagram. */
   instagram: '[שם באינסטגרם]' as string | null,
@@ -30,6 +30,23 @@ const shop = {
 
   /** Native app id (reverse domain) for the iOS / Android builds. */
   appId: 'il.co.bennycohen.barber',
+
+  /**
+   * Where the data lives. 'demo' keeps everything in the browser with sample data (any SMS code works);
+   * 'firebase' uses the project below: real SMS sign-in, Firestore and Storage. See src/data/firebase/README.md.
+   */
+  backend: 'demo' as 'demo' | 'firebase',
+  /** Short id for this shop; its data lives under shops/{shopId} in Firestore. */
+  shopId: 'bennycohen',
+  /** Firebase web config (Project settings > Your apps > Web). These keys are public by design. */
+  firebase: {
+    apiKey: 'AIzaSyA5bUBlZocFaYu7nnMAzZczxMsvD-mZn4w',
+    authDomain: 'barber-bennycohen.firebaseapp.com',
+    projectId: 'barber-bennycohen',
+    storageBucket: 'barber-bennycohen.firebasestorage.app',
+    messagingSenderId: '718286180591',
+    appId: '1:718286180591:web:5d5418835fcb51e686cb1a',
+  },
 
   /** What a brand-new shop starts with. The admin changes all of it later in "שירותים ושעות". */
   defaults: {

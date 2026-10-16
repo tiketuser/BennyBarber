@@ -8,7 +8,7 @@ const ME = '052-1234567';
 
 async function signIn(b: Backend, phone: string, name = 'יוסי לוי') {
   await b.auth.sendCode(phone);
-  const s = await b.auth.verifyCode(phone, '1234');
+  const s = await b.auth.verifyCode(phone, '123456');
   if (s.role === 'customer' && !s.name) await b.auth.saveName(name);
   return s;
 }
@@ -35,13 +35,13 @@ describe('mock backend', () => {
     await signIn(b, ME, 'דני');
     await b.auth.signOut();
     await b.auth.sendCode(ME);
-    expect((await b.auth.verifyCode(ME, '0000')).name).toBe('דני');
+    expect((await b.auth.verifyCode(ME, '000000')).name).toBe('דני');
   });
 
-  it('rejects a code that is not 4 digits, or for another number', async () => {
+  it('rejects a code that is not 6 digits, or for another number', async () => {
     await b.auth.sendCode(ME);
     await expect(b.auth.verifyCode(ME, '12')).rejects.toThrow();
-    await expect(b.auth.verifyCode('052-7654321', '1234')).rejects.toThrow();
+    await expect(b.auth.verifyCode('052-7654321', '123456')).rejects.toThrow();
   });
 
   it('books only when signed in and the slot is free', async () => {

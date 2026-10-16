@@ -11,8 +11,9 @@ import { spring } from '@/ui/motion';
 import { firstName } from '../format';
 
 type Step = 'phone' | 'code' | 'name' | 'done';
+const CODE_LENGTH = 6;
 
-/** Phone number + 4-digit SMS code. New customers give their name once; the admin number opens the admin view. */
+/** Phone number + 6-digit SMS code (Firebase phone auth always sends 6). New customers give their name once; the admin number opens the admin view. */
 export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without the logo header, inside the desktop card. */ bare?: boolean }) {
   const backend = useBackend();
   const [step, setStep] = useState<Step>('phone');
@@ -73,7 +74,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
     step === 'phone'
       ? { label: 'שלח לי קוד', ok: isValidMobile(phone), run: sendCode }
       : step === 'code'
-        ? { label: 'אישור', ok: code.length === 4, run: () => verify(code) }
+        ? { label: 'אישור', ok: code.length === CODE_LENGTH, run: () => verify(code) }
         : step === 'name'
           ? { label: 'שמור והמשך', ok: name.trim().length >= 2, run: saveName }
           : { label: role === 'admin' ? 'לתצוגת אדמין' : 'לקביעת תור', ok: true, run: async () => onDone() };
@@ -124,18 +125,18 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                 <>
                   <h1 className="m-0 text-2xl font-bold">הזן את הקוד</h1>
                   <p className="m-0 text-[15px] text-ink-soft">
-                    שלחנו קוד בן 4 ספרות ל-<span dir="ltr">{phone}</span>{' '}
+                    שלחנו קוד בן 6 ספרות ל-<span dir="ltr">{phone}</span>{' '}
                     <button type="button" className="text-sm font-semibold underline" onClick={() => setStep('phone')}>
                       שינוי
                     </button>
                   </p>
-                  <div className="relative mt-2 flex gap-2.5" dir="ltr">
-                    {[0, 1, 2, 3].map((i) => (
+                  <div className="relative mt-2 flex gap-2" dir="ltr">
+                    {Array.from({ length: CODE_LENGTH }, (_, i) => (
                       <span
                         key={i}
                         aria-hidden
                         className={cx(
-                          'num flex h-16 flex-1 items-center justify-center rounded-2xl text-[28px] font-bold transition-colors',
+                          'num flex h-14 flex-1 items-center justify-center rounded-xl text-2xl font-bold transition-colors',
                           i === code.length ? 'border-2 border-brand bg-white' : code[i] ? 'border border-line bg-surface' : 'border border-line bg-white',
                         )}
                       >
@@ -151,12 +152,12 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                       type="text"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      maxLength={4}
+                      maxLength={CODE_LENGTH}
                       value={code}
                       onChange={(e) => {
-                        const c = phoneDigits(e.target.value).slice(0, 4);
+                        const c = phoneDigits(e.target.value).slice(0, CODE_LENGTH);
                         setCode(c);
-                        if (c.length === 4 && !busy) verify(c);
+                        if (c.length === CODE_LENGTH && !busy) verify(c);
                       }}
                       className="absolute inset-0 opacity-0"
                     />

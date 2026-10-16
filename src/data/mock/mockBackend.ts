@@ -118,7 +118,7 @@ export function createMockBackend(): Backend {
       async verifyCode(phone, code) {
         await wait(300);
         const digits = phoneDigits(phone);
-        if (pendingPhone !== digits || !/^\d{4}$/.test(code)) throw new Error('הקוד לא נכון, נסה שוב');
+        if (pendingPhone !== digits || !/^\d{6}$/.test(code)) throw new Error('הקוד לא נכון, נסה שוב');
         const role = ADMIN_PHONES.includes(digits) ? 'admin' : 'customer';
         const s: Session = { phone: digits, name: loadNames()[digits] ?? null, role };
         setSession(s);
