@@ -141,6 +141,20 @@ await step('customer signs in with phone, code and name', async () => {
   await see('מה עושים היום?');
 });
 
+/** Drags the confirm thumb across, like a finger would. */
+async function slideToConfirm() {
+  await wait(600); // let the sheet settle before grabbing the thumb
+  const t = await page.locator('[role=button][aria-label^="החלק לאישור"]').boundingBox();
+  const [sx, sy] = [t.x + t.width - 30, t.y + t.height / 2];
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  for (let i = 1; i <= 20; i++) {
+    await page.mouse.move(sx - (i * t.width) / 20, sy);
+    await wait(16);
+  }
+  await page.mouse.up();
+}
+
 await step('books an appointment with slide to confirm', async () => {
   await tap('תספורת גבר');
   await tap('בחירת יום ושעה');
@@ -151,17 +165,7 @@ await step('books an appointment with slide to confirm', async () => {
   await tap('המשך');
   await see('כמעט סיימנו');
   await page.fill('#bnotes', 'פייד נמוך');
-  await wait(600); // let the sheet settle before grabbing the thumb
-  // Drag the thumb across, like a finger would.
-  const t = await page.locator('[role=button][aria-label^="החלק לאישור"]').boundingBox();
-  const [sx, sy] = [t.x + t.width - 30, t.y + t.height / 2];
-  await page.mouse.move(sx, sy);
-  await page.mouse.down();
-  for (let i = 1; i <= 20; i++) {
-    await page.mouse.move(sx - (i * t.width) / 20, sy);
-    await wait(16);
-  }
-  await page.mouse.up();
+  await slideToConfirm();
   await see('נתראה במספרה!', { exact: false });
 });
 
@@ -175,8 +179,31 @@ await step('ticket offers calendar and WhatsApp, then goes home', async () => {
   await see('התור הקרוב שלך');
 });
 
-await step('my appointments shows the booking and cancels it', async () => {
+await step('reschedules and my appointments shows the new time right away', async () => {
   await role('button', 'התורים שלי').click();
+  await see('הבא בתור');
+  const before = await page.locator('article').first().innerText();
+  await tap('שינוי מועד');
+  await wait(500);
+  await page.locator('[aria-label="בחר יום"] [role=radio]:not([disabled])').nth(3).click();
+  await wait(400);
+  const slot = page.locator('button.num[aria-pressed]').last();
+  const time = await slot.innerText();
+  await slot.click();
+  await tap('המשך');
+  await slideToConfirm();
+  await see('נתראה במספרה!', { exact: false });
+  await tap('חזרה לדף הבית', { exact: false }).catch(() => tap('סיום'));
+  await role('button', 'התורים שלי').click();
+  await see('הבא בתור');
+  await wait(1500);
+  const cards = page.locator("article");
+  expect((await cards.count()) === 1, `expected one upcoming appointment, got ${await cards.count()}`);
+  const after = await cards.first().innerText();
+  expect(after.includes(time) && after !== before, `still shows the old time: ${after.replace(/\s+/g, ' ')}`);
+});
+
+await step('my appointments shows the booking and cancels it', async () => {
   await see('הבא בתור');
   await tap('ביטול');
   await tap('כן, לבטל');
@@ -205,6 +232,8 @@ await step('shop tab: gallery filters and course WhatsApp', async () => {
     .catch(() => {});
   await role('button', 'המספרה').click();
   await tap('לכל הגלריה');
+  await wait(400);
+  await role('button', 'התורים שלי').click({ trial: true }); // the tab bar stays reachable over the gallery
   await tap('זקן');
   await page.locator('button[aria-label="חזרה"]').first().click();
   await wait(400);
@@ -297,9 +326,17 @@ await step('desktop reschedules from my appointments', async () => {
   await see('שינוי מועד');
   await page.locator('[aria-label="בחר יום"] [role=radio]:not([disabled])').nth(2).click();
   await wait(500);
-  await page.locator('main button.num[aria-pressed=false]:not([disabled])').first().click();
+  const slot = page.locator('main button.num[aria-pressed=false]:not([disabled])').last();
+  const time = await slot.innerText();
+  await slot.click();
   await page.locator('aside button', { hasText: 'העבר את התור ל-' }).click();
   await see('התור הועבר!');
+  await wait(400);
+  expect(!(await page.getByText('מזיזים את התור של').isVisible()), 'still offers to move the old appointment');
+  await page.locator('nav button', { hasText: 'התורים שלי' }).click();
+  await wait(1000);
+  const shown = (await page.locator('article').allInnerTexts()).join(' | ');
+  expect(shown.includes(time), `my appointments does not show ${time}: ${shown.replace(/\s+/g, ' ')}`);
 });
 
 await step('desktop cancels in place and undoes', async () => {

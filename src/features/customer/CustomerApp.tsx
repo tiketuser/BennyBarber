@@ -96,8 +96,9 @@ export function CustomerApp() {
             />
           </Pushed>
         )}
+        {/* Under the tab bar (z-10), so the tabs stay on the gallery. */}
         {shopPage === 'gallery' && (
-          <Pushed key="gallery">
+          <Pushed key="gallery" z={5}>
             <GalleryScreen onBack={() => setShopPage(null)} />
           </Pushed>
         )}

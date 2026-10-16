@@ -158,7 +158,7 @@ export function GalleryScreen({ onBack }: { onBack: () => void }) {
           </Chip>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 auto-rows-[112px] grid-cols-3 gap-1 overflow-y-auto px-4 pb-bar-lg pt-1">
+      <div className="grid min-h-0 flex-1 auto-rows-[112px] grid-cols-3 gap-1 overflow-y-auto px-4 pt-1" style={{ paddingBottom: `calc(${TAB_BAR_SPACE} + 16px)` }}>
         {items.map((g) => (
           <GalleryTile key={g.id} item={g} className="rounded-lg" />
         ))}

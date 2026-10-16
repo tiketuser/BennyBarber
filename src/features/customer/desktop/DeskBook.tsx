@@ -67,6 +67,8 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
   // A picked time stays only while it is still free (someone else may grab it meanwhile).
   const start = !booked && slots.some((s) => s.start === pickedStart && s.available) ? pickedStart : null;
   const [notes, setNotes] = useState(replacing?.notes ?? '');
+  // Only while the old appointment is still booked: once moved (or cancelled) this page books a new one.
+  const moving = replacing && db.appointments.some((a) => a.id === replacing.id && a.status === 'booked') ? replacing : undefined;
   const [busy, setBusy] = useState(false);
   const waitlist = useWaitlist(date);
   const isFull = day.status === 'full';
@@ -82,7 +84,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
         customerName: session.name ?? '',
         phone: session.phone,
         notes,
-        replacesId: replacing?.id,
+        replacesId: moving?.id,
       });
       haptic('success');
       setBooked(appt);
@@ -104,14 +106,14 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
     <main className="mx-auto flex max-w-[1240px] flex-wrap items-start gap-8 px-8 pb-16 pt-9">
       <div className="flex min-w-0 flex-[1_1_640px] flex-col gap-9">
         <div className="flex flex-col gap-1.5">
-          <h1 className="m-0 text-[34px] font-bold tracking-display">{replacing ? 'שינוי מועד' : 'קביעת תור'}</h1>
+          <h1 className="m-0 text-[34px] font-bold tracking-display">{moving ? 'שינוי מועד' : 'קביעת תור'}</h1>
           <p className="m-0 text-base text-ink-soft">{SHOP.address} • בוחרים טיפול, יום ושעה, וזהו.</p>
         </div>
 
-        {replacing && (
+        {moving && !booked && (
           <div className="-mt-4 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px]">
             <span className="flex-1">
-              מזיזים את התור של <b>{fmtShortDate(replacing.date)}</b> ב-<b className="num">{fmtTime(replacing.start)}</b>. התור הישן יתפנה רק אחרי שתבחר מועד חדש.
+              מזיזים את התור של <b>{fmtShortDate(moving.date)}</b> ב-<b className="num">{fmtTime(moving.start)}</b>. התור הישן יתפנה רק אחרי שתבחר מועד חדש.
             </span>
             <button type="button" onClick={onCancelReplace} className="flex h-9 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-ink-soft hover:text-ink">
               <X size={16} />
@@ -355,7 +357,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
           ) : (
             <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Button block disabled={start == null || busy} onClick={book}>
-                {start == null ? 'בחר שעה כדי להמשיך' : `${replacing ? 'העבר את התור ל-' : 'קבע תור ל-'}${fmtTime(start)}`}
+                {start == null ? 'בחר שעה כדי להמשיך' : `${moving ? 'העבר את התור ל-' : 'קבע תור ל-'}${fmtTime(start)}`}
               </Button>
             </motion.div>
           )}
