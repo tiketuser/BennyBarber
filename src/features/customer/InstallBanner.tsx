@@ -97,10 +97,13 @@ export function InstallBanner() {
           {isIOS() ? (
             <>
               <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">
-                <Share size={22} /> לוחצים על כפתור השיתוף בתחתית ספארי
+                <Share size={22} className="shrink-0" />
+                {/crios|fxios|edgios/i.test(navigator.userAgent)
+                  ? 'לוחצים על כפתור השיתוף בשורת הכתובת למעלה'
+                  : 'לוחצים על כפתור השיתוף (ריבוע עם חץ). אם הוא לא מופיע, הוא בתפריט "..."'}
               </li>
               <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">
-                <Download size={22} /> בוחרים "הוספה למסך הבית"
+                <Download size={22} className="shrink-0" /> גוללים ובוחרים "הוספה למסך הבית", ואז "הוסף"
               </li>
             </>
           ) : (
