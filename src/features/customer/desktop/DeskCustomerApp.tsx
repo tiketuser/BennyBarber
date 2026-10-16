@@ -52,7 +52,11 @@ export function DeskCustomerApp() {
     const box = scroller.current;
     const el = section && document.getElementById(section);
     if (!box) return;
-    if (!el) return box.scrollTo({ top: 0 });
+    if (!el) {
+      // Not `return box.scrollTo(...)`: newer browsers return a promise there, and React would call it as cleanup.
+      box.scrollTo({ top: 0 });
+      return;
+    }
     const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 96;
     box.scrollTo({ top, behavior: 'smooth' });
   }, [page, section]);

@@ -41,6 +41,14 @@ async function open(viewport) {
   await ctx.addInitScript(() => {
     window.__opened = [];
     window.open = (url) => (window.__opened.push(String(url)), null);
+    // Newer browsers return a promise from the scroll methods; behave like them so effects that leak it fail here.
+    for (const m of ['scrollTo', 'scrollBy', 'scrollIntoView']) {
+      const orig = Element.prototype[m];
+      Element.prototype[m] = function (...a) {
+        orig.apply(this, a);
+        return Promise.resolve();
+      };
+    }
   });
   ctx.setDefaultTimeout(5000);
   page = await ctx.newPage();
