@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Bell, CalendarCheck, Check, X } from 'lucide-react';
+import { Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
-import { PARTS, dayStatus, slotsFor } from '@/domain/schedule';
+import { PARTS, bookingDays, dayStatus, slotsFor } from '@/domain/schedule';
 import type { Appointment, DateKey, Minutes } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { BOOKING_MONTHS, SHOP } from '@/config/shop';
 import { formatPhone } from '@/lib/phone';
 import { addToCalendar, haptic } from '@/lib/platform';
-import { addDays, DAY_LETTERS, fmtShortDate, fmtTime, fromKey, todayKey, weekdayOf } from '@/lib/time';
+import { DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, todayKey, weekdayOf } from '@/lib/time';
 import { Button } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
@@ -16,7 +16,8 @@ import { customerPrice } from '../../format';
 import { useWaitlist } from '../useWaitlist';
 import { WaitlistCard } from '../WaitlistCard';
 
-const DAYS = 14;
+/** Days shown at once: two weeks, with arrows to the next ones. */
+const PAGE = 14;
 
 interface Props {
   initialServiceId?: string;
@@ -42,7 +43,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
 
   const days = useMemo(
     () =>
-      Array.from({ length: DAYS }, (_, i) => addDays(today, i)).map((date) => {
+      bookingDays(today, BOOKING_MONTHS).map((date) => {
         const status = dayStatus(db, date, duration, now);
         const free = status === 'open' || status === 'almost-full' ? slotsFor(db, date, duration, now).filter((s) => s.available).length : 0;
         return { date, status, free };
@@ -54,6 +55,11 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
   const firstBookable = days.find((d) => d.free > 0) ?? days.find((d) => d.status === 'full');
   const date = days.find((d) => d.date === pickedDate) ? pickedDate! : (firstBookable?.date ?? today);
   const day = days.find((d) => d.date === date)!;
+  const pages = Math.ceil(days.length / PAGE);
+  const [pageOverride, setPage] = useState<number | null>(null);
+  const page = pageOverride ?? Math.floor(days.findIndex((d) => d.date === date) / PAGE);
+  const shown = days.slice(page * PAGE, page * PAGE + PAGE);
+  const monthsShown = [...new Set(shown.map((d) => MONTHS[fromKey(d.date).getMonth()]))].join(' - ');
   const slots = useMemo(() => slotsFor(db, date, duration, now), [db, date, duration, now]);
 
   const [pickedStart, setPickedStart] = useState<Minutes | null>(null);
@@ -150,8 +156,29 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
           <StepTitle id="h-day" n={2}>
             מתי נוח לך?
           </StepTitle>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-[15px] font-semibold">{monthsShown}</span>
+            <button
+              type="button"
+              aria-label="הימים הקודמים"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+              className="press flex size-9 items-center justify-center rounded-full border border-line disabled:opacity-35"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="הימים הבאים"
+              disabled={page >= pages - 1}
+              onClick={() => setPage(page + 1)}
+              className="press flex size-9 items-center justify-center rounded-full border border-line disabled:opacity-35"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          </div>
           <div role="radiogroup" aria-label="בחר יום" className="grid grid-cols-7 gap-2">
-            {days.map((d) => {
+            {shown.map((d) => {
               const on = d.date === date;
               const closed = d.status === 'closed' || d.status === 'vacation';
               const sub =

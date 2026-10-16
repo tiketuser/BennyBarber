@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Bell, ChevronLeft, Scissors } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
-import { PARTS, dayStatus, slotsFor, type DayStatus } from '@/domain/schedule';
+import { PARTS, bookingDays, dayStatus, slotsFor, type DayStatus } from '@/domain/schedule';
+import { BOOKING_MONTHS } from '@/config/shop';
 import type { DateKey, Minutes, Service } from '@/domain/types';
-import { addDays, DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, todayKey, weekdayOf } from '@/lib/time';
+import { DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, MONTHS_SHORT, todayKey, weekdayOf } from '@/lib/time';
 import { haptic } from '@/lib/platform';
 import { Button, ScreenHeader } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { customerPrice } from '../format';
 import { useWaitlist } from './useWaitlist';
 import { WaitlistCard } from './WaitlistCard';
-
-const DAYS = 14;
 
 interface Props {
   service: Service;
@@ -26,13 +25,13 @@ interface Props {
   hold?: boolean;
 }
 
-/** Step 2: 14-day strip + time pills grouped by part of day. A full day offers the waitlist instead. */
+/** Step 2: day strip (as far ahead as the shop allows) + time pills grouped by part of day. A full day offers the waitlist instead. */
 export function TimeScreen({ service, date, start, onPick, onBack, onContinue, rescheduling, hold }: Props) {
   const db = useDb();
   const now = useNow();
   const today = todayKey(now);
   const days = useMemo(
-    () => Array.from({ length: DAYS }, (_, i) => addDays(today, i)).map((d) => ({ date: d, status: dayStatus(db, d, service.durationMin, now) })),
+    () => bookingDays(today, BOOKING_MONTHS).map((d) => ({ date: d, status: dayStatus(db, d, service.durationMin, now) })),
     [db, today, service.durationMin, now],
   );
 
@@ -91,8 +90,15 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
 
         <div className="px-5 pb-2.5 pt-5 text-[15px] font-semibold">{date ? MONTHS[fromKey(date).getMonth()] : ''}</div>
         <div ref={stripRef} role="radiogroup" aria-label="בחר יום" className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-4 px-4 pb-1">
-          {days.map((d) => (
-            <DayPill key={d.date} date={d.date} today={today} status={d.status} on={d.date === date} onPick={() => onPick(d.date, null)} />
+          {days.map((d, i) => (
+            <Fragment key={d.date}>
+              {i > 0 && fromKey(d.date).getDate() === 1 && (
+                <span aria-hidden className="flex h-[72px] shrink-0 items-center px-1 text-[13px] font-semibold text-ink-soft">
+                  {MONTHS_SHORT[fromKey(d.date).getMonth()]}
+                </span>
+              )}
+              <DayPill date={d.date} today={today} status={d.status} on={d.date === date} onPick={() => onPick(d.date, null)} />
+            </Fragment>
           ))}
         </div>
 

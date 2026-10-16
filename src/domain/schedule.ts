@@ -1,6 +1,6 @@
 // Pure scheduling rules, shared by every backend implementation and the UI.
 import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Settings } from './types';
-import { isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
+import { addMonths, daysBetween, isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
 
 const SLOT_STEP = 30;
 export const PARTS: { id: Exclude<DayPart, 'any'>; label: string; from: Minutes; to: Minutes }[] = [
@@ -125,4 +125,14 @@ export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, en
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
   if (overlaps(start, end, busy)) throw new Error('השעה הזו כבר נתפסה, בחר שעה אחרת');
+}
+
+/** The days a customer can book: today through `months` months ahead. */
+export function bookingDays(today: DateKey, months: number): DateKey[] {
+  return daysBetween(today, addMonths(today, months));
+}
+
+/** Customers book up to `months` ahead; the admin is not limited. */
+export function assertWithinBookingWindow(date: DateKey, months: number, now = new Date()) {
+  if (date > addMonths(todayKey(now), months)) throw new Error(`אפשר לקבוע תור עד ${months === 1 ? 'חודש' : months + ' חודשים'} קדימה`);
 }

@@ -2,8 +2,8 @@
 // and syncs between browser tabs so customer and admin can be tested side by side.
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
-import { assertBookable } from '@/domain/schedule';
-import { ADMIN_PHONES } from '@/config/shop';
+import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
+import { ADMIN_PHONES, BOOKING_MONTHS } from '@/config/shop';
 import { phoneDigits } from '@/lib/phone';
 import { buildSeed } from './seed';
 
@@ -142,6 +142,7 @@ export function createMockBackend(): Backend {
         if (input.replacesId) requireOwner(appointment(input.replacesId).customerPhone);
         const svc = service(input.serviceId);
         const end = input.start + svc.durationMin;
+        assertWithinBookingWindow(input.date, BOOKING_MONTHS);
         assertBookable(db, input.date, input.start, end, { ignoreId: input.replacesId });
         const appt: Appointment = {
           id: uid(),

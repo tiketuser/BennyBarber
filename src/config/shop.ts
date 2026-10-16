@@ -25,6 +25,7 @@ export const SHOP = {
 
 export const ADMIN_PHONES = config.adminPhones.map(phoneDigits);
 export const DEFAULTS = config.defaults;
+export const BOOKING_MONTHS = config.bookingMonthsAhead;
 /** Where the data lives; VITE_BACKEND overrides it (the e2e tests and the shareable demo use 'demo'). */
 export const BACKEND: 'demo' | 'firebase' = (import.meta.env.VITE_BACKEND as 'demo' | 'firebase' | undefined) ?? config.backend;
 export const FIREBASE = { config: config.firebase, shopId: config.shopId };

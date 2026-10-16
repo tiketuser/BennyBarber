@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appt, emptyDb, FRIDAY, MONDAY_MORNING, SATURDAY, TUESDAY } from '@/test/fixtures';
-import { assertBookable, dayStatus, freeGaps, nextFreeStart, slotsFor } from './schedule';
+import { assertBookable, assertWithinBookingWindow, bookingDays, dayStatus, freeGaps, nextFreeStart, slotsFor } from './schedule';
 
 const free = (db: ReturnType<typeof emptyDb>, date: string, len: number) =>
   slotsFor(db, date, len, MONDAY_MORNING)
@@ -97,5 +97,18 @@ describe('assertBookable', () => {
   });
   it('ignores the appointment being rescheduled', () => {
     expect(() => assertBookable(db, TUESDAY, 600, 630, { ...now, ignoreId: db.appointments[0].id })).not.toThrow();
+  });
+});
+
+describe('booking window', () => {
+  it('runs from today through the same day 3 months later', () => {
+    const days = bookingDays('2026-01-31', 3);
+    expect(days[0]).toBe('2026-01-31');
+    expect(days.at(-1)).toBe('2026-04-30');
+  });
+  it('rejects a day past the window', () => {
+    const now = new Date(2026, 9, 16, 10);
+    expect(() => assertWithinBookingWindow('2027-01-16', 3, now)).not.toThrow();
+    expect(() => assertWithinBookingWindow('2027-01-17', 3, now)).toThrow('3 חודשים');
   });
 });

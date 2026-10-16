@@ -23,8 +23,8 @@ import {
 import { connectStorageEmulator, getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Service, Session, Settings, WaitlistEntry } from '@/domain/types';
-import { assertBookable } from '@/domain/schedule';
-import { ADMIN_PHONES, DEFAULTS, FIREBASE } from '@/config/shop';
+import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
+import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE } from '@/config/shop';
 import { fromIntl, phoneDigits, toIntl } from '@/lib/phone';
 import { todayKey } from '@/lib/time';
 
@@ -308,6 +308,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
         const me = requireSession();
         const replaces = input.replacesId ? appointment(input.replacesId) : undefined;
         const svc = service(input.serviceId);
+        assertWithinBookingWindow(input.date, BOOKING_MONTHS);
         const appt = await placeAppointment(
           {
             date: input.date,

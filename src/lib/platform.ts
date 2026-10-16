@@ -80,6 +80,12 @@ export function addToCalendar(opts: { title: string; date: DateKey; start: Minut
   ]
     .filter(Boolean)
     .join('\r\n');
+  // iPhone saves a downloaded .ics to Files instead of opening it. Opening it as a page
+  // shows the system "Add to Calendar" sheet instead.
+  if (isIOS()) {
+    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    return;
+  }
   const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
   const a = document.createElement('a');
   a.href = url;

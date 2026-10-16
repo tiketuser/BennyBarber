@@ -26,6 +26,23 @@ export function addDays(key: DateKey, days: number): DateKey {
   return toKey(d);
 }
 
+/** Same day n months later; the 31st becomes the month's last day instead of spilling over. */
+export function addMonths(key: DateKey, months: number): DateKey {
+  const d = fromKey(key);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  return toKey(d);
+}
+
+/** Every day from `from` through `to`, inclusive. */
+export function daysBetween(from: DateKey, to: DateKey): DateKey[] {
+  const out: DateKey[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+  return out;
+}
+
 export function weekdayOf(key: DateKey): Weekday {
   return fromKey(key).getDay() as Weekday;
 }

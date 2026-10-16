@@ -25,6 +25,9 @@ const shop = {
   /** Barbering course lead form. Set to null to hide the course everywhere. */
   course: { details: '[משך הקורס] • [מחיר] • [מועד הפתיחה הבא]' } as { details: string } | null,
 
+  /** How far ahead customers can book, in months. The admin can still add appointments further out. */
+  bookingMonthsAhead: 3,
+
   /** Brand color (buttons, selected states) and the accent shown on it. */
   colors: { brand: '#111111', accent: '#FFD200' },
 
