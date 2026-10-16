@@ -42,6 +42,11 @@ const ERRORS: Record<string, string> = {
   'auth/code-expired': 'פג תוקף הקוד. שלח קוד חדש',
   'auth/quota-exceeded': 'שליחת ה-SMS לא זמינה כרגע. נסה שוב מאוחר יותר',
   'auth/network-request-failed': 'אין חיבור לאינטרנט',
+  'auth/operation-not-allowed': 'שליחת SMS לישראל עוד לא הופעלה במערכת',
+  'auth/billing-not-enabled': 'שליחת SMS עוד לא הופעלה במערכת',
+  'auth/unauthorized-domain': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
+  'auth/invalid-app-credential': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
+  'auth/captcha-check-failed': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
   'permission-denied': 'אין הרשאה לפעולה הזו',
   unavailable: 'אין חיבור לאינטרנט',
 };
@@ -56,6 +61,7 @@ const guard =
     try {
       return await fn(...a);
     } catch (e) {
+      console.warn(e); // the raw Firebase code, for whoever opens the console
       throw friendly(e);
     }
   };
