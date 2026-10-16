@@ -1,0 +1,108 @@
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Download, Share, X } from 'lucide-react';
+import { isIOS, isStandalone } from '@/lib/platform';
+import { Button } from '@/ui/controls';
+import { Sheet, SheetTitle } from '@/ui/Sheet';
+import { spring } from '@/ui/motion';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+let deferred: BeforeInstallPromptEvent | null = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferred = e as BeforeInstallPromptEvent;
+});
+
+const KEY = 'bb.install.dismissed';
+
+/** Dismissible "add to home screen" prompt. Uses the real install prompt on Android/Chrome, instructions on iPhone. */
+export function InstallBanner() {
+  const [show, setShow] = useState(false);
+  const [help, setHelp] = useState(false);
+
+  useEffect(() => {
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(KEY) === '1';
+    } catch {
+      /* ignore */
+    }
+    if (!dismissed && !isStandalone()) {
+      const t = setTimeout(() => setShow(true), 900);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const dismiss = () => {
+    setShow(false);
+    try {
+      localStorage.setItem(KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const install = async () => {
+    if (deferred) {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      deferred = null;
+      if (outcome === 'accepted') dismiss();
+    } else setHelp(true);
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {show && (
+          <motion.aside
+            key="install"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={spring.ui}
+            className="mx-4 overflow-hidden"
+          >
+            <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
+              <img src="/pwa-192.png" alt="" className="size-11 rounded-xl" />
+              <p className="m-0 flex-1 text-[13px] leading-snug">התקן את האפליקציה של בני כהן למסך הבית לגישה מהירה</p>
+              <button type="button" onClick={install} className="press h-9 rounded-full bg-beitar-black px-3.5 text-[13px] font-semibold text-beitar-yellow">
+                התקנה
+              </button>
+              <button type="button" aria-label="סגור" onClick={dismiss} className="press -me-1 flex size-9 items-center justify-center rounded-full text-ink-soft">
+                <X size={18} />
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <Sheet open={help} onClose={() => setHelp(false)} label="התקנה למסך הבית" footer={<Button block onClick={() => setHelp(false)}>הבנתי</Button>}>
+        <SheetTitle>התקנה למסך הבית</SheetTitle>
+        <ol className="m-0 mt-4 flex list-none flex-col gap-3 p-0 text-[15px]">
+          {isIOS() ? (
+            <>
+              <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">
+                <Share size={22} /> לוחצים על כפתור השיתוף בתחתית ספארי
+              </li>
+              <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">
+                <Download size={22} /> בוחרים "הוספה למסך הבית"
+              </li>
+            </>
+          ) : (
+            <>
+              <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">פותחים את התפריט של הדפדפן (שלוש הנקודות)</li>
+              <li className="flex items-center gap-3 rounded-2xl bg-surface p-3.5">
+                <Download size={22} /> בוחרים "התקנת אפליקציה" או "הוספה למסך הבית"
+              </li>
+            </>
+          )}
+        </ol>
+      </Sheet>
+    </>
+  );
+}

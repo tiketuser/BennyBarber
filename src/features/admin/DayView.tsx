@@ -1,0 +1,247 @@
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Ban, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
+import { useDb, useNow } from '@/data/store';
+import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
+import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
+import { telUrl, whatsappUrl } from '@/lib/links';
+import { openExternal } from '@/lib/platform';
+import { addDays, fmtLongDate, fmtRange, fmtShortDate, fmtTime, greeting, nowMinutes, todayKey } from '@/lib/time';
+import { cx } from '@/ui/controls';
+import { TAB_BAR_SPACE } from '@/ui/TabBar';
+import { spring } from '@/ui/motion';
+import { firstName, money } from '../format';
+import { AdminCancelSheet, BlockSheet, DelaySheet, FreeSlotsSheet } from './DaySheets';
+import { OpeningAlert, useOpenings } from './OpeningAlert';
+
+type Row =
+  | { kind: 'appointment'; from: Minutes; to: Minutes; appt: Appointment }
+  | { kind: 'block'; from: Minutes; to: Minutes; block: Block }
+  | { kind: 'break'; from: Minutes; to: Minutes }
+  | { kind: 'free'; from: Minutes; to: Minutes };
+
+interface Props {
+  date: DateKey;
+  setDate: (d: DateKey) => void;
+  onQuick: (start: Minutes | null) => void;
+}
+
+/** "יומן": summary tiles, waitlist alert, and the day's timeline with one-tap actions. */
+export function DayView({ date, setDate, onQuick }: Props) {
+  const db = useDb();
+  const now = useNow();
+  const today = todayKey(now);
+  const isToday = date === today;
+  const nowM = nowMinutes(now);
+  const [freeOpen, setFreeOpen] = useState(false);
+  const [delayOpen, setDelayOpen] = useState(false);
+  const [editBlock, setEditBlock] = useState<Block | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
+  const openings = useOpenings();
+  const hours = hoursFor(db.settings, date);
+
+  const rows = useMemo<Row[]>(() => {
+    const out: Row[] = busyFor(db, date).map((b) =>
+      b.kind === 'appointment'
+        ? { kind: 'appointment', from: b.from, to: b.to, appt: b.ref as Appointment }
+        : b.kind === 'block'
+          ? { kind: 'block', from: b.from, to: b.to, block: b.ref as Block }
+          : { kind: 'break', from: b.from, to: b.to },
+    );
+    for (const g of freeGaps(db, date, 20, now)) out.push({ kind: 'free', from: g.from, to: g.to });
+    return out.sort((a, b) => a.from - b.from || (a.kind === 'free' ? 1 : -1));
+  }, [db, date, now]);
+
+  const appts = rows.filter((r): r is Extract<Row, { kind: 'appointment' }> => r.kind === 'appointment');
+  const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
+  const free = rows.filter((r) => r.kind === 'free');
+  const hasUpcoming = isToday && appts.some((r) => r.to > nowM && r.appt.phone);
+
+  return (
+    <div className="absolute inset-0 overflow-y-auto pt-safe" style={{ paddingBottom: `calc(${TAB_BAR_SPACE} + 88px)` }}>
+      <header className="flex items-center justify-between px-5 pt-5">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="m-0 font-brand text-[22px] font-normal leading-tight">{isToday ? greeting(now) : date < today ? 'יומן עבר' : 'יומן'}</h1>
+          <span className="text-sm text-ink-soft">{fmtLongDate(date)}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {hasUpcoming && (
+            <button type="button" onClick={() => setDelayOpen(true)} className="press ml-1 flex h-11 items-center gap-1.5 rounded-full bg-danger-warm px-3 text-sm font-semibold text-danger">
+              <Hourglass size={16} />
+              מתעכב
+            </button>
+          )}
+          <button type="button" aria-label="יום קודם" onClick={() => setDate(addDays(date, -1))} className="press flex size-11 items-center justify-center rounded-full bg-surface">
+            <ChevronRight size={20} />
+          </button>
+          <button type="button" aria-label="יום הבא" onClick={() => setDate(addDays(date, 1))} className="press flex size-11 items-center justify-center rounded-full bg-surface">
+            <ChevronLeft size={20} />
+          </button>
+        </div>
+      </header>
+      {!isToday && (
+        <button type="button" onClick={() => setDate(today)} className="mx-5 mt-1 h-8 text-[13px] font-semibold underline">
+          חזרה להיום
+        </button>
+      )}
+
+      <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
+        <div className="flex flex-col gap-0.5 rounded-2xl bg-beitar-black p-3 text-white">
+          <span className="num text-[22px] font-bold text-beitar-yellow">{appts.length}</span>
+          <span className="text-xs text-line-strong">{isToday ? 'תורים היום' : 'תורים'}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 rounded-2xl bg-surface p-3">
+          <span className="num text-[22px] font-bold">{money(revenue)}</span>
+          <span className="text-xs text-ink-soft">{date < today ? 'הכנסה' : 'צפי הכנסה'}</span>
+        </div>
+        <button type="button" onClick={() => setFreeOpen(true)} className="press relative flex flex-col gap-0.5 rounded-2xl border border-open-line bg-open-soft p-3 text-right">
+          <span className="num text-[22px] font-bold text-open-text">{free.length}</span>
+          <span className="text-xs font-medium text-open-text">חלונות פנויים</span>
+          <ChevronLeft size={16} className="absolute left-2 top-3 text-open-text" />
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {openings[0] && <OpeningAlert key={openings[0].id} appt={openings[0]} />}
+      </AnimatePresence>
+
+      <div className="flex flex-col gap-2.5 px-4 pt-[18px]">
+        {!hours && <p className="rounded-2xl bg-surface p-6 text-center text-ink-soft">המספרה סגורה ביום הזה</p>}
+        {hours && rows.length === 0 && <p className="rounded-2xl bg-surface p-6 text-center text-ink-soft">אין תורים</p>}
+        <AnimatePresence initial={false}>
+          {rows.map((r) => {
+            const past = (isToday && r.to <= nowM) || date < today;
+            const current = isToday && r.from <= nowM && nowM < r.to;
+            const key = r.kind === 'appointment' ? r.appt.id : r.kind === 'block' ? r.block.id : `${r.kind}-${r.from}`;
+            return (
+              <motion.div key={key} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} transition={spring.ui} className={cx('flex gap-2.5', past && 'opacity-55')}>
+                <div className="flex w-11 shrink-0 flex-col gap-1 pt-3.5">
+                  <span className={cx('num text-[13px]', current ? 'font-bold' : 'font-semibold text-ink-soft')}>{fmtTime(r.from)}</span>
+                  {current && <span className="text-[10px] font-semibold text-open-text">עכשיו</span>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {r.kind === 'appointment' &&
+                    (past ? (
+                      <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-surface px-3.5 text-sm">
+                        <Check size={16} className="text-open" />
+                        <span className="flex-1 truncate">
+                          {r.appt.customerName} • {r.appt.serviceName}
+                        </span>
+                        <span className="font-semibold">{money(r.appt.price)}</span>
+                      </div>
+                    ) : (
+                      <AppointmentCard appt={r.appt} current={current} onCancel={() => setCancelAppt(r.appt)} />
+                    ))}
+                  {r.kind === 'block' && (
+                    <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
+                      <Ban size={16} />
+                      <span className="flex-1">
+                        {r.block.label ?? 'חסום'} • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                      </span>
+                      {!past && (
+                        <>
+                          <button type="button" onClick={() => setEditBlock(r.block)} className="press h-9 rounded-[10px] bg-white px-2.5 text-[13px] font-semibold">
+                            ערוך
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {r.kind === 'break' && (
+                    <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
+                      <Coffee size={16} />
+                      <span className="flex-1">
+                        הפסקה • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                      </span>
+                    </div>
+                  )}
+                  {r.kind === 'free' && (
+                    <button type="button" onClick={() => onQuick(r.from)} className="press flex h-[52px] w-full items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong px-3.5 text-right text-sm text-ink-soft">
+                      <span className="flex-1">
+                        פנוי • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                      </span>
+                      <span className="flex items-center gap-1 font-semibold text-beitar-black">
+                        <Plus size={16} />
+                        הוסף
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {hours && (
+        <button
+          type="button"
+          aria-label="תור מהיר או חסימה"
+          onClick={() => onQuick(null)}
+          className="press absolute left-5 z-[5] flex size-[60px] items-center justify-center rounded-full bg-beitar-black text-beitar-yellow shadow-[0_8px_24px_rgba(17,17,17,0.28)]"
+          style={{ bottom: `calc(${TAB_BAR_SPACE} + 20px)`, position: 'fixed' }}
+        >
+          <Plus size={28} />
+        </button>
+      )}
+
+      <FreeSlotsSheet
+        open={freeOpen}
+        onClose={() => setFreeOpen(false)}
+        date={date}
+        onAdd={(start) => {
+          setFreeOpen(false);
+          onQuick(start);
+        }}
+      />
+      <DelaySheet open={delayOpen} onClose={() => setDelayOpen(false)} />
+      <BlockSheet block={editBlock} onClose={() => setEditBlock(null)} />
+      <AdminCancelSheet appt={cancelAppt} onClose={() => setCancelAppt(null)} />
+    </div>
+  );
+}
+
+function AppointmentCard({ appt, current, onCancel }: { appt: Appointment; current: boolean; onCancel: () => void }) {
+  const today = todayKey();
+  const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} במספרה. נתראה!`;
+  return (
+    <div className={cx('flex flex-col gap-2.5 rounded-2xl px-3.5 py-3', current ? 'border-2 border-beitar-black' : 'border border-line')}>
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <span className="truncate text-base font-semibold">
+            {appt.customerName}
+            {appt.source === 'walkin' && <span className="mr-1.5 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">נכנס מהרחוב</span>}
+          </span>
+          <span className="text-[13px] text-ink-soft">
+            {appt.serviceName} • <span dir="ltr">{fmtRange(appt.start, appt.end)}</span>
+          </span>
+          {appt.notes && (
+            <span className="mt-0.5 flex items-center gap-1 text-[13px] text-ink">
+              <StickyNote size={14} className="shrink-0 text-ink-soft" />
+              {appt.notes}
+            </span>
+          )}
+        </div>
+        <span className="num text-base font-bold">{money(appt.price)}</span>
+      </div>
+      <div className="flex gap-1.5">
+        {appt.phone ? (
+          <>
+            <button type="button" onClick={() => openExternal(whatsappUrl(appt.phone, current ? '' : reminder))} className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-open-soft text-sm font-semibold text-open-text">
+              <MessageCircle size={18} />
+              {current ? 'וואטסאפ' : 'תזכורת'}
+            </button>
+            <button type="button" aria-label={`התקשר ל${appt.customerName}`} onClick={() => openExternal(telUrl(appt.phone))} className="press flex h-11 w-[52px] items-center justify-center rounded-xl bg-surface">
+              <Phone size={18} />
+            </button>
+          </>
+        ) : (
+          <span className="flex h-11 flex-1 items-center text-[13px] text-ink-soft">בלי מספר טלפון</span>
+        )}
+        <button type="button" aria-label="ביטול תור" onClick={onCancel} className="press flex h-11 w-[52px] items-center justify-center rounded-xl bg-danger-soft text-danger">
+          <X size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
