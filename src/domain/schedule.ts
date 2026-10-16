@@ -1,8 +1,8 @@
 // Pure scheduling rules, shared by every backend implementation and the UI.
 import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Settings } from './types';
-import { nowMinutes, todayKey, weekdayOf } from '@/lib/time';
+import { isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
 
-export const SLOT_STEP = 30;
+const SLOT_STEP = 30;
 export const PARTS: { id: Exclude<DayPart, 'any'>; label: string; from: Minutes; to: Minutes }[] = [
   { id: 'morning', label: 'בוקר', from: 0, to: 12 * 60 },
   { id: 'noon', label: 'צהריים', from: 12 * 60, to: 16 * 60 },
@@ -14,7 +14,7 @@ export function partOf(m: Minutes): Exclude<DayPart, 'any'> {
   return m < 12 * 60 ? 'morning' : m < 16 * 60 ? 'noon' : 'evening';
 }
 
-export function isVacation(settings: Settings, date: DateKey): boolean {
+function isVacation(settings: Settings, date: DateKey): boolean {
   return settings.vacations.some((v) => date >= v.from && date <= v.to);
 }
 
@@ -25,7 +25,7 @@ export function hoursFor(settings: Settings, date: DateKey): DayHours | null {
   return h.open ? h : null;
 }
 
-export type Busy = { from: Minutes; to: Minutes; kind: 'appointment' | 'block' | 'break'; ref?: Appointment | Block };
+type Busy = { from: Minutes; to: Minutes; kind: 'appointment' | 'block' | 'break'; ref?: Appointment | Block };
 
 export function busyFor(db: Pick<DbSnapshot, 'appointments' | 'blocks' | 'settings'>, date: DateKey): Busy[] {
   const out: Busy[] = [];
@@ -43,7 +43,7 @@ export function busyFor(db: Pick<DbSnapshot, 'appointments' | 'blocks' | 'settin
 
 const overlaps = (a: Minutes, b: Minutes, busy: Busy[]) => busy.some((x) => a < x.to && b > x.from);
 
-export interface SlotView {
+interface SlotView {
   start: Minutes;
   available: boolean;
 }
@@ -69,9 +69,6 @@ export function slotsFor(db: DbSnapshot, date: DateKey, durationMin: number, now
     .filter((s) => s.start % SLOT_STEP === 0 || s.available);
 }
 
-export function hasFreeSlot(db: DbSnapshot, date: DateKey, durationMin: number, now = new Date()): boolean {
-  return slotsFor(db, date, durationMin, now).some((s) => s.available);
-}
 
 export type DayStatus = 'open' | 'closed' | 'vacation' | 'full' | 'almost-full';
 
@@ -85,7 +82,7 @@ export function dayStatus(db: DbSnapshot, date: DateKey, durationMin: number, no
   return 'open';
 }
 
-export interface Gap {
+interface Gap {
   from: Minutes;
   to: Minutes;
 }
@@ -110,16 +107,18 @@ export function freeGaps(db: DbSnapshot, date: DateKey, minLen = 20, now = new D
   return gaps.filter((g) => g.to - g.from >= minLen);
 }
 
-/** First free moment at or after `from` that fits `len` minutes, or null. */
+/** Start of the first free window (from now on, for today) that fits `len` minutes, or null. */
 export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = new Date()): Minutes | null {
   for (const g of freeGaps(db, date, len, now)) return g.from;
   return null;
 }
 
 /** Throws a user-facing Hebrew message when a booking can't be placed. */
-export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, ignoreId?: string) {
+export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date } = {}) {
+  const { ignoreId, now = new Date() } = opts;
   const h = hoursFor(db.settings, date);
   if (!h) throw new Error('המספרה סגורה ביום הזה');
+  if (isPast(date, start + 1, now)) throw new Error('השעה הזו כבר עברה, בחר שעה אחרת');
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
   if (overlaps(start, end, busy)) throw new Error('השעה הזו כבר נתפסה, בחר שעה אחרת');

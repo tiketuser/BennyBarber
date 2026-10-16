@@ -8,7 +8,6 @@ import type {
   DayHours,
   DayPart,
   DbSnapshot,
-  GalleryItem,
   Minutes,
   Service,
   Session,
@@ -36,8 +35,6 @@ export interface WalkInInput {
 }
 
 export interface Backend {
-  readonly kind: 'mock' | 'firebase';
-
   // Live data. getSnapshot must return the same object until something changes (useSyncExternalStore).
   subscribe(listener: () => void): () => void;
   getSnapshot(): DbSnapshot;
@@ -56,7 +53,8 @@ export interface Backend {
   appointments: {
     book(input: BookingInput): Promise<Appointment>;
     addWalkIn(input: WalkInInput): Promise<Appointment>;
-    cancel(id: string, by: 'customer' | 'admin'): Promise<void>;
+    /** Customers can cancel their own appointments, the admin any. Frees the slot for the waitlist alert. */
+    cancel(id: string): Promise<void>;
     markOpeningHandled(id: string): Promise<void>;
   };
 
@@ -87,13 +85,5 @@ export interface Backend {
 
   gallery: {
     togglePin(id: string): Promise<void>;
-    reorder(items: GalleryItem[]): Promise<void>;
-  };
-
-  /** Demo-only helpers. Not part of the production contract. */
-  dev?: {
-    reset(): void;
-    switchRole(role: 'customer' | 'admin'): void;
-    adminHint: string;
   };
 }

@@ -10,9 +10,9 @@ import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, fromKey, MONTHS_S
 import { Button } from '@/ui/controls';
 import { ConfirmSheet } from '@/ui/ConfirmSheet';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
-import { useToast } from '@/ui/Toast';
+import { useToast } from '@/ui/useToast';
 import { spring } from '@/ui/motion';
-import { customerPrice } from '../format';
+import { appointmentPrice } from '../format';
 import { useMyAppointments } from './hooks';
 
 interface Props {
@@ -28,10 +28,8 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
   const toast = useToast();
   const { upcoming, past, waitlist } = useMyAppointments();
   const [cancelling, setCancelling] = useState<Appointment | null>(null);
-  const priceOf = (a: Appointment) => {
-    const s = db.services.find((x) => x.id === a.serviceId);
-    return s ? customerPrice(s) : '';
-  };
+  const leaveWaitlist = (id: string) => backend.waitlist.leave(id).catch((e: Error) => toast({ text: e.message, tone: 'error' }));
+  const isPriceHidden = (a: Appointment) => !!db.services.find((s) => s.id === a.serviceId)?.priceHidden;
 
   return (
     <div className="absolute inset-0 overflow-y-auto pt-safe" style={{ paddingBottom: TAB_BAR_SPACE }}>
@@ -71,7 +69,7 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
                   </div>
                   <div className="text-sm text-ink-soft">
                     {a.serviceName}
-                    {priceOf(a) && !priceOf(a).includes('במספרה') ? ` • ${priceOf(a)}` : ''}
+                    {isPriceHidden(a) ? '' : ` • ${appointmentPrice(a, db.services)}`}
                   </div>
                 </div>
               </div>
@@ -103,9 +101,9 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
                 <Bell size={20} className="text-open-text" />
                 <div className="flex flex-1 flex-col gap-[3px]">
                   <span className="text-[15px] font-medium">{fmtShortDate(w.date)}</span>
-                  <span className="text-[13px] text-ink-soft">{w.part === 'any' ? 'כל שעה' : PART_LABELS[w.part]} • נודיע בוואטסאפ אם יתפנה</span>
+                  <span className="text-[13px] text-ink-soft">{PART_LABELS[w.part]} • נודיע בוואטסאפ אם יתפנה</span>
                 </div>
-                <button type="button" onClick={() => backend.waitlist.leave(w.id)} className="press h-11 rounded-xl px-3 text-sm font-semibold text-ink-soft">
+                <button type="button" onClick={() => leaveWaitlist(w.id)} className="press h-11 rounded-xl px-3 text-sm font-semibold text-ink-soft">
                   יציאה
                 </button>
               </div>
@@ -145,9 +143,13 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
         onConfirm={async () => {
           const a = cancelling!;
           setCancelling(null);
-          await backend.appointments.cancel(a.id, 'customer');
-          haptic();
-          toast({ text: 'התור בוטל' });
+          try {
+            await backend.appointments.cancel(a.id);
+            haptic();
+            toast({ text: 'התור בוטל' });
+          } catch (e) {
+            toast({ text: (e as Error).message, tone: 'error' });
+          }
         }}
       >
         {cancelling && `${cancelling.serviceName}, ${fmtShortDate(cancelling.date)} ב-${fmtTime(cancelling.start)}. אם תרצה, אפשר במקום זה לשנות מועד.`}

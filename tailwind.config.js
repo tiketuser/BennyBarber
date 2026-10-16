@@ -11,6 +11,12 @@ export default {
         open: { DEFAULT: '#059669', soft: '#ECFDF5', line: '#A7F3D0', text: '#047857', dot: '#10B981' },
         danger: { DEFAULT: '#B91C1C', soft: '#FEF2F2', warm: '#FFF4F2' },
         bubble: '#DCF8C6',
+        /** Gallery tiles until real photos are uploaded. */
+        placeholder: { DEFAULT: '#CFCBC5', ink: '#44403C' },
+        /** Unselected bars in the revenue chart. */
+        bar: '#918A84',
+        /** Desktop backdrop behind the phone frame. */
+        desk: '#EFEDE9',
       },
       fontFamily: {
         sans: ['Rubik', 'system-ui', 'sans-serif'],

@@ -1,9 +1,8 @@
 import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ChevronRight, Minus, Plus } from 'lucide-react';
 import { formatPhone } from '@/lib/phone';
+import { cx } from './cx';
 
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
-export { cx };
 
 type Variant = 'primary' | 'secondary' | 'whatsapp' | 'danger' | 'ghost' | 'open';
 
@@ -171,14 +170,6 @@ export function ScreenHeader({ title, onBack, aside }: { title?: ReactNode; onBa
   );
 }
 
-export function SectionLabel({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between px-5 pb-2.5 text-sm font-semibold text-ink-soft">
-      <span>{children}</span>
-      {aside}
-    </div>
-  );
-}
 
 /** WhatsApp chat bubble preview of a message that will be sent. */
 export function Bubble({ children, className }: { children: ReactNode; className?: string }) {

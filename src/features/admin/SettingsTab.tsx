@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Coffee, Eye, EyeOff, Images, LogOut, Minus, MessageCircle, Palmtree, Plus, Trash2 } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
 import type { Appointment, Service, Weekday } from '@/domain/types';
 import { haptic } from '@/lib/platform';
-import { DAY_LETTERS, MONTHS, fmtDayMonth, fmtRange, fmtTime, fromKey, toKey, todayKey } from '@/lib/time';
-import { Button, Stepper, Switch, TextInput, cx } from '@/ui/controls';
+import { DAY_LETTERS, MONTHS, fmtDayMonth, fmtDayMonthRange, fmtRange, fmtTime, fromKey, toKey, todayKey } from '@/lib/time';
+import { Button, Stepper, Switch, TextInput } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
+import { useOnChange } from '@/ui/useOnChange';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
-import { useToast } from '@/ui/Toast';
+import { useToast } from '@/ui/useToast';
 import { firstName, money } from '../format';
-import { GalleryTile, groupHours } from '../customer/ShopScreens';
+import { GalleryTile } from '../shared/GalleryTile';
+import { groupHours } from '../shared/hours';
 import { useSendQueue } from './useSendQueue';
 
 /** "שירותים ושעות": prices, hidden prices, service types, opening hours, break, vacations, gallery picks. */
@@ -115,7 +118,7 @@ export function SettingsTab() {
           {upcomingVacations.map((v) => (
             <div key={v.id} className="flex h-12 items-center gap-2 rounded-[14px] bg-surface pe-2 ps-4 text-sm">
               <Palmtree size={16} className="text-danger" />
-              <span className="flex-1 font-medium">חופש {v.from === v.to ? fmtDayMonth(v.from) : `${fmtDayMonth(v.from)} - ${fmtDayMonth(v.to)}`}</span>
+              <span className="flex-1 font-medium">חופש {v.from === v.to ? fmtDayMonth(v.from) : fmtDayMonthRange(v.from, v.to)}</span>
               <button type="button" onClick={() => backend.settings.removeVacation(v.id)} className="press h-9 rounded-[10px] px-2.5 text-[13px] font-semibold text-ink-soft">
                 בטל חופש
               </button>
@@ -151,17 +154,12 @@ function ServiceSheet({ service, onClose }: { service: Service | 'new' | null; o
   const [name, setName] = useState('');
   const [price, setPrice] = useState(70);
   const [duration, setDuration] = useState(30);
-  useEffect(() => {
-    if (service && service !== 'new') {
-      setName(service.name);
-      setPrice(service.price);
-      setDuration(service.durationMin);
-    } else if (service === 'new') {
-      setName('');
-      setPrice(70);
-      setDuration(30);
-    }
-  }, [service]);
+  useOnChange(service, (s) => {
+    if (!s) return;
+    setName(s === 'new' ? '' : s.name);
+    setPrice(s === 'new' ? 70 : s.price);
+    setDuration(s === 'new' ? 30 : s.durationMin);
+  });
   const save = async () => {
     const clean = name.trim();
     if (isNew) await backend.services.add({ name: clean, shortName: clean.split(/[\s/+]/)[0], price, durationMin: duration, priceHidden: false });
@@ -209,22 +207,20 @@ function HoursSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
       setTo(h.to);
     }
   };
-  useEffect(() => {
-    if (open) {
-      const first: Weekday[] = [0, 1, 2, 3, 4];
-      setPicked(first);
-      load(first);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  useOnChange(open, (isOpen) => {
+    if (!isOpen) return;
+    const sundayToThursday: Weekday[] = [0, 1, 2, 3, 4];
+    setPicked(sundayToThursday);
+    load(sundayToThursday);
+  });
 
   const toggle = (d: Weekday) => {
-    const next = picked.includes(d) ? picked.filter((x) => x !== d) : [...picked, d].sort();
+    const next = picked.includes(d) ? picked.filter((x) => x !== d) : [...picked, d].sort((a, b) => a - b);
     if (!picked.length) load(next);
     setPicked(next);
   };
   const count = picked.length;
-  const cta = count === 0 ? 'בחר לפחות יום אחד' : (isOpen ? `שמור ${fmtTime(from)} - ${fmtTime(to)}` : 'סמן כסגור') + (count > 1 ? ` ל-${count} ימים` : '');
+  const cta = count === 0 ? 'בחר לפחות יום אחד' : (isOpen ? `שמור ${fmtRange(from, to)}` : 'סמן כסגור') + (count > 1 ? ` ל-${count} ימים` : '');
 
   return (
     <Sheet
@@ -277,17 +273,15 @@ function BreakSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [on, setOn] = useState(true);
   const [from, setFrom] = useState(780);
   const [to, setTo] = useState(810);
-  useEffect(() => {
-    if (open) {
-      const b = db.settings.breakTime;
-      setOn(!!b);
-      if (b) {
-        setFrom(b.from);
-        setTo(b.to);
-      }
+  useOnChange(open, (isOpen) => {
+    if (!isOpen) return;
+    const b = db.settings.breakTime;
+    setOn(!!b);
+    if (b) {
+      setFrom(b.from);
+      setTo(b.to);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  });
   return (
     <Sheet
       open={open}
@@ -325,6 +319,7 @@ function BreakSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 function VacationSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const backend = useBackend();
   const db = useDb();
+  const toast = useToast();
   const now = useNow();
   const today = todayKey(now);
   const [month, setMonth] = useState(() => today.slice(0, 7));
@@ -333,15 +328,13 @@ function VacationSheet({ open, onClose }: { open: boolean; onClose: () => void }
   const [notify, setNotify] = useState(true);
   const [affected, setAffected] = useState<Appointment[] | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      setMonth(today.slice(0, 7));
-      setStart(null);
-      setEnd(null);
-      setAffected(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  useOnChange(open, (isOpen) => {
+    if (!isOpen) return;
+    setMonth(today.slice(0, 7));
+    setStart(null);
+    setEnd(null);
+    setAffected(null);
+  });
 
   const first = fromKey(month + '-01');
   const offset = first.getDay();
@@ -370,7 +363,12 @@ function VacationSheet({ open, onClose }: { open: boolean; onClose: () => void }
   const save = async () => {
     if (!start) return;
     const hit = booked;
-    await backend.settings.addVacation(start, last!);
+    try {
+      await backend.settings.addVacation(start, last!);
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+      return;
+    }
     haptic('success');
     if (notify && hit.some((a) => a.phone)) setAffected(hit);
     else onClose();
@@ -472,7 +470,7 @@ function VacationSheet({ open, onClose }: { open: boolean; onClose: () => void }
         })}
       </div>
       <div className="mt-3.5 flex flex-col gap-1.5 rounded-2xl bg-surface px-4 py-3.5">
-        <span className="text-[17px] font-bold">{!start ? 'בחר ימים' : days === 1 ? `${fmtDayMonth(start)} • יום אחד` : `${fmtDayMonth(start)} - ${fmtDayMonth(last!)} • ${days} ימים`}</span>
+        <span className="text-[17px] font-bold">{!start ? 'בחר ימים' : days === 1 ? `${fmtDayMonth(start)} • יום אחד` : `${fmtDayMonthRange(start, last!)} • ${days} ימים`}</span>
         <span className="text-[13px] text-ink-soft">
           {!start ? 'עוד לא נבחרו ימים' : booked.length ? `יש ${booked.length} תורים בימים האלה. הם יבוטלו, ולקוחות לא יוכלו לקבוע בהם תור חדש.` : 'אין תורים בימים האלה.'}
         </span>

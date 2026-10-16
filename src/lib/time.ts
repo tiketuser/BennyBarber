@@ -1,7 +1,7 @@
 import type { DateKey, Minutes, Weekday } from '@/domain/types';
 
 export const DAY_LETTERS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'] as const;
-export const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'] as const;
+
 export const MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'] as const;
 export const MONTHS_SHORT = ['ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני', 'יולי', 'אוג׳', 'ספט׳', 'אוק׳', 'נוב׳', 'דצמ׳'] as const;
 
@@ -39,15 +39,26 @@ export function fmtTime(m: Minutes): string {
   return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 }
 
-/** "17:30 - 18:15" with the earlier time first, rendered LTR by the caller. */
+/**
+ * Wraps text in a left-to-right isolate. Without it, "17:30 - 18:15" inside Hebrew text
+ * is laid out right-to-left and reads "18:15 - 17:30".
+ */
+const ltr = (s: string) => `⁦${s}⁩`;
+
+/** "17:30 - 18:15", safe to drop into Hebrew text. */
 export function fmtRange(from: Minutes, to: Minutes): string {
-  return `${fmtTime(from)} - ${fmtTime(to)}`;
+  return ltr(`${fmtTime(from)} - ${fmtTime(to)}`);
 }
 
 /** "20.10" */
 export function fmtDayMonth(key: DateKey): string {
   const d = fromKey(key);
   return `${d.getDate()}.${d.getMonth() + 1}`;
+}
+
+/** "20.10 - 24.10", safe to drop into Hebrew text. */
+export function fmtDayMonthRange(from: DateKey, to: DateKey): string {
+  return ltr(`${fmtDayMonth(from)} - ${fmtDayMonth(to)}`);
 }
 
 /** "יום ג׳, 20.10" */

@@ -20,9 +20,9 @@
   }
   body {
     margin: 0;
-    background: #ffffff;
-    color: #1c1917;
-    font-family: 'Rubik', system-ui, sans-serif;
+    background: theme('colors.white');
+    color: theme('colors.ink.DEFAULT');
+    font-family: theme('fontFamily.sans');
     overscroll-behavior: none;
   }
   button {
@@ -35,10 +35,10 @@
   }
   input::placeholder,
   textarea::placeholder {
-    color: #a8a29e;
+    color: theme('colors.ink.faint');
   }
   :focus-visible {
-    outline: 2px solid #111111;
+    outline: 2px solid theme('colors.beitar.black');
     outline-offset: 2px;
   }
 }
@@ -46,9 +46,6 @@
 @layer utilities {
   .pt-safe {
     padding-top: env(safe-area-inset-top);
-  }
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
   }
   /* Bottom bars: at least 12px, more on phones with a home indicator */
   .pb-bar {
@@ -88,7 +85,7 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .glass {
-    background: #ffffff;
+    background: theme('colors.white');
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

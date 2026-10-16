@@ -7,7 +7,8 @@ import { fmtShortDate, fmtTime } from '@/lib/time';
 import { Field, PhoneInput, TextInput } from '@/ui/controls';
 import { Sheet } from '@/ui/Sheet';
 import { SlideToConfirm } from '@/ui/SlideToConfirm';
-import { useToast } from '@/ui/Toast';
+import { useOnChange } from '@/ui/useOnChange';
+import { useToast } from '@/ui/useToast';
 
 interface Props {
   open: boolean;
@@ -31,14 +32,22 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
   const [done, setDone] = useState<Appointment | null>(null);
   const [leaving, setLeaving] = useState(false);
 
-  useEffect(() => {
-    if (open) {
+  useOnChange(open, (isOpen) => {
+    if (isOpen) {
       setDone(null);
       setLeaving(false);
       setName(session?.name ?? '');
       setPhone(formatPhone(session?.phone ?? ''));
+      setNotes('');
     }
-  }, [open, session]);
+  });
+
+  // Let the success state show, then slide away; the parent learns about it once we're gone.
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setLeaving(true), 650);
+    return () => clearTimeout(t);
+  }, [done]);
 
   const valid = name.trim().length >= 2 && isValidMobile(phone);
 
@@ -46,8 +55,6 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
     try {
       const appt = await backend.appointments.book({ serviceId: service.id, date, start, customerName: name, phone, notes, replacesId });
       setDone(appt);
-      // Let the success state show, then slide away; the parent learns about it once we're gone.
-      setTimeout(() => setLeaving(true), 650);
     } catch (e) {
       toast({ text: (e as Error).message, tone: 'error' });
       throw e;

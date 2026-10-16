@@ -1,35 +1,15 @@
-import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Bell, Check, MessageCircle, X } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import { PART_LABELS, busyFor, partOf } from '@/domain/schedule';
-import type { Appointment, DbSnapshot } from '@/domain/types';
-import { fmtAgo, fmtShortDate, fmtTime, isPast, nowMinutes, todayKey } from '@/lib/time';
-import { Bubble, cx } from '@/ui/controls';
+import { PART_LABELS, partOf } from '@/domain/schedule';
+import type { Appointment } from '@/domain/types';
+import { fmtAgo, fmtShortDate, fmtTime, nowMinutes, todayKey } from '@/lib/time';
+import { Bubble } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
 import { money } from '../format';
+import { waitingFor } from './openings';
 import { useSendQueue } from './useSendQueue';
-
-/** Recent cancellations whose slot is still free and that have people waiting for that day. */
-export function useOpenings(): Appointment[] {
-  const db = useDb();
-  const now = useNow();
-  return useMemo(() => findOpenings(db, now), [db, now]);
-}
-
-function findOpenings(db: DbSnapshot, now: Date) {
-  const today = todayKey(now);
-  return db.appointments
-    .filter((a) => a.status === 'cancelled' && a.openingHandled === false && a.date >= today && !isPast(a.date, a.end, now))
-    .filter((a) => !busyFor(db, a.date).some((b) => a.start < b.to && a.end > b.from))
-    .filter((a) => waitingFor(db, a).length > 0)
-    .sort((a, b) => (b.cancelledAt ?? 0) - (a.cancelledAt ?? 0));
-}
-
-function waitingFor(db: DbSnapshot, a: Appointment) {
-  const part = partOf(a.start);
-  return db.waitlist.filter((w) => w.date === a.date && (w.part === 'any' || w.part === part)).sort((x, y) => x.createdAt - y.createdAt);
-}
 
 /** "התפנה תור": one-tap WhatsApp to everyone waiting, first come first served. */
 export function OpeningAlert({ appt }: { appt: Appointment }) {

@@ -10,4 +10,6 @@ export const SHOP = {
   wazeUrl: 'https://waze.com/ul?q=' + encodeURIComponent('אריה שנקר 65 חולון') + '&navigate=yes',
   mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('אריה שנקר 65 חולון'),
   course: { details: '[משך הקורס] • [מחיר] • [מועד הפתיחה הבא]' },
+  /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */
+  appUrl: import.meta.env.VITE_APP_URL ?? location.origin,
 } as const;

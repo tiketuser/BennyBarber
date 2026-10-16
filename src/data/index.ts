@@ -6,4 +6,3 @@ export function createBackend(): Backend {
   return createMockBackend();
 }
 
-export type { Backend } from './backend';

@@ -5,7 +5,8 @@ import { useBackend } from '@/data/store';
 import { isValidMobile, phoneDigits } from '@/lib/phone';
 import { haptic } from '@/lib/platform';
 import { SHOP } from '@/config/shop';
-import { Button, PhoneInput, TextInput, cx } from '@/ui/controls';
+import { Button, PhoneInput, TextInput } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
 import { firstName } from '../format';
 
@@ -61,8 +62,11 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
       setStep('done');
     });
 
+  // Focus the code field once the slide-in settles, so the keyboard doesn't fight the animation.
   useEffect(() => {
-    if (step === 'code') setTimeout(() => codeRef.current?.focus(), 350);
+    if (step !== 'code') return;
+    const t = setTimeout(() => codeRef.current?.focus(), 350);
+    return () => clearTimeout(t);
   }, [step]);
 
   const cta =
@@ -109,7 +113,6 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
                     מספר נייד
                   </label>
                   <PhoneInput id="lphone" autoFocus value={phone} onChange={setPhone} className="mt-2 h-[60px] rounded-2xl border-2 border-beitar-black text-[22px] font-semibold" />
-                  {backend.dev && <span className="text-xs text-ink-mute">{backend.dev.adminHint}</span>}
                 </>
               )}
 
@@ -149,12 +152,11 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
                       onChange={(e) => {
                         const c = phoneDigits(e.target.value).slice(0, 4);
                         setCode(c);
-                        if (c.length === 4) verify(c);
+                        if (c.length === 4 && !busy) verify(c);
                       }}
                       className="absolute inset-0 opacity-0"
                     />
                   </div>
-                  {backend.dev && <span className="text-xs text-ink-mute">לניסיון: כל 4 ספרות עובדות</span>}
                   <button type="button" disabled={busy} onClick={sendCode} className="h-11 self-start text-sm font-medium text-ink-soft">
                     לא הגיע? שלח שוב
                   </button>

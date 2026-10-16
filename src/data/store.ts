@@ -1,12 +1,8 @@
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import type { Backend } from './backend';
 import type { DbSnapshot, Session } from '@/domain/types';
 
-const BackendContext = createContext<Backend | null>(null);
-
-export function BackendProvider({ backend, children }: { backend: Backend; children: ReactNode }) {
-  return <BackendContext.Provider value={backend}>{children}</BackendContext.Provider>;
-}
+export const BackendContext = createContext<Backend | null>(null);
 
 export function useBackend(): Backend {
   const b = useContext(BackendContext);

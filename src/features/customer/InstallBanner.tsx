@@ -68,7 +68,7 @@ export function InstallBanner() {
             className="mx-4 overflow-hidden"
           >
             <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
-              <img src="/pwa-192.png" alt="" className="size-11 rounded-xl" />
+              <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="" className="size-11 rounded-xl" />
               <p className="m-0 flex-1 text-[13px] leading-snug">התקן את האפליקציה של בני כהן למסך הבית לגישה מהירה</p>
               <button type="button" onClick={install} className="press h-9 rounded-full bg-beitar-black px-3.5 text-[13px] font-semibold text-beitar-yellow">
                 התקנה

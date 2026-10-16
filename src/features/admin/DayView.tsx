@@ -7,12 +7,14 @@ import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { openExternal } from '@/lib/platform';
 import { addDays, fmtLongDate, fmtRange, fmtShortDate, fmtTime, greeting, nowMinutes, todayKey } from '@/lib/time';
-import { cx } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { firstName, money } from '../format';
 import { AdminCancelSheet, BlockSheet, DelaySheet, FreeSlotsSheet } from './DaySheets';
-import { OpeningAlert, useOpenings } from './OpeningAlert';
+import { useReleaseBlock } from './useReleaseBlock';
+import { OpeningAlert } from './OpeningAlert';
+import { useOpenings } from './openings';
 
 type Row =
   | { kind: 'appointment'; from: Minutes; to: Minutes; appt: Appointment }
@@ -38,6 +40,7 @@ export function DayView({ date, setDate, onQuick }: Props) {
   const [editBlock, setEditBlock] = useState<Block | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
   const openings = useOpenings();
+  const releaseBlock = useReleaseBlock();
   const hours = hoursFor(db.settings, date);
 
   const rows = useMemo<Row[]>(() => {
@@ -58,6 +61,7 @@ export function DayView({ date, setDate, onQuick }: Props) {
   const hasUpcoming = isToday && appts.some((r) => r.to > nowM && r.appt.phone);
 
   return (
+    <>
     <div className="absolute inset-0 overflow-y-auto pt-safe" style={{ paddingBottom: `calc(${TAB_BAR_SPACE} + 88px)` }}>
       <header className="flex items-center justify-between px-5 pt-5">
         <div className="flex flex-col gap-0.5">
@@ -130,18 +134,21 @@ export function DayView({ date, setDate, onQuick }: Props) {
                         <span className="font-semibold">{money(r.appt.price)}</span>
                       </div>
                     ) : (
-                      <AppointmentCard appt={r.appt} current={current} onCancel={() => setCancelAppt(r.appt)} />
+                      <AppointmentCard appt={r.appt} today={today} current={current} onCancel={() => setCancelAppt(r.appt)} />
                     ))}
                   {r.kind === 'block' && (
                     <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
                       <Ban size={16} />
-                      <span className="flex-1">
-                        {r.block.label ?? 'חסום'} • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {r.block.label ?? 'חסום'} • {fmtRange(r.from, r.to)}
                       </span>
                       {!past && (
                         <>
                           <button type="button" onClick={() => setEditBlock(r.block)} className="press h-9 rounded-[10px] bg-white px-2.5 text-[13px] font-semibold">
                             ערוך
+                          </button>
+                          <button type="button" onClick={() => releaseBlock(r.block)} className="press h-9 px-1 text-[13px] font-semibold underline">
+                            שחרר
                           </button>
                         </>
                       )}
@@ -151,14 +158,14 @@ export function DayView({ date, setDate, onQuick }: Props) {
                     <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
                       <Coffee size={16} />
                       <span className="flex-1">
-                        הפסקה • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                        הפסקה • {fmtRange(r.from, r.to)}
                       </span>
                     </div>
                   )}
                   {r.kind === 'free' && (
                     <button type="button" onClick={() => onQuick(r.from)} className="press flex h-[52px] w-full items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong px-3.5 text-right text-sm text-ink-soft">
                       <span className="flex-1">
-                        פנוי • <span dir="ltr">{fmtRange(r.from, r.to)}</span>
+                        פנוי • {fmtRange(r.from, r.to)}
                       </span>
                       <span className="flex items-center gap-1 font-semibold text-beitar-black">
                         <Plus size={16} />
@@ -173,13 +180,15 @@ export function DayView({ date, setDate, onQuick }: Props) {
         </AnimatePresence>
       </div>
 
+      </div>
+
       {hours && (
         <button
           type="button"
           aria-label="תור מהיר או חסימה"
           onClick={() => onQuick(null)}
           className="press absolute left-5 z-[5] flex size-[60px] items-center justify-center rounded-full bg-beitar-black text-beitar-yellow shadow-[0_8px_24px_rgba(17,17,17,0.28)]"
-          style={{ bottom: `calc(${TAB_BAR_SPACE} + 20px)`, position: 'fixed' }}
+          style={{ bottom: `calc(${TAB_BAR_SPACE} + 20px)` }}
         >
           <Plus size={28} />
         </button>
@@ -197,12 +206,11 @@ export function DayView({ date, setDate, onQuick }: Props) {
       <DelaySheet open={delayOpen} onClose={() => setDelayOpen(false)} />
       <BlockSheet block={editBlock} onClose={() => setEditBlock(null)} />
       <AdminCancelSheet appt={cancelAppt} onClose={() => setCancelAppt(null)} />
-    </div>
+    </>
   );
 }
 
-function AppointmentCard({ appt, current, onCancel }: { appt: Appointment; current: boolean; onCancel: () => void }) {
-  const today = todayKey();
+function AppointmentCard({ appt, today, current, onCancel }: { appt: Appointment; today: DateKey; current: boolean; onCancel: () => void }) {
   const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} במספרה. נתראה!`;
   return (
     <div className={cx('flex flex-col gap-2.5 rounded-2xl px-3.5 py-3', current ? 'border-2 border-beitar-black' : 'border border-line')}>
@@ -213,7 +221,7 @@ function AppointmentCard({ appt, current, onCancel }: { appt: Appointment; curre
             {appt.source === 'walkin' && <span className="mr-1.5 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">נכנס מהרחוב</span>}
           </span>
           <span className="text-[13px] text-ink-soft">
-            {appt.serviceName} • <span dir="ltr">{fmtRange(appt.start, appt.end)}</span>
+            {appt.serviceName} • {fmtRange(appt.start, appt.end)}
           </span>
           {appt.notes && (
             <span className="mt-0.5 flex items-center gap-1 text-[13px] text-ink">

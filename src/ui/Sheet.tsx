@@ -16,7 +16,7 @@ interface SheetProps {
 }
 
 /**
- * Native-style bottom sheet. Drag the grabber/header down to dismiss: it follows the finger 1:1,
+ * Native-style bottom sheet. Drag the grabber down to dismiss: it follows the finger 1:1,
  * and on release the flick velocity is projected forward to decide close vs. snap back.
  */
 export function Sheet({ open, onClose, label, children, footer, onExited }: SheetProps) {
@@ -87,7 +87,7 @@ function SheetPanel({ onClose, label, children, footer }: Omit<SheetProps, 'open
   );
 }
 
-/** Sheet title row that also works as a drag zone. */
+/** Sheet title row with an optional note on the left. */
 export function SheetTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 pt-2">

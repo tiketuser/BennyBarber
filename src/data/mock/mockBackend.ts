@@ -4,10 +4,12 @@ import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
 import { assertBookable } from '@/domain/schedule';
 import { phoneDigits } from '@/lib/phone';
-import { buildSeed, seedCustomerHistory } from './seed';
+import { buildSeed } from './seed';
 
 const DB_KEY = 'bb.db.v1';
 const SESSION_KEY = 'bb.session.v1';
+/** Names customers saved once, by phone, so a returning number skips the name step. */
+const NAMES_KEY = 'bb.names.v1';
 /** Demo admin number. In production the admin list lives on the server (Firestore `admins` / custom claims). */
 const ADMIN_PHONES = ['0500000000'];
 
@@ -61,8 +63,22 @@ export function createMockBackend(): Backend {
     }
   });
 
+  const requireSession = (): Session => {
+    if (!session) throw new Error('צריך להתחבר קודם');
+    return session;
+  };
   const requireAdmin = () => {
     if (session?.role !== 'admin') throw new Error('פעולה למנהל בלבד');
+  };
+  /** Customers may only touch their own records; the admin may touch any. */
+  const requireOwner = (customerPhone: string | undefined) => {
+    const s = requireSession();
+    if (s.role !== 'admin' && customerPhone !== s.phone) throw new Error('אין הרשאה לפעולה הזו');
+  };
+  const appointment = (id: string) => {
+    const a = db.appointments.find((x) => x.id === id);
+    if (!a) throw new Error('התור לא נמצא');
+    return a;
   };
   const service = (id: string) => {
     const s = db.services.find((x) => x.id === id);
@@ -70,9 +86,9 @@ export function createMockBackend(): Backend {
     return s;
   };
   const patchAppointments = (fn: (a: Appointment) => Appointment) => commit({ ...db, appointments: db.appointments.map(fn) });
+  const loadNames = () => load<Record<string, string>>(NAMES_KEY) ?? {};
 
   const backend: Backend = {
-    kind: 'mock',
     subscribe(l) {
       dbListeners.add(l);
       return () => dbListeners.delete(l);
@@ -93,22 +109,16 @@ export function createMockBackend(): Backend {
         await wait(300);
         const digits = phoneDigits(phone);
         if (pendingPhone !== digits || !/^\d{4}$/.test(code)) throw new Error('הקוד לא נכון, נסה שוב');
-        const known = load<Record<string, string>>('bb.names.v1') ?? {};
         const role = ADMIN_PHONES.includes(digits) ? 'admin' : 'customer';
-        const s: Session = { phone: digits, name: known[digits] ?? null, role };
+        const s: Session = { phone: digits, name: loadNames()[digits] ?? null, role };
         setSession(s);
         return s;
       },
       async saveName(name) {
-        if (!session) throw new Error('לא מחובר');
+        const s = requireSession();
         const clean = name.trim();
-        const known = load<Record<string, string>>('bb.names.v1') ?? {};
-        known[session.phone] = clean;
-        save('bb.names.v1', known);
-        if (session.role === 'customer' && !db.appointments.some((a) => a.customerPhone === session!.phone)) {
-          commit({ ...db, appointments: [...db.appointments, ...seedCustomerHistory(db, session.phone, clean)] });
-        }
-        setSession({ ...session, name: clean });
+        save(NAMES_KEY, { ...loadNames(), [s.phone]: clean });
+        setSession({ ...s, name: clean });
       },
       async signOut() {
         setSession(null);
@@ -118,9 +128,11 @@ export function createMockBackend(): Backend {
     appointments: {
       async book(input: BookingInput) {
         await wait();
+        const me = requireSession();
+        if (input.replacesId) requireOwner(appointment(input.replacesId).customerPhone);
         const svc = service(input.serviceId);
         const end = input.start + svc.durationMin;
-        assertBookable(db, input.date, input.start, end, input.replacesId);
+        assertBookable(db, input.date, input.start, end, { ignoreId: input.replacesId });
         const appt: Appointment = {
           id: uid(),
           date: input.date,
@@ -131,7 +143,7 @@ export function createMockBackend(): Backend {
           price: svc.price,
           customerName: input.customerName.trim(),
           phone: phoneDigits(input.phone),
-          customerPhone: session?.phone,
+          customerPhone: me.phone,
           notes: input.notes?.trim() || undefined,
           status: 'booked',
           source: 'app',
@@ -139,12 +151,13 @@ export function createMockBackend(): Backend {
         };
         let appointments = [...db.appointments, appt];
         if (input.replacesId) {
+          // The old slot is freed like any cancellation, so people waiting for it get offered it.
           appointments = appointments.map((a) =>
-            a.id === input.replacesId ? { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'customer' } : a,
+            a.id === input.replacesId ? { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'customer', openingHandled: false } : a,
           );
         }
         // Booking a day you were waiting on removes you from that day's waitlist.
-        const waitlist = db.waitlist.filter((w) => !(w.date === input.date && session && w.customerPhone === session.phone));
+        const waitlist = db.waitlist.filter((w) => !(w.date === input.date && w.customerPhone === me.phone));
         commit({ ...db, appointments, waitlist });
         return appt;
       },
@@ -171,11 +184,14 @@ export function createMockBackend(): Backend {
         commit({ ...db, appointments: [...db.appointments, appt] });
         return appt;
       },
-      async cancel(id, by) {
+      async cancel(id) {
         await wait(60);
+        requireOwner(appointment(id).customerPhone);
+        const by = session!.role;
         patchAppointments((a) => (a.id === id ? { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: by, openingHandled: false } : a));
       },
       async markOpeningHandled(id) {
+        requireAdmin();
         patchAppointments((a) => (a.id === id ? { ...a, openingHandled: true } : a));
       },
     },
@@ -200,11 +216,12 @@ export function createMockBackend(): Backend {
     waitlist: {
       async join(date, part, name, phone) {
         await wait();
-        const mine = session?.phone;
-        const rest = db.waitlist.filter((w) => !(w.date === date && mine && w.customerPhone === mine));
+        const mine = requireSession().phone;
+        const rest = db.waitlist.filter((w) => !(w.date === date && w.customerPhone === mine));
         commit({ ...db, waitlist: [...rest, { id: uid(), date, part, name, phone: phoneDigits(phone), customerPhone: mine, createdAt: Date.now() }] });
       },
       async leave(id) {
+        requireOwner(db.waitlist.find((w) => w.id === id)?.customerPhone);
         commit({ ...db, waitlist: db.waitlist.filter((w) => w.id !== id) });
       },
     },
@@ -243,6 +260,7 @@ export function createMockBackend(): Backend {
       },
       async addVacation(from, to) {
         requireAdmin();
+        if (to < from) throw new Error('יום הסוף לפני יום ההתחלה');
         const v = { id: uid(), from, to };
         // Appointments in the vacation are cancelled; the admin is offered to message each client.
         const appointments = db.appointments.map((a) =>
@@ -261,24 +279,6 @@ export function createMockBackend(): Backend {
       async togglePin(id) {
         requireAdmin();
         commit({ ...db, gallery: db.gallery.map((g) => (g.id === id ? { ...g, pinned: !g.pinned } : g)) });
-      },
-      async reorder(items) {
-        requireAdmin();
-        commit({ ...db, gallery: items.map((g, i) => ({ ...g, order: i })) });
-      },
-    },
-
-    dev: {
-      adminHint: 'לניסיון: 050-0000000 נכנס כמנהל, כל מספר אחר כלקוח. כל קוד של 4 ספרות עובד.',
-      reset() {
-        commit(buildSeed());
-      },
-      switchRole(role) {
-        if (role === 'admin') setSession({ phone: ADMIN_PHONES[0], name: 'מנהל', role: 'admin' });
-        else setSession({ phone: '0521234567', name: (load<Record<string, string>>('bb.names.v1') ?? {})['0521234567'] ?? 'יוסי לוי', role: 'customer' });
-        if (role === 'customer' && !db.appointments.some((a) => a.customerPhone === '0521234567')) {
-          commit({ ...db, appointments: [...db.appointments, ...seedCustomerHistory(db, '0521234567', 'יוסי לוי')] });
-        }
       },
     },
   };

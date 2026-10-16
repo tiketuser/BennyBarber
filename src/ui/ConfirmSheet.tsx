@@ -11,7 +11,6 @@ export function ConfirmSheet({
   confirmLabel,
   cancelLabel = 'לא, השאר',
   onConfirm,
-  tone = 'danger',
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,7 +19,6 @@ export function ConfirmSheet({
   confirmLabel: string;
   cancelLabel?: string;
   onConfirm: () => void;
-  tone?: 'danger' | 'primary';
 }) {
   return (
     <Sheet
@@ -29,7 +27,7 @@ export function ConfirmSheet({
       label={title}
       footer={
         <div className="flex flex-col gap-2">
-          <Button block variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm}>
+          <Button block variant="danger" onClick={onConfirm}>
             {confirmLabel}
           </Button>
           <Button block variant="ghost" size="md" onClick={onClose}>

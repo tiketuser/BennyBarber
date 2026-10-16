@@ -1,52 +1,18 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, GraduationCap, Instagram, LogOut, Map, MessageCircle, Navigation, Phone, Pin, Scissors } from 'lucide-react';
+import { ChevronLeft, GraduationCap, Instagram, LogOut, Map, MessageCircle, Navigation, Phone } from 'lucide-react';
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
 import { hoursFor } from '@/domain/schedule';
-import type { GalleryCategory, GalleryItem, Settings, Weekday } from '@/domain/types';
+import type { GalleryCategory } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { formatPhone, isValidMobile } from '@/lib/phone';
 import { openExternal } from '@/lib/platform';
-import { DAY_LETTERS, fmtRange, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
-import { Bubble, Button, Chip, Field, PhoneInput, ScreenHeader, TextInput, cx } from '@/ui/controls';
+import { nowMinutes, todayKey, weekdayOf } from '@/lib/time';
+import { Bubble, Button, Chip, Field, PhoneInput, ScreenHeader, TextInput } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
-
-/** Groups consecutive weekdays with identical hours: "א׳ - ה׳ 09:00 - 20:00". */
-export function groupHours(settings: Settings) {
-  const rows: { days: Weekday[]; label: string; value: string; open: boolean }[] = [];
-  for (let d = 0 as Weekday; d <= 6; d = (d + 1) as Weekday) {
-    const h = settings.hours[d];
-    const value = h.open ? fmtRange(h.from, h.to) : 'סגור';
-    const last = rows[rows.length - 1];
-    if (last && last.value === value && last.days[last.days.length - 1] === d - 1) last.days.push(d);
-    else rows.push({ days: [d], label: '', value, open: h.open });
-  }
-  for (const r of rows) {
-    const a = r.days[0];
-    const b = r.days[r.days.length - 1];
-    r.label = a === b ? (a === 6 ? 'שבת' : DAY_LETTERS[a]) : `${DAY_LETTERS[a]} - ${DAY_LETTERS[b]}`;
-  }
-  return rows;
-}
-
-export function GalleryTile({ item, className }: { item: GalleryItem; className?: string }) {
-  return (
-    <div className={cx('relative overflow-hidden bg-[#CFCBC5]', className)}>
-      {item.src ? (
-        <img src={item.src} alt="" loading="lazy" className="size-full object-cover" />
-      ) : (
-        <div className="flex size-full items-center justify-center text-[#44403C]">
-          <Scissors size={22} aria-hidden />
-        </div>
-      )}
-      {item.pinned && (
-        <span role="img" aria-label="נעוץ" className="absolute right-[7px] top-[7px] flex text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
-          <Pin size={14} strokeWidth={1.75} />
-        </span>
-      )}
-    </div>
-  );
-}
+import { GalleryTile } from '../shared/GalleryTile';
+import { groupHours } from '../shared/hours';
 
 /** Tab 3: gallery preview, hours, navigation/contact, course lead. */
 export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onCourse: () => void }) {
@@ -218,7 +184,7 @@ export function CourseScreen({ onBack }: { onBack: () => void }) {
                   type="button"
                   aria-pressed={exp === e}
                   onClick={() => setExp(e)}
-                  className={cx('press h-11 flex-1 rounded-xl text-sm', exp === e ? 'bg-beitar-black font-semibold text-white' : 'border border-line font-medium')}
+                  className={cx('press h-11 flex-1 rounded-xl text-sm', exp === e ? 'bg-beitar-black font-semibold text-beitar-yellow' : 'border border-line font-medium')}
                 >
                   {e}
                 </button>

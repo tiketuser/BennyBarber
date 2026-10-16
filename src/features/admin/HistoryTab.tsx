@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Search, TrendingDown, TrendingUp } from 'luc
 import { useDb, useNow } from '@/data/store';
 import { phoneDigits } from '@/lib/phone';
 import { MONTHS, MONTHS_SHORT, fmtTime, fromKey, isPast, monthKey } from '@/lib/time';
-import { cx } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { money } from '../format';
@@ -135,7 +135,7 @@ export function HistoryTab() {
             <button key={m.key} type="button" onClick={() => setSel(i)} aria-label={`${label(m.key, true)}: ${money(m.revenue)}`} aria-pressed={on} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
               <span className={cx('text-[11px] font-semibold transition-opacity', on ? 'opacity-100' : 'opacity-0')}>{(m.revenue / 1000).toFixed(1).replace('.0', '')}K</span>
               <motion.span
-                className={cx('w-[70%] rounded-t transition-colors duration-200', on ? 'bg-beitar-black' : 'bg-[#918A84]')}
+                className={cx('w-[70%] rounded-t transition-colors duration-200', on ? 'bg-beitar-black' : 'bg-bar')}
                 initial={false}
                 animate={{ height: Math.max(2, Math.round((m.revenue / max) * 120)) }}
                 transition={spring.ui}

@@ -6,9 +6,10 @@ import { PARTS, PART_LABELS, dayStatus, slotsFor, type DayStatus } from '@/domai
 import type { DateKey, DayPart, Minutes, Service, WaitlistEntry } from '@/domain/types';
 import { addDays, DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, todayKey, weekdayOf } from '@/lib/time';
 import { haptic } from '@/lib/platform';
-import { Button, ScreenHeader, cx } from '@/ui/controls';
+import { Button, ScreenHeader } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
-import { useToast } from '@/ui/Toast';
+import { useToast } from '@/ui/useToast';
 import { customerPrice } from '../format';
 
 const DAYS = 14;
@@ -109,7 +110,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={date ?? 'none'} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
             {isFull && date ? (
-              <WaitlistCard date={date} part={part} setPart={setPart} mine={myWait} onLeave={(id) => backend.waitlist.leave(id)} />
+              <WaitlistCard date={date} part={part} setPart={setPart} mine={myWait} onLeave={(id) => backend.waitlist.leave(id).catch((e: Error) => toast({ text: e.message, tone: 'error' }))} />
             ) : (
               <div className="flex flex-col gap-[18px] px-4 pt-[22px]">
                 {PARTS.map((p) => {
@@ -207,8 +208,7 @@ function DayPill({ date, today, status, on, onPick }: { date: DateKey; today: Da
 function WaitlistCard({ date, part, setPart, mine, onLeave }: { date: DateKey; part: DayPart; setPart: (p: DayPart) => void; mine?: WaitlistEntry; onLeave: (id: string) => void }) {
   const dayLabel = `יום ${DAY_LETTERS[weekdayOf(date)]}`;
   return (
-    <>
-      <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
         {mine ? (
           <motion.section
             key="joined"
@@ -257,7 +257,6 @@ function WaitlistCard({ date, part, setPart, mine, onLeave }: { date: DateKey; p
             </div>
           </motion.section>
         )}
-      </AnimatePresence>
-    </>
+    </AnimatePresence>
   );
 }

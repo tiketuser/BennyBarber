@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import type { DateKey, Minutes } from '@/domain/types';
 import { fromKey } from './time';
 
-export const isNative = () => Capacitor.isNativePlatform();
+const isNative = () => Capacitor.isNativePlatform();
 
 export const isStandalone = () =>
   isNative() ||
@@ -45,11 +45,14 @@ export async function shareText(text: string): Promise<void> {
   openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
+const icsStamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 const icsDate = (date: DateKey, m: Minutes) => {
   const d = fromKey(date);
   d.setHours(Math.floor(m / 60), m % 60, 0, 0);
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return icsStamp(d);
 };
+/** RFC 5545 text: commas, semicolons and backslashes must be escaped ("אריה שנקר 65, חולון"). */
+const icsText = (s: string) => s.replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
 
 /** "הוסף ליומן": an .ics file opens straight into Apple/Google Calendar on phones. */
 export function addToCalendar(opts: { title: string; date: DateKey; start: Minutes; end: Minutes; location: string; notes?: string }) {
@@ -59,12 +62,12 @@ export function addToCalendar(opts: { title: string; date: DateKey; start: Minut
     'PRODID:-//BennyBarber//HE',
     'BEGIN:VEVENT',
     `UID:${Date.now()}@bennybarber`,
-    `DTSTAMP:${icsDate(opts.date, 0)}`,
+    `DTSTAMP:${icsStamp(new Date())}`,
     `DTSTART:${icsDate(opts.date, opts.start)}`,
     `DTEND:${icsDate(opts.date, opts.end)}`,
-    `SUMMARY:${opts.title}`,
-    `LOCATION:${opts.location}`,
-    opts.notes ? `DESCRIPTION:${opts.notes}` : '',
+    `SUMMARY:${icsText(opts.title)}`,
+    `LOCATION:${icsText(opts.location)}`,
+    opts.notes ? `DESCRIPTION:${icsText(opts.notes)}` : '',
     'BEGIN:VALARM',
     'TRIGGER:-PT1H',
     'ACTION:DISPLAY',

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
 import { createBackend } from './data';
-import { BackendProvider } from './data/store';
+import { BackendProvider } from './data/BackendProvider';
 import './index.css';
 
 const backend = createBackend();

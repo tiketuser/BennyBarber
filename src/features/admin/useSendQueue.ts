@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { whatsappUrl } from '@/lib/links';
 import { haptic, openExternal } from '@/lib/platform';
 
-export interface Outgoing {
+interface Outgoing {
   key: string;
   name: string;
   phone: string;
@@ -32,6 +32,5 @@ export function useSendQueue(list: Outgoing[]) {
     next: pending[0] as Outgoing | undefined,
     sentCount: list.length - pending.length,
     total: list.length,
-    reset: () => setSent({}),
   };
 }

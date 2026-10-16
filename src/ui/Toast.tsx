@@ -1,17 +1,10 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Portal } from './Overlay';
 import { spring } from './motion';
+import { ToastContext, type ToastInput } from './useToast';
 
-interface ToastInput {
-  text: string;
-  action?: { label: string; run: () => void };
-  tone?: 'default' | 'error';
-}
 type ToastItem = ToastInput & { id: number };
-
-const ToastContext = createContext<(t: ToastInput) => void>(() => {});
-export const useToast = () => useContext(ToastContext);
 
 /** Short status/undo messages floating above the tab bar (apple-design: forgiveness over confirmation). */
 export function ToastProvider({ children }: { children: ReactNode }) {

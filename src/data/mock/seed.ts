@@ -3,7 +3,7 @@ import type { Appointment, DbSnapshot, GalleryItem, Service, Settings, WaitlistE
 import { addDays, todayKey } from '@/lib/time';
 import { hoursFor, slotsFor } from '@/domain/schedule';
 
-export const DEFAULT_SERVICES: Service[] = [
+const DEFAULT_SERVICES: Service[] = [
   { id: 'cut', name: 'תספורת גבר', shortName: 'תספורת', price: 70, durationMin: 30, priceHidden: false, order: 0 },
   { id: 'cut-beard', name: 'תספורת + זקן', shortName: 'תספורת + זקן', price: 100, durationMin: 45, priceHidden: false, popular: true, order: 1 },
   { id: 'soldier', name: 'חייל / סטודנט HIT', shortName: 'חייל', price: 60, durationMin: 30, priceHidden: false, order: 2 },
@@ -11,7 +11,7 @@ export const DEFAULT_SERVICES: Service[] = [
   { id: 'kid', name: 'תספורת ילד', shortName: 'ילד', price: 60, durationMin: 30, priceHidden: true, order: 4 },
 ];
 
-export const DEFAULT_SETTINGS: Settings = {
+const DEFAULT_SETTINGS: Settings = {
   hours: {
     0: { open: true, from: 9 * 60, to: 20 * 60 },
     1: { open: true, from: 9 * 60, to: 20 * 60 },
@@ -106,7 +106,7 @@ export function buildSeed(now = new Date()): DbSnapshot {
     }
   }
 
-  // Upcoming two weeks. One day fully booked to show the waitlist.
+  // Upcoming three weeks. One day fully booked to show the waitlist.
   const fullDay = nextOpenDay(db.settings, today, 5);
   for (let d = 0; d < 21; d++) {
     const date = addDays(today, d);
@@ -141,36 +141,4 @@ function nextOpenDay(settings: Settings, from: string, skip: number): string | n
 function buildGallery(): GalleryItem[] {
   const cats: GalleryItem['category'][] = ['haircut', 'beard', 'haircut', 'kids', 'haircut', 'beard', 'haircut', 'haircut', 'kids', 'beard', 'haircut', 'haircut', 'beard', 'haircut', 'kids'];
   return cats.map((category, i) => ({ id: `g${i + 1}`, category, pinned: i < 4, order: i }));
-}
-
-/** Seeded past appointments for a demo customer, so "התורים שלי" isn't empty on first login. */
-export function seedCustomerHistory(db: DbSnapshot, phone: string, name: string, now = new Date()): Appointment[] {
-  const today = todayKey(now);
-  const plan: [number, string, number][] = [
-    [-14, 'cut-beard', 17 * 60],
-    [-46, 'cut', 10 * 60 + 30],
-    [-80, 'beard', 18 * 60 + 30],
-  ];
-  const out: Appointment[] = [];
-  for (const [d, sid, start] of plan) {
-    let date = addDays(today, d);
-    while (!hoursFor(db.settings, date)) date = addDays(date, -1);
-    const svc = db.services.find((s) => s.id === sid) ?? db.services[0];
-    out.push({
-      id: `hist-${phone}-${d}`,
-      date,
-      start,
-      end: start + svc.durationMin,
-      serviceId: svc.id,
-      serviceName: svc.name,
-      price: svc.price,
-      customerName: name,
-      phone,
-      customerPhone: phone,
-      status: 'booked',
-      source: 'app',
-      createdAt: now.getTime() + d * 86400000,
-    });
-  }
-  return out;
 }

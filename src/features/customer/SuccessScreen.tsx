@@ -8,13 +8,12 @@ import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, weekdayOf } from 
 import { Button } from '@/ui/controls';
 import { spring } from '@/ui/motion';
 import { useDb } from '@/data/store';
-import { customerPrice } from '../format';
+import { appointmentPrice } from '../format';
 
 /** Step 4: the digital ticket. */
 export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () => void }) {
   const db = useDb();
-  const service = db.services.find((s) => s.id === appt.serviceId);
-  const price = service ? customerPrice(service) : '';
+  const price = appointmentPrice(appt, db.services);
   const when = `${fmtShortDate(appt.date)} ב-${fmtTime(appt.start)}`;
 
   return (

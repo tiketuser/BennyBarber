@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, Ban, Check, MessageCircle, Plus, Share2 } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
 import { freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
-import { haptic, shareText } from '@/lib/platform';
+import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
-import { openExternal } from '@/lib/platform';
+import { haptic, openExternal, shareText } from '@/lib/platform';
 import { fmtRange, fmtShortDate, fmtTime, nowMinutes, todayKey } from '@/lib/time';
-import { Bubble, Button, Stepper, cx } from '@/ui/controls';
+import { Bubble, Button, Stepper } from '@/ui/controls';
+import { cx } from '@/ui/cx';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
-import { useToast } from '@/ui/Toast';
+import { useOnChange } from '@/ui/useOnChange';
+import { useToast } from '@/ui/useToast';
 import { firstName } from '../format';
+import { useReleaseBlock } from './useReleaseBlock';
 import { useSendQueue } from './useSendQueue';
 
 /** "חלונות פנויים": every free window today, with add-client / block, and share to WhatsApp status. */
@@ -26,7 +29,17 @@ export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; 
 
   const share = () => {
     const when = isToday ? 'היום' : fmtShortDate(date);
-    shareText(`נשארו תורים פנויים ${when}: ${gaps.map((g) => fmtTime(g.from)).join(', ')}. לקביעה מהירה: ${location.origin}`);
+    shareText(`נשארו תורים פנויים ${when}: ${gaps.map((g) => fmtTime(g.from)).join(', ')}. לקביעה מהירה: ${SHOP.appUrl}`);
+  };
+
+  const block = async (from: Minutes, to: Minutes) => {
+    try {
+      const b = await backend.blocks.add(date, from, to, 'חסום');
+      haptic();
+      toast({ text: `נחסם ${fmtRange(from, to)}`, action: { label: 'ביטול', run: () => backend.blocks.remove(b.id) } });
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+    }
   };
 
   return (
@@ -50,9 +63,7 @@ export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; 
             <div className="flex items-center gap-3">
               <div className="w-1.5 self-stretch rounded-full bg-open-dot" />
               <div className="flex flex-1 flex-col gap-[3px]">
-                <span dir="ltr" className="num text-right text-xl font-bold">
-                  {fmtRange(g.from, g.to)}
-                </span>
+                <span className="num text-xl font-bold">{fmtRange(g.from, g.to)}</span>
                 <span className="text-[13px] text-ink-soft">
                   {g.to - g.from} דק׳ • {fits(db.services, g.to - g.from)}
                   {i === gaps.length - 1 && g.to === hoursFor(db.settings, date)?.to ? ' • התור האחרון של היום' : ''}
@@ -68,11 +79,7 @@ export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; 
                 variant="danger"
                 className="flex-1"
                 icon={<Ban size={18} />}
-                onClick={async () => {
-                  const b = await backend.blocks.add(date, g.from, g.to, 'חסום');
-                  haptic();
-                  toast({ text: 'נחסם', action: { label: 'ביטול', run: () => backend.blocks.remove(b.id) } });
-                }}
+                onClick={() => block(g.from, g.to)}
               >
                 חסום
               </Button>
@@ -105,11 +112,8 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
   const [until, setUntil] = useState<Minutes>(0);
   const first = upcoming[0]?.start ?? 0;
   const last = upcoming[upcoming.length - 1]?.start ?? 0;
-
-  useEffect(() => {
-    if (open) setUntil(upcoming[Math.min(1, upcoming.length - 1)]?.start ?? 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // Default to the next two clients: the one in the chair now is usually already here.
+  useOnChange(open, (isOpen) => isOpen && setUntil(upcoming[Math.min(1, upcoming.length - 1)]?.start ?? 0));
 
   const hit = upcoming.filter((a) => a.start <= until);
   const msg = (a: Appointment) => `היי ${firstName(a.customerName)}, יש עיכוב של בערך ${delay} דק׳. התור שלך יתחיל ב-${fmtTime(a.start + delay)} במקום ${fmtTime(a.start)}. סליחה ותודה על הסבלנות!`;
@@ -226,14 +230,15 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
 export function BlockSheet({ block, onClose }: { block: Block | null; onClose: () => void }) {
   const backend = useBackend();
   const db = useDb();
+  const release = useReleaseBlock();
   const [from, setFrom] = useState(0);
   const [to, setTo] = useState(0);
-  useEffect(() => {
-    if (block) {
-      setFrom(block.start);
-      setTo(block.end);
+  useOnChange(block, (b) => {
+    if (b) {
+      setFrom(b.start);
+      setTo(b.end);
     }
-  }, [block]);
+  });
   const h = block ? hoursFor(db.settings, block.date) : null;
   return (
     <Sheet
@@ -245,8 +250,8 @@ export function BlockSheet({ block, onClose }: { block: Block | null; onClose: (
           <Button
             variant="danger"
             className="flex-1"
-            onClick={async () => {
-              await backend.blocks.remove(block!.id);
+            onClick={() => {
+              release(block!);
               onClose();
             }}
           >
@@ -280,7 +285,12 @@ export function AdminCancelSheet({ appt, onClose }: { appt: Appointment | null; 
   const cancel = async (notify: boolean) => {
     const a = appt!;
     onClose();
-    await backend.appointments.cancel(a.id, 'admin');
+    try {
+      await backend.appointments.cancel(a.id);
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+      return;
+    }
     haptic();
     if (notify && a.phone) {
       openExternal(whatsappUrl(a.phone, `היי ${firstName(a.customerName)}, נאלצתי לבטל את התור שלך ב${fmtShortDate(a.date)} ב-${fmtTime(a.start)}. סליחה! אפשר לקבוע מועד חדש באפליקציה.`));

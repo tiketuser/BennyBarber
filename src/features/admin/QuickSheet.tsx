@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useBackend, useDb } from '@/data/store';
 import { hoursFor, nextFreeStart } from '@/domain/schedule';
 import type { DateKey, Minutes } from '@/domain/types';
 import { haptic } from '@/lib/platform';
-import { fmtTime, todayKey } from '@/lib/time';
+import { fmtRange, fmtTime, todayKey } from '@/lib/time';
 import { Button, Chip, TextInput } from '@/ui/controls';
 import { Sheet } from '@/ui/Sheet';
-import { useToast } from '@/ui/Toast';
+import { useOnChange } from '@/ui/useOnChange';
+import { useToast } from '@/ui/useToast';
 import { money } from '../format';
 
 /** Walk-in in two taps, or block 30 / 60 minutes / until closing. */
@@ -16,25 +17,20 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
   const db = useDb();
   const toast = useToast();
   const services = [...db.services].sort((a, b) => a.order - b.order);
-  const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
+  const [picked, setPicked] = useState<string | null>(null);
   const [name, setName] = useState('');
+  useOnChange(open, (isOpen) => isOpen && setName(''));
 
-  useEffect(() => {
-    if (open) {
-      setName('');
-      if (!services.some((s) => s.id === serviceId)) setServiceId(services[0]?.id ?? '');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
+  // Falls back to the first service when nothing is picked or the picked one was deleted.
+  const service = services.find((s) => s.id === picked) ?? services[0];
   const hours = hoursFor(db.settings, date);
-  const from = start ?? nextFreeStart(db, date, 20);
+  const from = start ?? nextFreeStart(db, date, service?.durationMin ?? 20);
   const isToday = date === todayKey();
 
   const addWalkIn = async () => {
-    if (from == null) return;
+    if (from == null || !service) return;
     try {
-      const a = await backend.appointments.addWalkIn({ serviceId, date, start: from, customerName: name });
+      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: from, customerName: name });
       haptic('success');
       onClose();
       toast({
@@ -42,7 +38,7 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
         action: {
           label: 'ביטול',
           run: async () => {
-            await backend.appointments.cancel(a.id, 'admin');
+            await backend.appointments.cancel(a.id);
             await backend.appointments.markOpeningHandled(a.id);
           },
         },
@@ -55,10 +51,14 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
   const block = async (len: number | 'end') => {
     if (from == null || !hours) return;
     const end = len === 'end' ? hours.to : Math.min(hours.to, from + len);
-    const b = await backend.blocks.add(date, from, end, 'חסום');
-    haptic();
-    onClose();
-    toast({ text: `נחסם ${fmtTime(from)} - ${fmtTime(end)}`, action: { label: 'ביטול', run: () => backend.blocks.remove(b.id) } });
+    try {
+      const b = await backend.blocks.add(date, from, end, 'חסום');
+      haptic();
+      onClose();
+      toast({ text: `נחסם ${fmtRange(from, end)}`, action: { label: 'ביטול', run: () => backend.blocks.remove(b.id) } });
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+    }
   };
 
   return (
@@ -73,7 +73,7 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
           <h2 className="m-0 pt-2 text-[22px] font-bold">{isToday && start == null ? 'לקוח נכנס עכשיו' : 'הוספת לקוח'}</h2>
           <div className="mt-3.5 flex flex-wrap gap-2">
             {services.map((s) => (
-              <Chip key={s.id} on={s.id === serviceId} onClick={() => setServiceId(s.id)}>
+              <Chip key={s.id} on={s.id === service?.id} onClick={() => setPicked(s.id)}>
                 {s.shortName} {money(s.price)}
               </Chip>
             ))}
@@ -82,7 +82,7 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
             שם (לא חובה)
           </label>
           <TextInput id="walkin" placeholder="למשל: רון" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-12" />
-          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!serviceId}>
+          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!service}>
             הוסף ליומן מ-{fmtTime(from)}
           </Button>
 

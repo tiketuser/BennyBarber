@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cx } from './controls';
+import { cx } from './cx';
 
 export interface TabItem<T extends string> {
   id: T;
