@@ -270,12 +270,22 @@ await step('desktop waitlist on a full day', async () => {
 });
 
 await step('desktop shop page: gallery filter, course form', async () => {
+  await page.locator('nav button', { hasText: 'קורס ספרות' }).click();
+  await wait(800);
+  // The section is last on the page: jumping to it must not push the whole app off-screen.
+  expect((await page.locator('header nav').boundingBox()).y >= 0, 'header scrolled away');
+  const shifted = await page.evaluate(() => {
+    let e = document.getElementById('course')?.parentElement;
+    while (e && !e.className.includes('overflow-y-auto')) e = e.parentElement;
+    for (e = e?.parentElement; e; e = e.parentElement) if (e.scrollTop) return true;
+    return false;
+  });
+  expect(!shifted, 'app shell scrolled');
+  await page.locator('#course button', { hasText: 'שלח פרטים בוואטסאפ' }).click();
+  await see('ההודעה מוכנה בוואטסאפ', { exact: false });
   await page.locator('nav button', { hasText: 'גלריה' }).click();
   await see('עבודות אחרונות');
   await page.getByRole('button', { name: 'ילדים' }).click();
-  await page.locator('nav button', { hasText: 'קורס ספרות' }).click();
-  await page.locator('#course button', { hasText: 'שלח פרטים בוואטסאפ' }).click();
-  await see('ההודעה מוכנה בוואטסאפ', { exact: false });
 });
 
 await step('desktop customer signs out from the header', async () => logout());

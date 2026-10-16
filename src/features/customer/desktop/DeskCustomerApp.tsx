@@ -47,9 +47,14 @@ export function DeskCustomerApp() {
 
   // A section link scrolls to it; a plain page change starts at the top.
   useEffect(() => {
+    // Scroll only our own container: scrollIntoView would also shift the fixed app shell when the
+    // section sits near the end of the page, leaving the layout stuck half off-screen.
+    const box = scroller.current;
     const el = section && document.getElementById(section);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    else scroller.current?.scrollTo({ top: 0 });
+    if (!box) return;
+    if (!el) return box.scrollTo({ top: 0 });
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 96;
+    box.scrollTo({ top, behavior: 'smooth' });
   }, [page, section]);
 
   return (

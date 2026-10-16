@@ -121,7 +121,7 @@ export function DeskShop({ onBook }: { onBook: () => void }) {
           </div>
         </section>
 
-        <section id="gallery" aria-labelledby="h-gal" className="flex scroll-mt-24 flex-col gap-[18px]">
+        <section id="gallery" aria-labelledby="h-gal" className="flex flex-col gap-[18px]">
           <div className="flex items-center gap-3">
             <h2 id="h-gal" className="m-0 text-[26px] font-bold">
               עבודות אחרונות
@@ -181,7 +181,7 @@ function CourseLead({ details }: { details: string }) {
   const message = `היי, אני ${name.trim()} ואשמח לשמוע על קורס הספרות. ניסיון: ${exp}. טלפון: ${phone}`;
 
   return (
-    <section id="course" aria-labelledby="h-course" className="flex scroll-mt-24 flex-wrap items-center gap-8 rounded-[28px] bg-brand p-9 text-white">
+    <section id="course" aria-labelledby="h-course" className="flex flex-wrap items-center gap-8 rounded-[28px] bg-brand p-9 text-white">
       <div className="flex flex-[1_1_380px] flex-col gap-3">
         <span className="self-start rounded-full bg-brand-accent px-3 py-1 text-[13px] font-bold text-brand">קורס ספרות</span>
         <h2 id="h-course" className="m-0 text-[32px] font-bold leading-tight">

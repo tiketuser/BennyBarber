@@ -57,7 +57,13 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
 
   const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    stripRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    // Center the picked day inside the strip only (scrollIntoView could also move the screen around it).
+    const strip = stripRef.current;
+    const pill = strip?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (!strip || !pill) return;
+    const s = strip.getBoundingClientRect();
+    const p = pill.getBoundingClientRect();
+    strip.scrollBy({ left: p.left + p.width / 2 - (s.left + s.width / 2), behavior: 'smooth' });
   }, [date]);
 
   return (
