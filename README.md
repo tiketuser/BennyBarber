@@ -6,6 +6,8 @@ One codebase ships as a PWA today and as iOS/Android apps through Capacitor.
 ```bash
 npm install
 npm run dev        # http://localhost:5173 (also on your phone via the LAN address)
+npm run dev:demo   # the same with the demo sample data instead of the shop's Firebase
+npm run deploy     # build and publish site + security rules to Firebase (npx firebase login once)
 npm run build      # type-check + production build with service worker
 npm run preview    # serve the build (PWA install works here)
 npm run lint       # eslint

@@ -35,7 +35,7 @@ const shop = {
    * Where the data lives. 'demo' keeps everything in the browser with sample data (any SMS code works);
    * 'firebase' uses the project below: real SMS sign-in, Firestore and Storage. See src/data/firebase/README.md.
    */
-  backend: 'demo' as 'demo' | 'firebase',
+  backend: 'firebase' as 'demo' | 'firebase',
   /** Short id for this shop; its data lives under shops/{shopId} in Firestore. */
   shopId: 'bennycohen',
   /** Firebase web config (Project settings > Your apps > Web). These keys are public by design. */

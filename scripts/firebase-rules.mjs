@@ -1,5 +1,5 @@
 // Writes the Firebase security rules and project files from shop.config.ts (admin numbers, shop id, project).
-// Run after changing those values, then deploy: npm run firebase:deploy
+// Run by `npm run deploy`, which also builds the site and uploads rules and site together.
 import { writeFileSync } from 'node:fs';
 import shop from '../shop.config.ts';
 
@@ -129,6 +129,16 @@ writeFileSync(
     {
       firestore: { rules: 'firestore.rules' },
       storage: { rules: 'storage.rules' },
+      // The site itself, free on <project>.web.app (already an authorized domain for SMS sign-in).
+      hosting: {
+        public: 'dist',
+        ignore: ['firebase.json', '**/.*'],
+        rewrites: [{ source: '**', destination: '/index.html' }],
+        headers: [
+          { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+          { source: '/assets/**', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
+        ],
+      },
       emulators: { auth: { port: 9099 }, firestore: { port: 8080 }, storage: { port: 9199 }, ui: { enabled: false }, singleProjectMode: true },
     },
     null,

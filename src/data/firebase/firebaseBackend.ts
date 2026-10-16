@@ -120,10 +120,11 @@ export async function createFirebaseBackend(): Promise<Backend> {
 
   const docs = <T>(snap: { docs: { id: string; data(): unknown }[] }) => snap.docs.map((d) => ({ ...(d.data() as object), id: d.id }) as T);
 
-  // Public data, for everyone (also signed out).
-  onSnapshot(col('services'), (s) => ((services = s.empty ? null : docs<Service>(s).sort(byOrder)), emit()));
-  onSnapshot(settingsRef, (s) => ((settings = s.exists() ? (s.data() as Settings) : null), emit()));
-  onSnapshot(col('gallery'), (s) => ((gallery = docs<GalleryItem>(s).sort(byOrder)), emit()));
+  // Public data, for everyone (also signed out). On a read error the screens keep the defaults from shop.config.ts.
+  const warn = (what: string) => (e: Error) => console.warn(`Firebase: could not load ${what}`, e.message);
+  onSnapshot(col('services'), (s) => ((services = s.empty ? null : docs<Service>(s).sort(byOrder)), emit()), warn('services'));
+  onSnapshot(settingsRef, (s) => ((settings = s.exists() ? (s.data() as Settings) : null), emit()), warn('settings'));
+  onSnapshot(col('gallery'), (s) => ((gallery = docs<GalleryItem>(s).sort(byOrder)), emit()), warn('gallery'));
 
   // Data that depends on who is signed in.
   let scoped: Unsubscribe[] = [];
@@ -134,7 +135,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
     blocks = [];
     waitlist = [];
     days = new Map();
-    const onErr = () => emit();
+    const onErr = (e: Error) => (warn('your data')(e), emit());
     if (session?.role === 'admin') {
       scoped.push(onSnapshot(col('appointments'), (s) => ((appointments = docs<Appointment>(s)), emit()), onErr));
       scoped.push(onSnapshot(col('blocks'), (s) => ((blocks = docs<Block>(s)), emit()), onErr));

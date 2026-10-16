@@ -7,13 +7,12 @@ loaded only in that case, so demo builds don't carry it.
 ## Going live for a shop
 
 1. In the Firebase console of the shop's project: Blaze plan, Authentication > Phone (SMS region policy: Israel),
-   Firestore (me-west1, production mode), Storage (same region), and the site's domain under Authentication >
-   Settings > Authorized domains.
-2. Put the web config, `shopId` and the real admin numbers (`adminPhones`) in `shop.config.ts`.
-3. `npx firebase-tools login` once, then `npm run firebase:deploy`. It regenerates `firestore.rules` /
-   `storage.rules` from `shop.config.ts` and deploys them. Run it again whenever `adminPhones` change.
-4. Set `backend: 'firebase'` and build. The first admin sign-in writes the starting services and hours from
-   `shop.config.ts`.
+   Firestore (me-west1, production mode), Storage (US-CENTRAL1 keeps photos in the free tier), and
+   Hosting > Get started (free site at `<project>.web.app`, already authorized for SMS sign-in).
+2. Put the web config, `shopId`, the real admin numbers (`adminPhones`) and `backend: 'firebase'` in `shop.config.ts`.
+3. `npx firebase login` once, then `npm run deploy`. It builds the site, regenerates `firestore.rules` /
+   `storage.rules` from `shop.config.ts`, and uploads site and rules together. Run it again after every change.
+4. The first admin sign-in writes the starting services and hours from `shop.config.ts`.
 
 ## Data (all under `shops/{shopId}`)
 
