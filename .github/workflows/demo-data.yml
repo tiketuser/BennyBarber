@@ -1,0 +1,32 @@
+# Run by hand from the Actions tab: adds made-up bookings to the live app until the end of the month, or removes them.
+# Only appointments marked demo: true are ever touched. Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy.
+name: Demo data
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: add or remove
+        required: true
+        default: add
+        type: choice
+        options: [add, remove]
+
+jobs:
+  demo-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ${{ inputs.action }} demo appointments
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TZ: Asia/Jerusalem
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx vite-node scripts/demo-data.ts ${{ inputs.action }}
