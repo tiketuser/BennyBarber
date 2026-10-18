@@ -4,7 +4,7 @@ import { Check, Loader2, Scissors } from 'lucide-react';
 import { useBackend } from '@/data/store';
 import { isValidMobile, phoneDigits } from '@/lib/phone';
 import { haptic } from '@/lib/platform';
-import { SHOP } from '@/config/shop';
+import { BACKEND, SHOP } from '@/config/shop';
 import { Button, PhoneInput, TextInput } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
@@ -94,13 +94,13 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
       )}
 
       <form
-        className="flex min-h-0 flex-1 flex-col"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
         onSubmit={(e) => {
           e.preventDefault();
           if (cta.ok && !busy) cta.run();
         }}
       >
-        <div className={cx('relative flex-1 overflow-hidden px-6', bare ? 'mt-8' : 'mt-10')}>
+        <div className={cx('relative overflow-hidden px-6', bare ? 'mt-8' : 'mt-10')}>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.section
               key={step}
@@ -212,10 +212,25 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
           )}
         </div>
 
-        <div className="px-6 pb-bar-lg pt-3">
+        {/* Right under the field, so the phone keyboard never hides it. */}
+        <div className="px-6 pb-bar-lg pt-5">
           <Button type="submit" block disabled={!cta.ok || busy} icon={busy ? <Loader2 size={20} className="animate-spin" /> : undefined}>
             {cta.label}
           </Button>
+          {step === 'phone' && BACKEND === 'firebase' && (
+            // Google's required notice, in place of the floating reCAPTCHA badge that covered the button.
+            <p className="m-0 mt-3 text-center text-[11px] leading-snug text-ink-mute">
+              האתר מוגן על ידי reCAPTCHA ו
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline">
+                מדיניות הפרטיות
+              </a>{' '}
+              ו
+              <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer" className="underline">
+                תנאי השימוש
+              </a>{' '}
+              של Google חלים.
+            </p>
+          )}
         </div>
       </form>
     </div>

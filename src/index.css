@@ -96,3 +96,8 @@
     transform: none;
   }
 }
+
+/* Invisible reCAPTCHA (SMS sign-in): its floating badge covered the send button. The login screen shows Google's notice instead. */
+.grecaptcha-badge {
+  visibility: hidden;
+}
