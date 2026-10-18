@@ -1,5 +1,5 @@
 // Firebase implementation of the Backend contract: phone (SMS) sign-in, Firestore, Storage.
-// Data for one shop lives under shops/{shopId}; firestore.rules (generated from shop.config.ts) enforces who may do what.
+// Data for one shop lives under shops/{shopId}; firestore.rules (generated from the shop config (shops/<id>/config.ts)) enforces who may do what.
 import { initializeApp } from 'firebase/app';
 import { RecaptchaVerifier, connectAuthEmulator, getAuth, onAuthStateChanged, signInWithPhoneNumber, signOut, type ConfirmationResult, type User } from 'firebase/auth';
 import {
@@ -126,7 +126,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
 
   const docs = <T>(snap: { docs: { id: string; data(): unknown }[] }) => snap.docs.map((d) => ({ ...(d.data() as object), id: d.id }) as T);
 
-  // Public data, for everyone (also signed out). On a read error the screens keep the defaults from shop.config.ts.
+  // Public data, for everyone (also signed out). On a read error the screens keep the defaults from the shop config (shops/<id>/config.ts).
   const warn = (what: string) => (e: Error) => console.warn(`Firebase: could not load ${what}`, e.message);
   onSnapshot(col('services'), (s) => ((services = s.empty ? null : docs<Service>(s).sort(byOrder)), emit()), warn('services'));
   onSnapshot(settingsRef, (s) => ((settings = s.exists() ? (s.data() as Settings) : null), emit()), warn('settings'));
@@ -178,7 +178,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
     return { phone, role, name: (profile?.data()?.name as string | undefined) ?? null };
   };
 
-  /** A brand-new project starts with the services and hours from shop.config.ts, written by the first admin sign-in. */
+  /** A brand-new project starts with the services and hours from the shop config (shops/<id>/config.ts), written by the first admin sign-in. */
   const seedIfEmpty = async () => {
     if ((await getDoc(settingsRef)).exists()) return;
     const batch = writeBatch(fs);

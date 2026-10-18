@@ -10,6 +10,7 @@
     "preview": "vite preview --host",
     "typecheck": "tsc -b",
     "icons": "node --experimental-strip-types --no-warnings scripts/make-icons.mjs",
+    "new-shop": "node --experimental-strip-types --no-warnings scripts/new-shop.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "lint": "eslint .",
     "format": "prettier --write .",

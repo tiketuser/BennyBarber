@@ -1,8 +1,11 @@
 // Renders the PWA / app icons from one SVG using the preinstalled Chromium (playwright).
 // Colors come from shop.config.ts. Usage: npm run icons
 import { chromium } from 'playwright';
-import { writeFileSync } from 'node:fs';
-import shop from '../shop.config.ts';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import shop, { SHOP_ID } from '../shop.config.ts';
+
+const dir = `shops/${SHOP_ID}/public`;
+mkdirSync(dir, { recursive: true });
 
 const { brand, accent } = shop.colors;
 const SCISSORS = '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>';
@@ -16,17 +19,17 @@ const glyph = (size, pad) => `
 </svg>`;
 
 const targets = [
-  ['public/pwa-192.png', 192, 24],
-  ['public/pwa-512.png', 512, 24],
-  ['public/pwa-maskable-512.png', 512, 32],
-  ['public/apple-touch-icon.png', 180, 26],
+  [`${dir}/pwa-192.png`, 192, 24],
+  [`${dir}/pwa-512.png`, 512, 24],
+  [`${dir}/pwa-maskable-512.png`, 512, 32],
+  [`${dir}/apple-touch-icon.png`, 180, 26],
 ];
 
 writeFileSync(
-  'public/favicon.svg',
+  `${dir}/favicon.svg`,
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="${brand}"/><g transform="translate(14 14) scale(1.5)" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SCISSORS}</g></svg>\n`,
 );
-console.log('wrote public/favicon.svg');
+console.log(`wrote ${dir}/favicon.svg`);
 
 const browser = await chromium.launch();
 const page = await browser.newPage();

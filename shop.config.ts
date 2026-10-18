@@ -1,83 +1,13 @@
 /**
- * Everything that makes this app one specific barbershop. To set it up for another shop,
- * change this file (and the icons in public/, see `npm run icons`). Nothing else needs editing.
- *
- * Values in [brackets] are placeholders to fill before launch.
+ * The shop this build is for, picked by the SHOP environment variable (default: bennycohen).
+ * In the app itself vite.config.ts points every `shop.config` import straight at shops/<SHOP>/config.ts,
+ * so a site only ever contains its own shop's details. Node scripts (rules, icons, tests) come through here.
  */
-import type { Service, Settings } from './src/domain/types';
+import { SHOPS } from './shops/index.ts';
 
-const shop = {
-  /** Short name: logo, home-screen icon label, greetings. */
-  brand: 'בני כהן',
-  /** Full name: page title, ticket, store listing. */
-  fullName: 'בני כהן ברברשופ',
-  /** Word shown under the name ("ברברשופ", "מספרה", "סטודיו"). */
-  kind: 'ברברשופ',
-  /** One or two sentences for the website's shop page. */
-  tagline: 'תספורות גברים, זקן וילדים בלב חולון. קובעים תור אונליין בדקה, מגיעים ויושבים.',
-  address: { street: 'אריה שנקר 65', city: 'חולון' },
-  /** Shop WhatsApp / phone number. */
-  phone: '050-0000000',
-  /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
-  adminPhones: ['054-4437070'],
-  /** Instagram handle without "@", or null to hide Instagram. */
-  instagram: '[שם באינסטגרם]' as string | null,
-  /**
-   * Barbering course ("קורס ספרות"): the card and lead form on the shop page and the desktop menu link.
-   * enabled: false hides all of it.
-   */
-  course: { enabled: true, details: '[משך הקורס] • [מחיר] • [מועד הפתיחה הבא]' },
+export const SHOP_ID = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.SHOP || 'bennycohen';
 
-  /** How far ahead customers can book, in months. The admin can still add appointments further out. */
-  bookingMonthsAhead: 3,
-
-  /** Brand color (buttons, selected states) and the accent shown on it. */
-  colors: { brand: '#111111', accent: '#FFD200' },
-
-  /** Native app id (reverse domain) for the iOS / Android builds. */
-  appId: 'il.co.bennycohen.barber',
-
-  /**
-   * Where the data lives. 'demo' keeps everything in the browser with sample data (any SMS code works);
-   * 'firebase' uses the project below: real SMS sign-in, Firestore and Storage. See src/data/firebase/README.md.
-   */
-  backend: 'firebase' as 'demo' | 'firebase',
-  /** Short id for this shop; its data lives under shops/{shopId} in Firestore. */
-  shopId: 'bennycohen',
-  /** Firebase web config (Project settings > Your apps > Web). These keys are public by design. */
-  firebase: {
-    apiKey: 'AIzaSyA5bUBlZocFaYu7nnMAzZczxMsvD-mZn4w',
-    authDomain: 'barber-bennycohen.firebaseapp.com',
-    projectId: 'barber-bennycohen',
-    storageBucket: 'barber-bennycohen.firebasestorage.app',
-    messagingSenderId: '718286180591',
-    appId: '1:718286180591:web:5d5418835fcb51e686cb1a',
-  },
-
-  /** What a brand-new shop starts with. The admin changes all of it later in "שירותים ושעות". */
-  defaults: {
-    services: [
-      { id: 'cut', name: 'תספורת גבר', shortName: 'תספורת', price: 70, durationMin: 30, priceHidden: false, order: 0 },
-      { id: 'cut-beard', name: 'תספורת + זקן', shortName: 'תספורת + זקן', price: 100, durationMin: 45, priceHidden: false, popular: true, order: 1 },
-      { id: 'soldier', name: 'חייל / סטודנט HIT', shortName: 'חייל', price: 60, durationMin: 30, priceHidden: false, order: 2 },
-      { id: 'beard', name: 'עיצוב וגילוח זקן', shortName: 'זקן', price: 50, durationMin: 20, priceHidden: false, order: 3 },
-      { id: 'kid', name: 'תספורת ילד', shortName: 'ילד', price: 60, durationMin: 30, priceHidden: true, order: 4 },
-    ] satisfies Service[],
-    settings: {
-      // 0 = Sunday ... 6 = Saturday. Minutes since midnight: 9 * 60 = 09:00.
-      hours: {
-        0: { open: true, from: 9 * 60, to: 20 * 60 },
-        1: { open: true, from: 9 * 60, to: 20 * 60 },
-        2: { open: true, from: 9 * 60, to: 20 * 60 },
-        3: { open: true, from: 9 * 60, to: 20 * 60 },
-        4: { open: true, from: 9 * 60, to: 20 * 60 },
-        5: { open: true, from: 8 * 60 + 30, to: 14 * 60 + 30 },
-        6: { open: false, from: 9 * 60, to: 14 * 60 },
-      },
-      breakTime: { from: 13 * 60, to: 13 * 60 + 30 },
-      vacations: [],
-    } satisfies Settings,
-  },
-};
+const shop = SHOPS[SHOP_ID as keyof typeof SHOPS];
+if (!shop) throw new Error(`Unknown shop "${SHOP_ID}". Shops: ${Object.keys(SHOPS).join(', ')}`);
 
 export default shop;

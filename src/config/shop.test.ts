@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { courseFrom } from './shop';
 
-describe('course switch in shop.config.ts', () => {
+describe('course switch in the shop config', () => {
   it('turned off hides the course (null everywhere)', () => {
     expect(courseFrom({ enabled: false, details: 'x' })).toBeNull();
   });

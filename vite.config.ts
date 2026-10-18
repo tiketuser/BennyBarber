@@ -2,12 +2,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
-import shop from './shop.config';
+import shop, { SHOP_ID } from './shop.config';
 
 const description = `קביעת תור ל${shop.fullName}, ${shop.address.street} ${shop.address.city}`;
 
 export default defineConfig({
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  resolve: {
+    alias: [
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      // The app gets only this build's shop (SHOP env), never the list of all shops.
+      { find: /^(\.\.?\/)+shop\.config(\.ts)?$/, replacement: fileURLToPath(new URL(`./shops/${SHOP_ID}/config.ts`, import.meta.url)) },
+    ],
+  },
+  // Each shop's icons: shops/<id>/public (npm run icons).
+  publicDir: `shops/${SHOP_ID}/public`,
   plugins: [
     react(),
     {

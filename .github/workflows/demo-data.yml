@@ -11,6 +11,10 @@ on:
         default: add
         type: choice
         options: [add, remove]
+      shop:
+        description: shop id (folder in shops/)
+        required: true
+        default: bennycohen
 
 jobs:
   demo-data:
@@ -26,6 +30,7 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           TZ: Asia/Jerusalem
+          SHOP: ${{ inputs.shop }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"

@@ -1,6 +1,7 @@
-# Publishes the app to Firebase (hosting + security rules) on every push, so nobody has to run `npm run deploy` by hand.
-# One-time setup: add a repository secret FIREBASE_SERVICE_ACCOUNT holding the JSON key of a service account
-# with the "Firebase Admin" role (Google Cloud console > IAM > Service accounts). Without it the job is skipped.
+# Publishes every barbershop in shops/ to its own Firebase project (site + security rules) on every push.
+# One key for all shops: the repository secret FIREBASE_SERVICE_ACCOUNT (service account github-deploy), which each
+# shop's Firebase project grants "Firebase Admin" + "Service Usage Consumer". Without the secret the job is skipped.
+# A shop is deployed once its config has backend: 'firebase' and its Firebase web config (scripts/list-shops.mjs).
 name: Deploy to Firebase
 
 on:
@@ -29,12 +30,19 @@ jobs:
       - if: steps.key.outputs.present == 'true'
         run: npm ci
       - if: steps.key.outputs.present == 'true'
-        name: Build and deploy
+        name: Build and deploy each shop
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          npm run deploy -- --non-interactive
+          failed=""
+          for shop in $(node --experimental-strip-types --no-warnings scripts/list-shops.mjs); do
+            echo "::group::$shop"
+            SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
+            echo "::endgroup::"
+          done
+          # One shop failing (e.g. its project is not set up yet) must not stop the others; report it at the end.
+          if [ -n "$failed" ]; then echo "::error::Deploy failed for:$failed"; exit 1; fi
       - if: steps.key.outputs.present != 'true'
         run: echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set, skipping the deploy."

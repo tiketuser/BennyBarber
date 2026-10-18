@@ -19,18 +19,21 @@ npm run test:rules         # what a malicious customer might try, refused by the
 ```
 
 Sign in: any `05X` number signs in as a customer, the numbers in `adminPhones` open the admin view.
-`backend` in `shop.config.ts` picks the data: `'demo'` keeps sample data in the browser and accepts any 6-digit
+`backend` in the shop's config (`shops/<id>/config.ts`) picks the data: `'demo'` keeps sample data in the browser and accepts any 6-digit
 code; `'firebase'` uses the shop's Firebase project (real SMS, Firestore, Storage). See `src/data/firebase/README.md`.
 
 The layout follows the device: phones and tablets get the mobile screens, screens 1024px and wider get the desktop
 pages (top navigation for customers, side menu for the admin, sheets open as a side panel).
 
-## Selling to another barbershop
+## Barbershops
 
-Everything shop-specific lives in one file, `shop.config.ts`: name, address, phone, admin numbers, Instagram,
-course details, brand colors, app id, and the starting services and opening hours. Change it and rebuild; the
-page title, PWA manifest, Capacitor app name, Tailwind `brand` colors and all texts pick it up. Set `instagram` to `null`
-or `course.enabled` to `false` to hide those sections, and run `npm run icons` to redraw the app icons in the new colors.
+One codebase serves every shop. Each shop is a folder in `shops/<id>/` with its `config.ts` (name, address, phone,
+admin numbers, Instagram, course, colors, app id, Firebase project, starting services and hours) and its icons in
+`public/`. `SHOP=<id>` picks the shop for any command (`SHOP=dannylevi npm run dev`); the default is `bennycohen`.
+Each build contains only its own shop. Every push deploys every ready shop to its own Firebase project.
+
+Adding a shop: `npm run new-shop <id>`, fill `shops/<id>/config.ts`, push. The full checklist (what to ask the shop
+for, the Firebase steps) is in `shops/README.md`.
 
 ## Stack
 
