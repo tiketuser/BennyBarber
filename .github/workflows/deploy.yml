@@ -1,0 +1,40 @@
+# Publishes the app to Firebase (hosting + security rules) on every push, so nobody has to run `npm run deploy` by hand.
+# One-time setup: add a repository secret FIREBASE_SERVICE_ACCOUNT holding the JSON key of a service account
+# with the "Firebase Admin" role (Google Cloud console > IAM > Service accounts). Without it the job is skipped.
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main, claude/build-barber-app-d1lrhc]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the deploy key is set
+        id: key
+        run: echo "present=${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}" >> "$GITHUB_OUTPUT"
+      - if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+      - if: steps.key.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.key.outputs.present == 'true'
+        run: npm ci
+      - if: steps.key.outputs.present == 'true'
+        name: Build and deploy
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npm run deploy -- --non-interactive
+      - if: steps.key.outputs.present != 'true'
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set, skipping the deploy."
