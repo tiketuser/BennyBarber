@@ -63,11 +63,10 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
       setStep('done');
     });
 
-  // Focus the code field once the slide-in settles, so the keyboard doesn't fight the animation.
+  // Move focus straight from the phone field to the code field while the keyboard is still up: iPhone only shows
+  // the "from Messages" code suggestion above an open keyboard, and won't reopen it without a tap.
   useEffect(() => {
-    if (step !== 'code') return;
-    const t = setTimeout(() => codeRef.current?.focus(), 350);
-    return () => clearTimeout(t);
+    if (step === 'code') codeRef.current?.focus({ preventScroll: true });
   }, [step]);
 
   const cta =
@@ -151,6 +150,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                       id="lcode"
                       type="text"
                       inputMode="numeric"
+                      pattern="[0-9]*"
                       autoComplete="one-time-code"
                       maxLength={CODE_LENGTH}
                       value={code}
@@ -159,7 +159,8 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                         setCode(c);
                         if (c.length === CODE_LENGTH && !busy) verify(c);
                       }}
-                      className="absolute inset-0 opacity-0"
+                      // Invisible text, not opacity-0: iPhone skips code autofill for fully transparent fields. 16px avoids zoom.
+                      className="absolute inset-0 bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent"
                     />
                   </div>
                   <button type="button" disabled={busy} onClick={sendCode} className="h-11 self-start text-sm font-medium text-ink-soft">
@@ -214,7 +215,13 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
 
         {/* Right under the field, so the phone keyboard never hides it. */}
         <div className="px-6 pb-bar-lg pt-5">
-          <Button type="submit" block disabled={!cta.ok || busy} icon={busy ? <Loader2 size={20} className="animate-spin" /> : undefined}>
+          <Button
+            type="submit"
+            block
+            // Keep the field focused (and the keyboard open) when tapping send/confirm.
+            onPointerDown={(e) => step !== 'done' && e.preventDefault()}
+            onMouseDown={(e) => step !== 'done' && e.preventDefault()}
+            disabled={!cta.ok || busy} icon={busy ? <Loader2 size={20} className="animate-spin" /> : undefined}>
             {cta.label}
           </Button>
           {step === 'phone' && BACKEND === 'firebase' && (
