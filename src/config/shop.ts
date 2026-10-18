@@ -1,6 +1,8 @@
 import config from '../../shop.config';
 import { phoneDigits } from '@/lib/phone';
 
+export const courseFrom = (c: { enabled: boolean; details: string }) => (c.enabled ? { details: c.details } : null);
+
 const place = `${config.address.street} ${config.address.city}`;
 
 /** Shop facts for the screens, derived from shop.config.ts (the one file to edit per shop). */
@@ -18,7 +20,8 @@ export const SHOP = {
   instagramUrl: config.instagram ? `https://instagram.com/${config.instagram}` : null,
   wazeUrl: 'https://waze.com/ul?q=' + encodeURIComponent(place) + '&navigate=yes',
   mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place),
-  course: config.course,
+  /** null when the course is turned off in shop.config.ts; every course screen and link checks this. */
+  course: courseFrom(config.course),
   /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */
   appUrl: import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '',
 } as const;

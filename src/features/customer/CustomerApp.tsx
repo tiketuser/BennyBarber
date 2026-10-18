@@ -9,6 +9,7 @@ import { BookHome } from './BookHome';
 import { DetailsSheet } from './DetailsSheet';
 import { MyAppointments } from './MyAppointments';
 import { CourseScreen, GalleryScreen, ShopScreen } from './ShopScreens';
+import { SHOP } from '@/config/shop';
 import { SuccessScreen } from './SuccessScreen';
 import { TimeScreen } from './TimeScreen';
 
@@ -102,7 +103,7 @@ export function CustomerApp() {
             <GalleryScreen onBack={() => setShopPage(null)} />
           </Pushed>
         )}
-        {shopPage === 'course' && (
+        {shopPage === 'course' && SHOP.course && (
           <Pushed key="course">
             <CourseScreen onBack={() => setShopPage(null)} />
           </Pushed>

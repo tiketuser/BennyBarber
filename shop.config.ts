@@ -22,8 +22,11 @@ const shop = {
   adminPhones: ['054-4437070'],
   /** Instagram handle without "@", or null to hide Instagram. */
   instagram: '[שם באינסטגרם]' as string | null,
-  /** Barbering course lead form. Set to null to hide the course everywhere. */
-  course: { details: '[משך הקורס] • [מחיר] • [מועד הפתיחה הבא]' } as { details: string } | null,
+  /**
+   * Barbering course ("קורס ספרות"): the card and lead form on the shop page and the desktop menu link.
+   * enabled: false hides all of it.
+   */
+  course: { enabled: true, details: '[משך הקורס] • [מחיר] • [מועד הפתיחה הבא]' },
 
   /** How far ahead customers can book, in months. The admin can still add appointments further out. */
   bookingMonthsAhead: 3,

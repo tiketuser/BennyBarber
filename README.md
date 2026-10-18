@@ -29,8 +29,8 @@ pages (top navigation for customers, side menu for the admin, sheets open as a s
 
 Everything shop-specific lives in one file, `shop.config.ts`: name, address, phone, admin numbers, Instagram,
 course details, brand colors, app id, and the starting services and opening hours. Change it and rebuild; the
-page title, PWA manifest, Capacitor app name, Tailwind `brand` colors and all texts pick it up. Set `instagram`
-or `course` to `null` to hide those sections, and run `npm run icons` to redraw the app icons in the new colors.
+page title, PWA manifest, Capacitor app name, Tailwind `brand` colors and all texts pick it up. Set `instagram` to `null`
+or `course.enabled` to `false` to hide those sections, and run `npm run icons` to redraw the app icons in the new colors.
 
 ## Stack
 
