@@ -9,6 +9,7 @@ import { Sheet } from '@/ui/Sheet';
 import { SlideToConfirm } from '@/ui/SlideToConfirm';
 import { useOnChange } from '@/ui/useOnChange';
 import { useToast } from '@/ui/useToast';
+import { SHOP, g } from '@/config/shop';
 
 interface Props {
   open: boolean;
@@ -75,7 +76,7 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
       footer={
         <div className="flex flex-col gap-2.5">
           <SlideToConfirm label="החלק לאישור" doneLabel="התור נקבע!" onConfirm={confirm} disabled={!valid} />
-          <div className="text-center text-xs text-ink-soft">התשלום במספרה, אין צורך בכרטיס אשראי</div>
+          <div className="text-center text-xs text-ink-soft">התשלום {SHOP.inPlace}, אין צורך בכרטיס אשראי</div>
         </div>
       }
     >
@@ -108,7 +109,7 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
           id="bnotes"
           label={
             <>
-              הערות לתספורת <span className="font-normal text-ink-soft">(לא חובה)</span>
+              {g('הערות לתספורת', 'הערות לטיפול', 'הערות לטיפול')} <span className="font-normal text-ink-soft">(לא חובה)</span>
             </>
           }
         >
@@ -117,7 +118,7 @@ export function DetailsSheet({ open, onClose, service, date, start, replacesId, 
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="למשל: קצר בצדדים, להשאיר אורך למעלה"
+            placeholder={g('למשל: קצר בצדדים, להשאיר אורך למעלה', 'למשל: רק קצוות, גוון כמו בפעם הקודמת', 'למשל: כמו בפעם הקודמת')}
             className="h-[76px] w-full resize-none rounded-[14px] border border-line bg-white px-4 py-3 text-base outline-none focus:border-2 focus:border-brand"
           />
         </Field>

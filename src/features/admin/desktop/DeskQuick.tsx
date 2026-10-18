@@ -295,7 +295,7 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
               </div>
             ) : (
               <div className="rounded-[14px] border border-dashed border-ink-faint px-4 py-3.5 text-sm text-ink-soft">
-                {!hours ? 'המספרה סגורה ביום הזה.' : isAppt ? `אין ביום הזה חלון פנוי של ${need} דק׳. נסה יום אחר או טיפול קצר יותר.` : 'אין זמן פנוי לחסום ביום הזה.'}
+                {!hours ? `${SHOP.closed} ביום הזה.` : isAppt ? `אין ביום הזה חלון פנוי של ${need} דק׳. נסה יום אחר או טיפול קצר יותר.` : 'אין זמן פנוי לחסום ביום הזה.'}
               </div>
             )}
             {warn && !done && <span className="text-[13px] text-danger">{warn}</span>}

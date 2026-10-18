@@ -17,6 +17,7 @@ import { GalleryTile } from '../shared/GalleryTile';
 import { groupHours } from '../shared/hours';
 import { useSendQueue } from './useSendQueue';
 import { vacationMessage } from './vacation';
+import { SHOP } from '@/config/shop';
 
 /**
  * "שירותים ושעות": prices, hidden prices, service types, opening hours, break, vacations, gallery picks.
@@ -988,7 +989,9 @@ function GallerySheet({ open, onClose }: { open: boolean; onClose: () => void })
         />
       </div>
 
-      <p className="m-0 mt-3.5 text-[13px] text-ink-soft">לחץ על תמונה כדי לבחור אותה לאחת מ-4 התמונות הראשונות בדף המספרה ({pinnedCount} מתוך 4).</p>
+      <p className="m-0 mt-3.5 text-[13px] text-ink-soft">
+        לחץ על תמונה כדי לבחור אותה לאחת מ-4 התמונות הראשונות בדף {SHOP.place} ({pinnedCount} מתוך 4).
+      </p>
       <div className="mt-2.5 grid grid-cols-3 gap-1 pb-2">
         {items.map((g) => (
           <div key={g.id} className="relative">

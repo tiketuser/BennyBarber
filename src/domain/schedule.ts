@@ -1,6 +1,7 @@
 // Pure scheduling rules, shared by every backend implementation and the UI.
 import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Settings } from './types';
 import { addMonths, daysBetween, isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
+import { SHOP, g } from '@/config/shop';
 
 const SLOT_STEP = 30;
 export const PARTS: { id: Exclude<DayPart, 'any'>; label: string; from: Minutes; to: Minutes }[] = [
@@ -120,11 +121,11 @@ export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = 
 export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date } = {}) {
   const { ignoreId, now = new Date() } = opts;
   const h = hoursFor(db.settings, date);
-  if (!h) throw new Error('המספרה סגורה ביום הזה');
-  if (isPast(date, start + 1, now)) throw new Error('השעה הזו כבר עברה, בחר שעה אחרת');
+  if (!h) throw new Error(`${SHOP.closed} ביום הזה`);
+  if (isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
-  if (overlaps(start, end, busy)) throw new Error('השעה הזו כבר נתפסה, בחר שעה אחרת');
+  if (overlaps(start, end, busy)) throw new Error(`השעה הזו כבר נתפסה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
 }
 
 /** The days a customer can book: today through `months` months ahead. */

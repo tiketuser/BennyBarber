@@ -18,7 +18,7 @@ type Tab = 'book' | 'mine' | 'shop';
 const TABS: TabItem<Tab>[] = [
   { id: 'book', label: 'קביעת תור', icon: <CalendarDays size={24} /> },
   { id: 'mine', label: 'התורים שלי', icon: <List size={24} /> },
-  { id: 'shop', label: 'המספרה', icon: <MapPin size={24} /> },
+  { id: 'shop', label: SHOP.place, icon: <MapPin size={24} /> },
 ];
 
 interface Draft {

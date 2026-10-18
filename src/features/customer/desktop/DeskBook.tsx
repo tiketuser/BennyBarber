@@ -4,7 +4,7 @@ import { Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, X } from 'lucide
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
 import { PARTS, bookingDays, dayStatus, slotsFor } from '@/domain/schedule';
 import type { Appointment, DateKey, Minutes } from '@/domain/types';
-import { BOOKING_MONTHS, SHOP } from '@/config/shop';
+import { BOOKING_MONTHS, SHOP, g } from '@/config/shop';
 import { formatPhone } from '@/lib/phone';
 import { addToCalendar, haptic } from '@/lib/platform';
 import { DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, todayKey, weekdayOf } from '@/lib/time';
@@ -113,7 +113,8 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
         {moving && !booked && (
           <div className="-mt-4 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px]">
             <span className="flex-1">
-              מזיזים את התור של <b>{fmtShortDate(moving.date)}</b> ב-<b className="num">{fmtTime(moving.start)}</b>. התור הישן יתפנה רק אחרי שתבחר מועד חדש.
+              מזיזים את התור של <b>{fmtShortDate(moving.date)}</b> ב-<b className="num">{fmtTime(moving.start)}</b>. התור הישן יתפנה רק אחרי {g('שתבחר', 'שתבחרי', 'שתבחרו')} מועד
+              חדש.
             </span>
             <button type="button" onClick={onCancelReplace} className="flex h-9 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-ink-soft hover:text-ink">
               <X size={16} />
@@ -179,7 +180,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
               <ChevronLeft size={18} />
             </button>
           </div>
-          <div role="radiogroup" aria-label="בחר יום" className="grid grid-cols-7 gap-2">
+          <div role="radiogroup" aria-label={g('בחר יום', 'בחרי יום', 'בחרו יום')} className="grid grid-cols-7 gap-2">
             {shown.map((d) => {
               const on = d.date === date;
               const closed = d.status === 'closed' || d.status === 'vacation';
@@ -226,7 +227,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
                   <WaitlistCard date={date} waitlist={waitlist} className="" />
                   {!waitlist.mine && (
                     <Button disabled={waitlist.joining} onClick={waitlist.join} icon={<Bell size={20} />}>
-                      היום מלא? היכנס לרשימת המתנה
+                      היום מלא? {g('היכנס', 'היכנסי', 'היכנסו')} לרשימת המתנה
                     </Button>
                   )}
                 </div>
@@ -287,7 +288,14 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
         <dl className="m-0 flex flex-col rounded-2xl bg-surface">
           {[
             ['טיפול', service ? service.name + (service.priceHidden ? '' : ` • ${customerPrice(service)}`) : '-'],
-            ['מתי', start != null ? `${fmtShortDate(date)} • ${fmtTime(start)}` : booked ? `${fmtShortDate(booked.date)} • ${fmtTime(booked.start)}` : 'בחר שעה'],
+            [
+              'מתי',
+              start != null
+                ? `${fmtShortDate(date)} • ${fmtTime(start)}`
+                : booked
+                  ? `${fmtShortDate(booked.date)} • ${fmtTime(booked.start)}`
+                  : g('בחר שעה', 'בחרי שעה', 'בחרו שעה'),
+            ],
             ['על שם', `${session?.name ?? ''} • ${formatPhone(session?.phone ?? '')}`],
           ].map(([k, v], i) => (
             <div key={k} className={cx('flex justify-between gap-3 px-4 py-3.5', i < 2 && 'border-b border-line')}>
@@ -297,14 +305,14 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
           ))}
         </dl>
         <label htmlFor="dnotes" className="text-sm font-semibold">
-          הערות לתספורת <span className="font-normal text-ink-mute">(לא חובה)</span>
+          {g('הערות לתספורת', 'הערות לטיפול', 'הערות לטיפול')} <span className="font-normal text-ink-mute">(לא חובה)</span>
         </label>
         <textarea
           id="dnotes"
           rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="למשל: קצר בצדדים, בלי מכונה למעלה"
+          placeholder={g('למשל: קצר בצדדים, בלי מכונה למעלה', 'למשל: רק קצוות, גוון כמו בפעם הקודמת', 'למשל: כמו בפעם הקודמת')}
           className="-mt-2.5 resize-none rounded-[14px] border border-line px-3.5 py-3 text-[15px] outline-none focus:border-brand"
         />
         <AnimatePresence mode="wait" initial={false}>
@@ -324,7 +332,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
                 <div className="flex flex-1 flex-col gap-0.5">
                   <span className="text-base font-bold">{replacing ? 'התור הועבר!' : 'התור נקבע!'}</span>
                   <span className="text-[13px]">
-                    {fmtShortDate(booked.date)} ב-{fmtTime(booked.start)}. נתראה במספרה!
+                    {fmtShortDate(booked.date)} ב-{fmtTime(booked.start)}. נתראה {SHOP.inPlace}!
                   </span>
                 </div>
               </div>
@@ -344,7 +352,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
                   }
                 >
                   <CalendarCheck size={15} />
-                  הוסף ליומן
+                  {g('הוסף ליומן', 'הוסיפי ליומן', 'הוסיפו ליומן')}
                 </button>
                 <button type="button" className="underline" onClick={onOpenMine}>
                   התורים שלי
@@ -357,12 +365,14 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
           ) : (
             <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Button block disabled={start == null || busy} onClick={book}>
-                {start == null ? 'בחר שעה כדי להמשיך' : `${moving ? 'העבר את התור ל-' : 'קבע תור ל-'}${fmtTime(start)}`}
+                {start == null
+                  ? g('בחר שעה כדי להמשיך', 'בחרי שעה כדי להמשיך', 'בחרו שעה כדי להמשיך')
+                  : `${moving ? g('העבר את התור ל-', 'העבירי את התור ל-', 'העבירו את התור ל-') : g('קבע תור ל-', 'קבעי תור ל-', 'קבעו תור ל-')}${fmtTime(start)}`}
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
-        <p className="m-0 text-[13px] leading-normal text-ink-mute">התשלום במספרה. אפשר לבטל או להזיז את התור מ"התורים שלי".</p>
+        <p className="m-0 text-[13px] leading-normal text-ink-mute">התשלום {SHOP.inPlace}. אפשר לבטל או להזיז את התור מ"התורים שלי".</p>
       </aside>
     </main>
   );

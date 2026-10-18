@@ -8,6 +8,9 @@ export default defineShop({
   brand: '[שם קצר, למשל: דני לוי]',
   fullName: '[שם מלא, למשל: דני לוי ברברשופ]',
   kind: 'ברברשופ',
+  // How the app talks to customers: 'men' (בחר), 'women' (בחרי) or 'all' (בחרו). And the shop as a place: 'המספרה', 'הסלון'.
+  audience: 'men',
+  place: 'המספרה',
   tagline: '[משפט או שניים על המספרה]',
   address: { street: '[רחוב ומספר]', city: '[עיר]' },
   phone: '050-0000000',

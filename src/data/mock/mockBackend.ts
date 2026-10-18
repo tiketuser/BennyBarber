@@ -3,7 +3,7 @@
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
 import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
-import { ADMIN_PHONES, BOOKING_MONTHS } from '@/config/shop';
+import { ADMIN_PHONES, BOOKING_MONTHS, g } from '@/config/shop';
 import { phoneDigits } from '@/lib/phone';
 import { buildSeed } from './seed';
 
@@ -118,7 +118,7 @@ export function createMockBackend(): Backend {
       async verifyCode(phone, code) {
         await wait(300);
         const digits = phoneDigits(phone);
-        if (pendingPhone !== digits || !/^\d{6}$/.test(code)) throw new Error('הקוד לא נכון, נסה שוב');
+        if (pendingPhone !== digits || !/^\d{6}$/.test(code)) throw new Error(`הקוד לא נכון, ${g('נסה', 'נסי', 'נסו')} שוב`);
         const role = ADMIN_PHONES.includes(digits) ? 'admin' : 'customer';
         const s: Session = { phone: digits, name: loadNames()[digits] ?? null, role };
         setSession(s);

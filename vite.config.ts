@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { existsSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import shop, { SHOP_ID } from './shop.config';
 
 const description = `קביעת תור ל${shop.fullName}, ${shop.address.street} ${shop.address.city}`;
 
 export default defineConfig({
+  define: { __SHOP_LOGO_MARK__: JSON.stringify(existsSync(`shops/${SHOP_ID}/public/logo-mark.svg`)) },
   resolve: {
     alias: [
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },

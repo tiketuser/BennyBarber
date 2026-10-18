@@ -4,7 +4,7 @@ import { AlertTriangle, Bell, CalendarCheck, CalendarDays, MapPin, MessageCircle
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
 import { PART_LABELS } from '@/domain/schedule';
 import type { Appointment } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { formatPhone } from '@/lib/phone';
 import { addToCalendar, haptic, openExternal } from '@/lib/platform';
 import { DAY_LETTERS, MONTHS, MONTHS_SHORT, fmtDayShortMonth, fmtShortDate, fmtTime, fromKey, todayKey, weekdayOf } from '@/lib/time';
@@ -74,7 +74,7 @@ export function DeskMine({ onReschedule, onBookAgain, onBookNew }: Props) {
         </div>
         <button type="button" onClick={onBookNew} className="press flex h-12 items-center gap-2 rounded-[14px] bg-brand px-5 text-[15px] font-semibold text-brand-accent">
           <CalendarDays size={18} />
-          קבע תור חדש
+          {g('קבע תור חדש', 'קבעי תור חדש', 'קבעו תור חדש')}
         </button>
       </div>
 
@@ -226,11 +226,11 @@ export function DeskMine({ onReschedule, onBookAgain, onBookNew }: Props) {
                     {db.services.some((s) => s.id === a.serviceId) && (
                       <button
                         type="button"
-                        aria-label={`קבע שוב ${a.serviceName}`}
+                        aria-label={`${g('קבע שוב', 'קבעי שוב', 'קבעו שוב')} ${a.serviceName}`}
                         onClick={() => onBookAgain(a.serviceId)}
                         className="h-9 rounded-[10px] border border-line px-3 text-[13px] font-semibold hover:border-ink-faint"
                       >
-                        קבע שוב
+                        {g('קבע שוב', 'קבעי שוב', 'קבעו שוב')}
                       </button>
                     )}
                   </span>
@@ -244,7 +244,7 @@ export function DeskMine({ onReschedule, onBookAgain, onBookNew }: Props) {
             </span>
             <div className="flex flex-col gap-0.5">
               {weeks ? <span className="text-sm font-bold">{weeks <= 1 ? 'בדרך כלל כל שבוע' : `בדרך כלל כל ${weeks} שבועות`}</span> : null}
-              <span className="text-[13px] text-ink-soft">"קבע שוב" בוחר בשבילך את אותו טיפול.</span>
+              <span className="text-[13px] text-ink-soft">"{g('קבע שוב', 'קבעי שוב', 'קבעו שוב')}" בוחר בשבילך את אותו טיפול.</span>
             </div>
           </div>
         </aside>
@@ -329,7 +329,7 @@ function HeroCard({ appt, price, daysAway, state, onAsk, onKeep, onCancel, onUnd
         </div>
         {price && (
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[13px] text-ink-mute">לתשלום במספרה</span>
+            <span className="text-[13px] text-ink-mute">לתשלום {SHOP.inPlace}</span>
             <span className={cx('num text-[30px] font-bold', off && 'text-ink-faint line-through')}>{price}</span>
           </div>
         )}
@@ -425,7 +425,7 @@ function HeroCard({ appt, price, daysAway, state, onAsk, onKeep, onCancel, onUnd
               ביטלתי בטעות
             </button>
             <button type="button" onClick={onBookNew} className="press flex h-12 items-center rounded-[14px] bg-brand px-5 text-[15px] font-semibold text-brand-accent">
-              קבע תור חדש
+              {g('קבע תור חדש', 'קבעי תור חדש', 'קבעו תור חדש')}
             </button>
           </motion.div>
         )}

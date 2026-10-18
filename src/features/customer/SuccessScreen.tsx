@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
-import { CalendarCheck, MessageCircle, Scissors } from 'lucide-react';
+import { CalendarCheck, MessageCircle } from 'lucide-react';
 import type { Appointment } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
 import { addToCalendar, openExternal } from '@/lib/platform';
 import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, weekdayOf } from '@/lib/time';
@@ -9,6 +9,7 @@ import { Button } from '@/ui/controls';
 import { spring } from '@/ui/motion';
 import { useDb } from '@/data/store';
 import { appointmentPrice } from '../format';
+import { ShopMark } from '@/ui/ShopMark';
 
 /** Step 4: the digital ticket. */
 export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () => void }) {
@@ -28,7 +29,7 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
           <motion.path d="M20 6 9 17l-5-5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
         </motion.svg>
       </motion.div>
-      <h1 className="m-0 mt-[22px] text-[28px] font-bold tracking-display">נתראה במספרה!</h1>
+      <h1 className="m-0 mt-[22px] text-[28px] font-bold tracking-display">נתראה {SHOP.inPlace}!</h1>
       <p className="m-0 mt-1.5 text-[15px] text-ink-soft">התור שלך נקבע.</p>
 
       <motion.article
@@ -45,7 +46,7 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
               {SHOP.kind} • {SHOP.address}
             </span>
           </div>
-          <Scissors size={26} className="text-brand-accent" />
+          <ShopMark size={26} className="text-brand-accent" />
         </div>
         <div className="grid grid-cols-2 gap-4 p-5">
           {[
@@ -77,7 +78,7 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
           icon={<MessageCircle size={20} />}
           onClick={() => openExternal(whatsappUrl(SHOP.phone, `היי, קבעתי תור ל${appt.serviceName}, ${when}. שם: ${appt.customerName}`))}
         >
-          שלח אישור לוואטסאפ
+          {g('שלח אישור לוואטסאפ', 'שלחי אישור לוואטסאפ', 'שלחו אישור לוואטסאפ')}
         </Button>
         <Button
           variant="secondary"
@@ -86,7 +87,7 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
             addToCalendar({ title: `${appt.serviceName} - ${SHOP.fullName}`, date: appt.date, start: appt.start, end: appt.end, location: SHOP.address, notes: appt.notes })
           }
         >
-          הוסף ליומן
+          {g('הוסף ליומן', 'הוסיפי ליומן', 'הוסיפו ליומן')}
         </Button>
         <button type="button" onClick={onHome} className="h-11 text-[15px] font-medium text-ink-soft">
           חזרה לדף הבית

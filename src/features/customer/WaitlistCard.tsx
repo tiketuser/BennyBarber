@@ -6,6 +6,7 @@ import { DAY_LETTERS, fmtShortDate, weekdayOf } from '@/lib/time';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
 import type { WaitlistState } from './useWaitlist';
+import { g } from '@/config/shop';
 
 /** A full day: pick when it would suit you, or see that you're already on the list. */
 export function WaitlistCard({ date, waitlist, className = 'mx-4 mt-5' }: { date: DateKey; waitlist: WaitlistState; className?: string }) {
@@ -23,14 +24,14 @@ export function WaitlistCard({ date, waitlist, className = 'mx-4 mt-5' }: { date
           <span className="flex size-14 items-center justify-center rounded-full bg-open text-white">
             <Check size={28} strokeWidth={2.5} />
           </span>
-          <span className="text-xl font-bold">אתה ברשימת ההמתנה</span>
+          <span className="text-xl font-bold">{g('אתה ברשימת ההמתנה', 'את ברשימת ההמתנה', 'אתם ברשימת ההמתנה')}</span>
           <span className="text-[15px] leading-normal">
             {fmtShortDate(date)} • {mine.part === 'any' ? 'כל שעה' : 'ב' + PART_LABELS[mine.part]}
             <br />
             ברגע שמתפנה תור נשלח לך הודעה בוואטסאפ. מי שעונה ראשון תופס.
           </span>
           <button type="button" onClick={() => leave(mine.id)} className="h-11 text-sm font-semibold text-ink-soft underline">
-            צא מהרשימה
+            {g('צא מהרשימה', 'צאי מהרשימה', 'צאו מהרשימה')}
           </button>
         </motion.section>
       ) : (

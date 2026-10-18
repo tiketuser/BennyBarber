@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Download, Share, X } from 'lucide-react';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { isIOS, isStandalone } from '@/lib/platform';
 import { Button } from '@/ui/controls';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
@@ -70,7 +70,9 @@ export function InstallBanner() {
           >
             <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
               <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="" className="size-11 rounded-xl" />
-              <p className="m-0 flex-1 text-[13px] leading-snug">התקן את האפליקציה של {SHOP.brand} למסך הבית לגישה מהירה</p>
+              <p className="m-0 flex-1 text-[13px] leading-snug">
+                {g('התקן', 'התקיני', 'התקינו')} את האפליקציה של {SHOP.brand} למסך הבית לגישה מהירה
+              </p>
               <button type="button" onClick={install} className="press h-9 rounded-full bg-brand px-3.5 text-[13px] font-semibold text-brand-accent">
                 התקנה
               </button>

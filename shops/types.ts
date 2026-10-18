@@ -8,6 +8,16 @@ export interface ShopConfig {
   fullName: string;
   /** Word shown under the name ("ברברשופ", "מספרה", "סטודיו"). */
   kind: string;
+  /**
+   * The shop as a place in sentences, with "ה": "המספרה" (default), "הסלון", "הסטודיו". Bottom tab, "מחיר במספרה",
+   * "נתראה במספרה!" and the admin texts are built from it.
+   */
+  place?: string;
+  /**
+   * Who the customers are, for how the app talks to them: 'men' (default, "בחר", "קבע"), 'women' ("בחרי", "קבעי")
+   * or 'all' (plural, "בחרו", "קבעו").
+   */
+  audience?: 'men' | 'women' | 'all';
   /** One or two sentences for the website's shop page. */
   tagline: string;
   address: { street: string; city: string };

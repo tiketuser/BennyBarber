@@ -3,13 +3,29 @@ import { phoneDigits } from '@/lib/phone';
 
 export const courseFrom = (c: { enabled: boolean; details: string }) => (c.enabled ? { details: c.details } : null);
 
-const place = `${config.address.street} ${config.address.city}`;
+const where = `${config.address.street} ${config.address.city}`;
+
+/** "המספרה" / "הסלון" with its "ב" and "ל" forms ("במספרה", "לסלון") and "סגורה" / "סגור" by the noun's gender. */
+export const placeForms = (place = 'המספרה') => {
+  const bare = place.replace(/^ה/, '');
+  return { place, inPlace: 'ב' + bare, toPlace: 'ל' + bare, closed: `${place} ${place.endsWith('ה') ? 'סגורה' : 'סגור'}` };
+};
+
+export const AUDIENCE = config.audience ?? 'men';
+/**
+ * Customer copy in the shop's audience: g('בחר', 'בחרי', 'בחרו'). Only for what the app says to customers;
+ * the admin screens talk to the owner.
+ */
+export const g = (men: string, women: string, all: string) => (AUDIENCE === 'women' ? women : AUDIENCE === 'all' ? all : men);
 
 /** Shop facts for the screens, derived from the shop config(shops/<id>/config.ts). */
 export const SHOP = {
   brand: config.brand,
   fullName: config.fullName,
   kind: config.kind,
+  ...placeForms(config.place),
+  /** The shop's own mark (shops/<id>/public/logo-mark.svg) instead of the scissors; see ShopMark. */
+  logoMark: __SHOP_LOGO_MARK__,
   tagline: config.tagline,
   address: `${config.address.street}, ${config.address.city}`,
   street: config.address.street,
@@ -18,8 +34,8 @@ export const SHOP = {
   phone: phoneDigits(config.phone),
   instagram: config.instagram,
   instagramUrl: config.instagram ? `https://instagram.com/${config.instagram}` : null,
-  wazeUrl: 'https://waze.com/ul?q=' + encodeURIComponent(place) + '&navigate=yes',
-  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place),
+  wazeUrl: 'https://waze.com/ul?q=' + encodeURIComponent(where) + '&navigate=yes',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(where),
   /** null when the course is turned off in the shop config (shops/<id>/config.ts); every course screen and link checks this. */
   course: courseFrom(config.course),
   /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */

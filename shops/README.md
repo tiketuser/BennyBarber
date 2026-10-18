@@ -7,7 +7,8 @@ One folder per shop: `config.ts` (everything that makes the app that shop) and `
 
 1. `npm run new-shop <id>` (lowercase latin, e.g. `dannylevi`). Copies `_template`, registers it, draws icons.
 2. Fill `shops/<id>/config.ts` with what the shop sent (list below). Redraw icons after changing colors:
-   `SHOP=<id> npm run icons`.
+   `SHOP=<id> npm run icons`. A shop with its own logo puts it in `public/logo-mark.svg`: it replaces the scissors
+   in the app, and `npm run icons` then leaves that shop's hand-made icons alone.
 3. Create the shop's Firebase project (steps below) and paste its web config into `firebase`, then set
    `backend: 'firebase'`.
 4. Push. The deploy workflow publishes it to `https://barber-<id>.web.app` together with every other shop.
@@ -15,6 +16,7 @@ One folder per shop: `config.ts` (everything that makes the app that shop) and `
 ## What to get from the shop
 
 - Name as shown in the logo, full business name, and the word under it (ברברשופ / מספרה / סטודיו)
+- Who the customers are (men, women, or both), so the app talks to them right, and whether it is a מספרה, סלון or סטודיו
 - One or two sentences about the shop
 - Street and number, city
 - Phone / WhatsApp number of the shop

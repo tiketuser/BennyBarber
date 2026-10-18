@@ -3,7 +3,7 @@ import { ChevronLeft, GraduationCap, Instagram, LogOut, Map, MessageCircle, Navi
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
 import { hoursFor } from '@/domain/schedule';
 import type { GalleryCategory } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { formatPhone, isValidMobile } from '@/lib/phone';
 import { openExternal } from '@/lib/platform';
@@ -113,7 +113,7 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
             <GraduationCap size={22} />
           </span>
           <span className="flex flex-1 flex-col gap-[3px]">
-            <span className="text-base font-semibold">רוצה ללמוד לספר?</span>
+            <span className="text-base font-semibold">{g('רוצה ללמוד לספר?', 'רוצה ללמוד לספר?', 'רוצים ללמוד לספר?')}</span>
             <span className="text-[13px] text-line-strong">קורס ספרות גברים</span>
           </span>
           <ChevronLeft size={20} />
@@ -219,7 +219,7 @@ export function CourseScreen({ onBack }: { onBack: () => void }) {
       </div>
       <div className="glass border-t border-line-soft px-4 pt-3 pb-bar-lg">
         <Button block variant="whatsapp" disabled={!valid} icon={<MessageCircle size={20} />} onClick={() => openExternal(whatsappUrl(SHOP.phone, message))}>
-          שלח בוואטסאפ
+          {g('שלח בוואטסאפ', 'שלחי בוואטסאפ', 'שלחו בוואטסאפ')}
         </Button>
       </div>
     </>

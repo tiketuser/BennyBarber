@@ -1,10 +1,15 @@
 // Renders the PWA / app icons from one SVG using the preinstalled Chromium (playwright).
 // Colors come from shop.config.ts. Usage: npm run icons
+// A shop with its own logo (shops/<id>/public/logo-mark.svg) keeps the icons drawn from it by hand: nothing is overwritten.
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import shop, { SHOP_ID } from '../shop.config.ts';
 
 const dir = `shops/${SHOP_ID}/public`;
+if (existsSync(`${dir}/logo-mark.svg`)) {
+  console.log(`${dir}/logo-mark.svg exists: ${SHOP_ID} has its own icons, leaving them as they are.`);
+  process.exit(0);
+}
 mkdirSync(dir, { recursive: true });
 
 const { brand, accent } = shop.colors;

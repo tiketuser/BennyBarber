@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, Loader2, Scissors } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { useBackend } from '@/data/store';
 import { isValidMobile, phoneDigits } from '@/lib/phone';
 import { haptic } from '@/lib/platform';
-import { BACKEND, SHOP } from '@/config/shop';
+import { BACKEND, SHOP, g } from '@/config/shop';
 import { Button, PhoneInput, TextInput } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
 import { firstName } from '../format';
+import { ShopMark } from '@/ui/ShopMark';
 
 type Step = 'phone' | 'code' | 'name' | 'done';
 const CODE_LENGTH = 6;
@@ -71,11 +72,11 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
 
   const cta =
     step === 'phone'
-      ? { label: 'שלח לי קוד', ok: isValidMobile(phone), run: sendCode }
+      ? { label: g('שלח לי קוד', 'שלחי לי קוד', 'שלחו לי קוד'), ok: isValidMobile(phone), run: sendCode }
       : step === 'code'
         ? { label: 'אישור', ok: code.length === CODE_LENGTH, run: () => verify(code) }
         : step === 'name'
-          ? { label: 'שמור והמשך', ok: name.trim().length >= 2, run: saveName }
+          ? { label: g('שמור והמשך', 'שמרי והמשיכי', 'שמרו והמשיכו'), ok: name.trim().length >= 2, run: saveName }
           : { label: role === 'admin' ? 'לתצוגת אדמין' : 'לקביעת תור', ok: true, run: async () => onDone() };
 
   return (
@@ -83,7 +84,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
       {!bare && (
         <div className="flex flex-col items-center gap-3 px-6 pt-14 text-center">
           <div className="flex size-[72px] items-center justify-center rounded-full bg-brand text-brand-accent">
-            <Scissors size={32} />
+            <ShopMark size={32} />
           </div>
           <div className="font-brand text-[30px] leading-none">{SHOP.brand}</div>
           <div className="text-sm text-ink-soft">
@@ -122,7 +123,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
 
               {step === 'code' && (
                 <>
-                  <h1 className="m-0 text-2xl font-bold">הזן את הקוד</h1>
+                  <h1 className="m-0 text-2xl font-bold">{g('הזן את הקוד', 'הזיני את הקוד', 'הזינו את הקוד')}</h1>
                   <p className="m-0 text-[15px] text-ink-soft">
                     שלחנו קוד בן 6 ספרות ל-<span dir="ltr">{phone}</span>{' '}
                     <button type="button" className="text-sm font-semibold underline" onClick={() => setStep('phone')}>
@@ -164,7 +165,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                     />
                   </div>
                   <button type="button" disabled={busy} onClick={sendCode} className="h-11 self-start text-sm font-medium text-ink-soft">
-                    לא הגיע? שלח שוב
+                    לא הגיע? {g('שלח שוב', 'שלחי שוב', 'שלחו שוב')}
                   </button>
                 </>
               )}
@@ -172,7 +173,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
               {step === 'name' && (
                 <>
                   <h1 className="m-0 text-2xl font-bold">נעים להכיר! איך קוראים לך?</h1>
-                  <p className="m-0 text-[15px] text-ink-soft">נשמור את זה, ולא תצטרך למלא שוב בכל תור.</p>
+                  <p className="m-0 text-[15px] text-ink-soft">נשמור את זה, ולא {g('תצטרך', 'תצטרכי', 'תצטרכו')} למלא שוב בכל תור.</p>
                   <label htmlFor="lname" className="sr-only">
                     שם מלא
                   </label>
@@ -200,7 +201,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                   </motion.span>
                   <h1 className="m-0 mt-1.5 text-2xl font-bold">{role === 'admin' ? 'שלום, מנהל' : `היי ${firstName(name || backend.auth.getSession()?.name || '')}, הכל מוכן`}</h1>
                   <p className="m-0 text-[15px] leading-normal text-ink-soft">
-                    {role === 'admin' ? 'זיהינו את המספר שלך כמנהל המספרה. מעבירים אותך ליומן.' : 'שמרנו את השם והמספר שלך. בפעם הבאה קביעת תור לוקחת שתי לחיצות.'}
+                    {role === 'admin' ? `זיהינו את המספר שלך כמנהל ${SHOP.place}. מעבירים אותך ליומן.` : 'שמרנו את השם והמספר שלך. בפעם הבאה קביעת תור לוקחת שתי לחיצות.'}
                   </p>
                 </div>
               )}
@@ -221,7 +222,9 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
             // Keep the field focused (and the keyboard open) when tapping send/confirm.
             onPointerDown={(e) => step !== 'done' && e.preventDefault()}
             onMouseDown={(e) => step !== 'done' && e.preventDefault()}
-            disabled={!cta.ok || busy} icon={busy ? <Loader2 size={20} className="animate-spin" /> : undefined}>
+            disabled={!cta.ok || busy}
+            icon={busy ? <Loader2 size={20} className="animate-spin" /> : undefined}
+          >
             {cta.label}
           </Button>
           {step === 'phone' && BACKEND === 'firebase' && (

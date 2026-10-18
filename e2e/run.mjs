@@ -259,7 +259,8 @@ await step('admin signs in to the day view', async () => {
 });
 
 await step('admin quick add, undo, and block', async () => {
-  // Today may already be over: move to Sunday, which is always open in the demo hours.
+  // Today may already be over (even when it is Sunday): move to the next Sunday, which is always open in the demo hours.
+  await role('button', 'יום הבא').click();
   for (let i = 0; i < 7 && !(await page.getByText('יום א׳', { exact: false }).count()); i++) await role('button', 'יום הבא').click();
   await page.locator('[aria-label="תור מהיר או חסימה"]').click();
   await page.fill('#walkin', 'רון');

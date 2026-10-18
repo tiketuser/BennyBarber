@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, History, LogOut, Palmtree, Scissors, Settings2, Zap } from 'lucide-react';
+import { CalendarDays, History, LogOut, Palmtree, Settings2, Zap } from 'lucide-react';
 import { useBackend } from '@/data/store';
 import type { DateKey, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
@@ -10,6 +10,7 @@ import { HistoryTab } from '../HistoryTab';
 import { SettingsTab } from '../SettingsTab';
 import { DeskQuick } from './DeskQuick';
 import { DeskVacation } from './DeskVacation';
+import { ShopMark } from '@/ui/ShopMark';
 
 type Tab = 'day' | 'quick' | 'settings' | 'history' | 'vacation';
 
@@ -38,11 +39,11 @@ export function DeskAdminApp() {
       <aside className="flex w-[248px] shrink-0 flex-col gap-1.5 border-l border-line-soft bg-surface px-4 py-6">
         <div className="flex items-center gap-2.5 px-2 pb-[22px]">
           <span className="flex size-10 items-center justify-center rounded-full bg-brand text-brand-accent">
-            <Scissors size={18} />
+            <ShopMark size={18} />
           </span>
           <div className="flex flex-col gap-0.5">
             <span className="font-brand text-xl leading-none">{SHOP.brand}</span>
-            <span className="text-xs text-ink-mute">ניהול המספרה</span>
+            <span className="text-xs text-ink-mute">ניהול {SHOP.place}</span>
           </div>
         </div>
         <nav aria-label="ניווט אדמין" className="flex flex-col gap-1">

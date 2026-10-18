@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Instagram, MapPin, MessageCircle, Navigation, Phone } from 'lucide-react';
 import { useDb, useNow, useSession } from '@/data/store';
 import type { GalleryCategory } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { formatPhone, isValidMobile } from '@/lib/phone';
 import { openExternal } from '@/lib/platform';
@@ -64,7 +64,7 @@ export function DeskShop({ onBook }: { onBook: () => void }) {
                 className="press flex h-12 items-center gap-2 rounded-[14px] bg-open px-[18px] text-[15px] font-semibold text-white"
               >
                 <MessageCircle size={20} />
-                שלח וואטסאפ
+                {g('שלח וואטסאפ', 'שלחי וואטסאפ', 'שלחו וואטסאפ')}
               </button>
               <button
                 type="button"
@@ -179,9 +179,9 @@ function CourseLead({ details }: { details: string }) {
       <div className="flex flex-[1_1_380px] flex-col gap-3">
         <span className="self-start rounded-full bg-brand-accent px-3 py-1 text-[13px] font-bold text-brand">קורס ספרות</span>
         <h2 id="h-course" className="m-0 text-[32px] font-bold leading-tight">
-          רוצה ללמוד לספר?
+          {g('רוצה ללמוד לספר?', 'רוצה ללמוד לספר?', 'רוצים ללמוד לספר?')}
         </h2>
-        <p className="m-0 text-base leading-relaxed text-line-strong">קורס מעשי בקבוצות קטנות, על כיסא אמיתי במספרה. משאירים פרטים ונחזור אליך בוואטסאפ עם כל הפרטים.</p>
+        <p className="m-0 text-base leading-relaxed text-line-strong">קורס מעשי בקבוצות קטנות, על כיסא אמיתי {SHOP.inPlace}. משאירים פרטים ונחזור אליך בוואטסאפ עם כל הפרטים.</p>
         <span className="text-[13px] text-line-strong">{details}</span>
       </div>
       <div className="flex flex-[1_1_420px] flex-col gap-2.5">
@@ -249,7 +249,7 @@ function CourseLead({ details }: { details: string }) {
               }}
               className="press h-[52px] rounded-[14px] bg-brand-accent text-base font-bold text-brand disabled:opacity-40"
             >
-              שלח פרטים בוואטסאפ
+              {g('שלח פרטים בוואטסאפ', 'שלחי פרטים בוואטסאפ', 'שלחו פרטים בוואטסאפ')}
             </button>
           </>
         )}

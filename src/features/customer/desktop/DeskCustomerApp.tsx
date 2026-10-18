@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, Scissors, UserRound } from 'lucide-react';
+import { LogOut, UserRound } from 'lucide-react';
 import { useBackend, useSession } from '@/data/store';
 import type { Appointment } from '@/domain/types';
 import { SHOP } from '@/config/shop';
@@ -8,12 +8,13 @@ import { useOpenStatus } from '../hooks';
 import { DeskBook } from './DeskBook';
 import { DeskMine } from './DeskMine';
 import { DeskShop, type ShopSection } from './DeskShop';
+import { ShopMark } from '@/ui/ShopMark';
 
 type Page = 'book' | 'shop' | 'mine';
 
 const NAV: { label: string; page: Page; section?: ShopSection }[] = [
   { label: 'קביעת תור', page: 'book' },
-  { label: 'המספרה', page: 'shop' },
+  { label: SHOP.place, page: 'shop' },
   { label: 'גלריה', page: 'shop', section: 'gallery' },
   ...(SHOP.course ? [{ label: 'קורס ספרות', page: 'shop' as const, section: 'course' as const }] : []),
   { label: 'התורים שלי', page: 'mine' },
@@ -67,7 +68,7 @@ export function DeskCustomerApp() {
         <div className="mx-auto flex h-[76px] max-w-[1240px] items-center gap-6 px-8">
           <button type="button" onClick={() => go('book')} className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-full bg-brand text-brand-accent">
-              <Scissors size={20} />
+              <ShopMark size={20} />
             </span>
             <span className="font-brand text-[26px] leading-none">{SHOP.brand}</span>
           </button>

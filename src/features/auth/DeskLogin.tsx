@@ -1,8 +1,9 @@
-import { CalendarDays, MapPin, MessageCircle, RotateCcw, Scissors } from 'lucide-react';
+import { CalendarDays, MapPin, MessageCircle, RotateCcw } from 'lucide-react';
 import { useDb } from '@/data/store';
 import { SHOP } from '@/config/shop';
 import { groupHours } from '../shared/hours';
 import { LoginScreen } from './LoginScreen';
+import { ShopMark } from '@/ui/ShopMark';
 
 const PERKS = [
   { icon: <CalendarDays size={20} />, text: 'קביעת תור אונליין, בלי לחכות על הקו' },
@@ -20,10 +21,10 @@ export function DeskLogin({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex h-full">
-      <aside aria-label="על המספרה" className="flex flex-[1_1_520px] flex-col gap-10 overflow-y-auto bg-brand px-16 py-12 text-white">
+      <aside aria-label={`על ${SHOP.place}`} className="flex flex-[1_1_520px] flex-col gap-10 overflow-y-auto bg-brand px-16 py-12 text-white">
         <div className="flex items-center gap-3">
           <span className="flex size-12 items-center justify-center rounded-full bg-brand-accent text-brand">
-            <Scissors size={22} />
+            <ShopMark size={22} />
           </span>
           <span className="font-brand text-[26px] leading-none">{SHOP.brand}</span>
         </div>

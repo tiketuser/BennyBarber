@@ -4,7 +4,7 @@ import { Bell, CalendarDays, Navigation, RotateCcw, X } from 'lucide-react';
 import { useBackend, useDb } from '@/data/store';
 import { PART_LABELS } from '@/domain/schedule';
 import type { Appointment } from '@/domain/types';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { haptic, openExternal } from '@/lib/platform';
 import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, fromKey, MONTHS_SHORT, weekdayOf } from '@/lib/time';
 import { Button } from '@/ui/controls';
@@ -126,7 +126,7 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
                 </div>
                 {db.services.some((s) => s.id === a.serviceId) && (
                   <button type="button" onClick={() => onBookAgain(a.serviceId)} className="press h-11 rounded-xl border border-line bg-white px-4 text-sm font-semibold">
-                    הזמן שוב
+                    {g('הזמן שוב', 'הזמיני שוב', 'הזמינו שוב')}
                   </button>
                 )}
               </div>
@@ -140,6 +140,7 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
         onClose={() => setCancelling(null)}
         title="לבטל את התור?"
         confirmLabel="כן, לבטל"
+        cancelLabel={g('לא, השאר', 'לא, השאירי', 'לא, השאירו')}
         onConfirm={async () => {
           const a = cancelling!;
           setCancelling(null);
@@ -152,7 +153,8 @@ export function MyAppointments({ onReschedule, onBookAgain, onBookNew }: Props) 
           }
         }}
       >
-        {cancelling && `${cancelling.serviceName}, ${fmtShortDate(cancelling.date)} ב-${fmtTime(cancelling.start)}. אם תרצה, אפשר במקום זה לשנות מועד.`}
+        {cancelling &&
+          `${cancelling.serviceName}, ${fmtShortDate(cancelling.date)} ב-${fmtTime(cancelling.start)}. ${g('אם תרצה', 'אם תרצי', 'אם תרצו')}, אפשר במקום זה לשנות מועד.`}
       </ConfirmSheet>
     </div>
   );

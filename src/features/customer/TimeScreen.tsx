@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Bell, ChevronLeft, Scissors } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
 import { PARTS, bookingDays, dayStatus, slotsFor, type DayStatus } from '@/domain/schedule';
-import { BOOKING_MONTHS } from '@/config/shop';
+import { BOOKING_MONTHS, g } from '@/config/shop';
 import type { DateKey, Minutes, Service } from '@/domain/types';
 import { DAY_LETTERS, fmtShortDate, fmtTime, fromKey, MONTHS, MONTHS_SHORT, todayKey, weekdayOf } from '@/lib/time';
 import { haptic } from '@/lib/platform';
@@ -89,7 +89,12 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
         </div>
 
         <div className="px-5 pb-2.5 pt-5 text-[15px] font-semibold">{date ? MONTHS[fromKey(date).getMonth()] : ''}</div>
-        <div ref={stripRef} role="radiogroup" aria-label="בחר יום" className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-4 px-4 pb-1">
+        <div
+          ref={stripRef}
+          role="radiogroup"
+          aria-label={g('בחר יום', 'בחרי יום', 'בחרו יום')}
+          className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-4 px-4 pb-1"
+        >
           {days.map((d, i) => (
             <Fragment key={d.date}>
               {i > 0 && fromKey(d.date).getDate() === 1 && (
@@ -158,7 +163,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
       {isFull && !waitlist.mine && (
         <div className="glass absolute inset-x-0 bottom-0 z-[5] border-t border-line-soft px-4 pt-3 pb-bar-lg">
           <Button block disabled={waitlist.joining} onClick={waitlist.join} icon={<Bell size={20} />}>
-            היום מלא? היכנס לרשימת המתנה
+            היום מלא? {g('היכנס', 'היכנסי', 'היכנסו')} לרשימת המתנה
           </Button>
         </div>
       )}
@@ -172,7 +177,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
             </div>
           )}
           <Button className="flex-1" disabled={start == null} onClick={onContinue}>
-            {start == null ? 'בחר שעה' : 'המשך'}
+            {start == null ? g('בחר שעה', 'בחרי שעה', 'בחרו שעה') : 'המשך'}
             {start != null && <ChevronLeft size={20} />}
           </Button>
         </div>

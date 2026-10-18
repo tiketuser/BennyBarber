@@ -1,6 +1,6 @@
-import { Check, ChevronLeft, MessageCircle, Navigation, Scissors } from 'lucide-react';
+import { Check, ChevronLeft, MessageCircle, Navigation } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
 import { openExternal } from '@/lib/platform';
 import { DAY_LETTERS, fmtTime, fromKey, relativeDayLabel, todayKey, weekdayOf } from '@/lib/time';
@@ -10,6 +10,7 @@ import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { customerPrice } from '../format';
 import { useMyAppointments, useOpenStatus } from './hooks';
 import { InstallBanner } from './InstallBanner';
+import { ShopMark } from '@/ui/ShopMark';
 
 interface Props {
   serviceId: string | null;
@@ -33,7 +34,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
         <header className="flex items-center justify-between gap-3 px-5 pt-[18px]">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-accent">
-              <Scissors size={20} />
+              <ShopMark size={20} />
             </div>
             <div className="flex min-w-0 flex-col gap-[3px]">
               <div className="font-brand text-2xl leading-none">{SHOP.brand}</div>
@@ -55,7 +56,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
             </button>
             <button
               type="button"
-              aria-label="וואטסאפ למספרה"
+              aria-label={`וואטסאפ ${SHOP.toPlace}`}
               onClick={() => openExternal(whatsappUrl(SHOP.phone, 'היי, '))}
               className="press flex size-11 items-center justify-center rounded-full border border-open-line bg-open-soft text-open-text"
             >
@@ -89,7 +90,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
           <span className="text-[13px] text-ink-soft">שלב 1 מתוך 3</span>
         </div>
 
-        <div role="radiogroup" aria-label="בחר טיפול" className="flex flex-col gap-2 px-4">
+        <div role="radiogroup" aria-label={g('בחר טיפול', 'בחרי טיפול', 'בחרו טיפול')} className="flex flex-col gap-2 px-4">
           {services.map((s) => {
             const on = s.id === serviceId;
             return (

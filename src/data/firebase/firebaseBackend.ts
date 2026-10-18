@@ -24,7 +24,7 @@ import { connectStorageEmulator, getDownloadURL, getStorage, ref, uploadBytes } 
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Service, Session, Settings, WaitlistEntry } from '@/domain/types';
 import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
-import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE } from '@/config/shop';
+import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE, g } from '@/config/shop';
 import { fromIntl, phoneDigits, toIntl } from '@/lib/phone';
 import { todayKey } from '@/lib/time';
 
@@ -37,23 +37,23 @@ interface BusyEntry {
 
 const ERRORS: Record<string, string> = {
   'auth/invalid-phone-number': 'המספר לא תקין',
-  'auth/too-many-requests': 'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות',
-  'auth/invalid-verification-code': 'הקוד לא נכון, נסה שוב',
-  'auth/code-expired': 'פג תוקף הקוד. שלח קוד חדש',
-  'auth/quota-exceeded': 'שליחת ה-SMS לא זמינה כרגע. נסה שוב מאוחר יותר',
+  'auth/too-many-requests': `יותר מדי ניסיונות. ${g('נסה', 'נסי', 'נסו')} שוב בעוד כמה דקות`,
+  'auth/invalid-verification-code': `הקוד לא נכון, ${g('נסה', 'נסי', 'נסו')} שוב`,
+  'auth/code-expired': `פג תוקף הקוד. ${g('שלח', 'שלחי', 'שלחו')} קוד חדש`,
+  'auth/quota-exceeded': `שליחת ה-SMS לא זמינה כרגע. ${g('נסה', 'נסי', 'נסו')} שוב מאוחר יותר`,
   'auth/network-request-failed': 'אין חיבור לאינטרנט',
   'auth/operation-not-allowed': 'שליחת SMS לישראל עוד לא הופעלה במערכת',
   'auth/billing-not-enabled': 'שליחת SMS עוד לא הופעלה במערכת',
-  'auth/unauthorized-domain': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
-  'auth/invalid-app-credential': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
-  'auth/captcha-check-failed': 'הכתובת הזו לא מורשית להתחברות. נסה מהאתר הרשמי',
+  'auth/unauthorized-domain': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
+  'auth/invalid-app-credential': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
+  'auth/captcha-check-failed': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
   'permission-denied': 'אין הרשאה לפעולה הזו',
   unavailable: 'אין חיבור לאינטרנט',
 };
 /** Firebase errors in Hebrew; our own (already Hebrew) messages pass through. */
 const friendly = (e: unknown) => {
   const code = (e as { code?: string }).code?.replace(/^firestore\//, '');
-  return code && ERRORS[code] ? new Error(ERRORS[code]) : e instanceof Error && !code ? e : new Error('משהו השתבש, נסה שוב');
+  return code && ERRORS[code] ? new Error(ERRORS[code]) : e instanceof Error && !code ? e : new Error(`משהו השתבש, ${g('נסה', 'נסי', 'נסו')} שוב`);
 };
 const guard =
   <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
@@ -284,7 +284,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
         confirmation = await signInWithPhoneNumber(auth, '+' + toIntl(phone), recaptcha());
       }),
       verifyCode: guard(async (_phone, code) => {
-        if (!confirmation) throw new Error('שלח קוד קודם');
+        if (!confirmation) throw new Error(`${g('שלח', 'שלחי', 'שלחו')} קוד קודם`);
         const { user: u } = await confirmation.confirm(code);
         confirmation = null;
         const s = await sessionFor(u);
