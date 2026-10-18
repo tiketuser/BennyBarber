@@ -34,18 +34,17 @@ export default defineShop({
   /** Native app id (reverse domain) for the iOS / Android builds. */
   appId: 'il.co.orpani.salon',
 
-  // Stays 'demo' (not deployed) until the Firebase project barber-orpani exists and its config is below.
-  backend: 'demo',
+  backend: 'firebase',
   /** Short id for this shop; its data lives under shops/{shopId} in Firestore. */
   shopId: 'orpani',
   /** Firebase web config (Project settings > Your apps > Web). These keys are public by design. */
   firebase: {
-    apiKey: '',
-    authDomain: 'barber-orpani.firebaseapp.com',
-    projectId: 'barber-orpani',
-    storageBucket: 'barber-orpani.firebasestorage.app',
-    messagingSenderId: '',
-    appId: '',
+    apiKey: 'AIzaSyD1i0-EfeyMALE6AYjqyV2aZGer7OY29SQ',
+    authDomain: 'barber-shmuel-orpani.firebaseapp.com',
+    projectId: 'barber-shmuel-orpani',
+    storageBucket: 'barber-shmuel-orpani.firebasestorage.app',
+    messagingSenderId: '511387915964',
+    appId: '1:511387915964:web:42169630924a6ab85922b9',
   },
 
   /** What a brand-new shop starts with. The admin changes all of it later in "שירותים ושעות". */
