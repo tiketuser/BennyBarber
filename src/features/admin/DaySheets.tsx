@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Ban, Check, MessageCircle, Plus, Share2 } from 'lucide-react';
+import { ArrowLeft, Ban, CalendarPlus, Check, MessageCircle, Plus, Share2 } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
 import { freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
-import { haptic, openExternal, shareText } from '@/lib/platform';
+import { addToCalendar, downloadIcs, haptic, icsFile, openExternal, shareText, type CalendarEvent } from '@/lib/platform';
+import { formatPhone } from '@/lib/phone';
 import { fmtRange, fmtShortDate, fmtTime, nowMinutes, todayKey } from '@/lib/time';
 import { Bubble, Button, Stepper } from '@/ui/controls';
 import { cx } from '@/ui/cx';
@@ -342,6 +343,73 @@ export function AdminCancelSheet({ appt, onClose }: { appt: Appointment | null; 
         <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
           {appt.customerName} • {appt.serviceName} • {fmtShortDate(appt.date)} ב-{fmtTime(appt.start)}
         </p>
+      )}
+    </Sheet>
+  );
+}
+
+/** The admin's own calendar entry for an appointment: who, what, their number and notes, reminder 15 minutes before. */
+export const adminCalendarEvent = (a: Appointment): CalendarEvent => ({
+  title: `${a.customerName} - ${a.serviceName}`,
+  date: a.date,
+  start: a.start,
+  end: a.end,
+  location: SHOP.address,
+  notes: [a.phone && `טלפון: ${formatPhone(a.phone)}`, a.notes && `הערות: ${a.notes}`].filter(Boolean).join('\n') || undefined,
+  uid: a.id,
+  alarmMin: 15,
+});
+
+/**
+ * "כל התורים ליומן": every booked appointment from now on into the admin's own calendar, in one go.
+ * Apple takes the file straight in; Google Calendar imports the same file (calendar.google.com > Import).
+ * Each event keeps the appointment's id, so adding again later updates the ones already there.
+ */
+export function CalendarSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const db = useDb();
+  const now = useNow();
+  const today = todayKey(now);
+  const nowM = nowMinutes(now);
+  const list = db.appointments
+    .filter((a) => a.status === 'booked' && (a.date > today || (a.date === today && a.end > nowM)))
+    .sort((x, y) => x.date.localeCompare(y.date) || x.start - y.start);
+  const events = () => list.map(adminCalendarEvent);
+  const google = () => {
+    downloadIcs(icsFile(events()), 'תורים.ics');
+    if (!/android|iphone|ipad|ipod/i.test(navigator.userAgent)) openExternal('https://calendar.google.com/calendar/r/settings/export');
+  };
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      label="כל התורים ליומן"
+      footer={
+        list.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <Button block icon={<CalendarPlus size={20} />} onClick={() => addToCalendar(events())}>
+              יומן iPhone / Apple
+            </Button>
+            <Button block variant="secondary" icon={<CalendarPlus size={20} />} onClick={google}>
+              יומן Google
+            </Button>
+          </div>
+        )
+      }
+    >
+      <SheetTitle>כל התורים ליומן</SheetTitle>
+      {list.length === 0 ? (
+        <p className="py-6 text-center text-ink-soft">אין תורים קבועים מהיום והלאה.</p>
+      ) : (
+        <div className="mt-3 flex flex-col gap-2 text-[15px] leading-relaxed text-ink-soft">
+          <p className="m-0">
+            {list.length === 1 ? 'התור הקבוע' : `${list.length} התורים הקבועים`} מהיום עד {fmtShortDate(list[list.length - 1].date)} ייכנסו ליומן שלך בבת אחת, עם שם הלקוח, הטלפון
+            ותזכורת רבע שעה לפני.
+          </p>
+          <p className="m-0 text-sm">
+            ביומן Google הקובץ נשמר, ובמחשב נפתח דף הייבוא של Google: בוחרים את הקובץ <bdi dir="ltr">תורים.ics</bdi> ולוחצים ייבוא. אם מוסיפים שוב בהמשך, תורים שכבר ביומן מתעדכנים
+            ולא מוכפלים.
+          </p>
+        </div>
       )}
     </Sheet>
   );

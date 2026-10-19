@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Ban, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
+import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
 import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
@@ -11,7 +11,7 @@ import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { firstName, money } from '../format';
-import { AdminCancelSheet, BlockSheet, DelaySheet, FreeSlotsSheet } from './DaySheets';
+import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, FreeSlotsSheet } from './DaySheets';
 import { useReleaseBlock } from './useReleaseBlock';
 import { OpeningAlert } from './OpeningAlert';
 import { useOpenings } from './openings';
@@ -42,6 +42,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const [delayOpen, setDelayOpen] = useState(false);
   const [editBlock, setEditBlock] = useState<Block | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const openings = useOpenings();
   const releaseBlock = useReleaseBlock();
   const hours = hoursFor(db.settings, date);
@@ -158,6 +159,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
       <DelaySheet open={delayOpen} onClose={() => setDelayOpen(false)} />
       <BlockSheet block={editBlock} onClose={() => setEditBlock(null)} />
       <AdminCancelSheet appt={cancelAppt} onClose={() => setCancelAppt(null)} />
+      <CalendarSheet open={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </>
   );
 
@@ -200,6 +202,14 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                   <ChevronLeft size={20} />
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setCalendarOpen(true)}
+                className="press flex h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold hover:border-ink-faint"
+              >
+                <CalendarPlus size={18} />
+                כל התורים ליומן
+              </button>
               {hasUpcoming && (
                 <button
                   type="button"
@@ -301,6 +311,14 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             )}
             <button
               type="button"
+              aria-label="כל התורים ליומן"
+              onClick={() => setCalendarOpen(true)}
+              className="press flex size-11 items-center justify-center rounded-full bg-surface"
+            >
+              <CalendarPlus size={20} />
+            </button>
+            <button
+              type="button"
               aria-label="יום קודם"
               onClick={() => setDate(addDays(date, -1))}
               className="press flex size-11 items-center justify-center rounded-full bg-surface"
@@ -357,7 +375,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 }
 
 function AppointmentCard({ appt, today, current, onCancel }: { appt: Appointment; today: DateKey; current: boolean; onCancel: () => void }) {
-  const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} במספרה. נתראה!`;
+  const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} ${SHOP.inPlace}. נתראה!`;
   return (
     <div className={cx('flex flex-col gap-2.5 rounded-2xl px-3.5 py-3', current ? 'border-2 border-brand' : 'border border-line')}>
       <div className="flex items-center gap-2">

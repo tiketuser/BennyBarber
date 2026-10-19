@@ -1,6 +1,7 @@
 // End-to-end check of every feature, on a phone and on a desktop screen, in the bundled Chromium.
 // Usage: npm run test:e2e            demo data (starts its own dev server on port 5199)
 //        npm run test:e2e:firebase   the same steps against the Firebase emulators, with the real security rules
+import { readFile } from 'node:fs/promises';
 import { execSync, spawn } from 'node:child_process';
 import { chromium, devices } from 'playwright';
 import shop from '../shop.config.ts';
@@ -259,10 +260,15 @@ await step('admin signs in to the day view', async () => {
 });
 
 await step('admin quick add, undo, and block', async () => {
-  // Today may already be over (even when it is Sunday): move to the next Sunday, which is always open in the demo hours.
-  await role('button', 'יום הבא').click();
-  for (let i = 0; i < 7 && !(await page.getByText('יום א׳', { exact: false }).count()); i++) await role('button', 'יום הבא').click();
-  await page.locator('[aria-label="תור מהיר או חסימה"]').click();
+  // Today may already be over, and the sample bookings fill some days: move ahead to the first day with a free slot.
+  for (let i = 0; i < 10; i++) {
+    await role('button', 'יום הבא').click();
+    if (!(await page.locator('[aria-label="תור מהיר או חסימה"]').count())) continue;
+    await page.locator('[aria-label="תור מהיר או חסימה"]').click();
+    if (await page.locator('#walkin').waitFor({ timeout: 1500 }).then(() => true, () => false)) break;
+    await page.keyboard.press('Escape');
+    await wait(400);
+  }
   await page.fill('#walkin', 'רון');
   await tap('הוסף ליומן מ-', { exact: false });
   await see('נוסף ליומן', { exact: false });
@@ -392,6 +398,18 @@ await step('admin desktop: free windows panel and share', async () => {
   await page.locator('button', { hasText: 'חלונות פנויים ←' }).click();
   await wait(400);
   await page.keyboard.press('Escape');
+});
+
+await step('admin desktop: every booked appointment into the calendar at once', async () => {
+  await role('button', 'כל התורים ליומן').click();
+  await see('התורים הקבועים', { exact: false });
+  const [download] = await Promise.all([page.waitForEvent('download'), role('button', 'יומן Google').click()]);
+  const ics = await readFile(await download.path(), 'utf8');
+  const events = ics.match(/BEGIN:VEVENT/g)?.length ?? 0;
+  if (events < 2 || !ics.includes('TRIGGER:-PT15M') || !ics.includes('טלפון:')) throw new Error(`calendar file has ${events} events`);
+  if (!(await opened()).some((u) => u.includes('calendar.google.com'))) throw new Error('Google import page not opened');
+  await page.keyboard.press('Escape');
+  await wait(400);
 });
 
 await step('admin desktop: quick add page adds a client with WhatsApp confirm', async () => {
