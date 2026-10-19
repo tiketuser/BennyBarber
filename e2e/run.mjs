@@ -170,12 +170,9 @@ await step('books an appointment with slide to confirm', async () => {
   await see('נתראה במספרה!', { exact: false });
 });
 
-await step('ticket offers calendar and WhatsApp, then goes home', async () => {
-  await tap('שלח אישור לוואטסאפ');
-  expect(
-    (await opened()).some((u) => u.includes('wa.me')),
-    'WhatsApp not opened',
-  );
+await step('ticket offers calendar, no WhatsApp to the shop, then goes home', async () => {
+  await see('הוסף ליומן');
+  expect(!(await page.getByText('שלח אישור לוואטסאפ').count()), 'WhatsApp confirmation button still shown');
   await tap('חזרה לדף הבית', { exact: false }).catch(() => tap('סיום'));
   await see('התור הקרוב שלך');
 });
