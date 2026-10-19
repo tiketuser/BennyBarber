@@ -12,8 +12,8 @@ export default defineShop({
   fullName: 'שמואל אורפני עיצוב שיער',
   /** Word shown under the name ("ברברשופ", "מספרה", "סטודיו"). */
   kind: 'סלון בוטיק',
-  /** Women's salon: the app talks to customers in the feminine and calls the place "הסלון". */
-  audience: 'women',
+  /** Talks to customers in the plural ("בחרו", "קבעו"), suited to everyone, and calls the place "הסלון". */
+  audience: 'all',
   place: 'הסלון',
   /** One or two sentences for the website's shop page. */
   tagline: 'סלון בוטיק עם יחס אישי, מתמחה בכימיה מתקדמת: גווני בליאז׳, בלונד, אומברה והחלקות משקמות. בכיכר ויצמן בחולון.',
