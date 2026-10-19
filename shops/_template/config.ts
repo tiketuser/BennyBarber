@@ -14,7 +14,7 @@ export default defineShop({
   tagline: '[משפט או שניים על המספרה]',
   address: { street: '[רחוב ומספר]', city: '[עיר]' },
   phone: '050-0000000',
-  adminPhones: ['050-0000000'],
+  adminPhones: ['054-4437070'],
   instagram: null,
   course: { enabled: false, details: '' },
   bookingMonthsAhead: 3,

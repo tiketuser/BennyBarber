@@ -21,7 +21,7 @@ export default defineShop({
   /** Shop WhatsApp / phone number. */
   phone: '054-8068646',
   /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
-  adminPhones: ['054-8068646'],
+  adminPhones: ['054-4437070'],
   /** Instagram handle without "@", or null to hide Instagram. */
   instagram: 'shmuel_orpani_hair',
   /** Barbering course: none found for this salon. */
