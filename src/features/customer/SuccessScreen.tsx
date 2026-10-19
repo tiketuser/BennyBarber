@@ -1,9 +1,8 @@
 import { motion } from 'motion/react';
-import { CalendarCheck, MessageCircle } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 import type { Appointment } from '@/domain/types';
 import { SHOP, g } from '@/config/shop';
-import { whatsappUrl } from '@/lib/links';
-import { addToCalendar, openExternal } from '@/lib/platform';
+import { addToCalendar } from '@/lib/platform';
 import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, weekdayOf } from '@/lib/time';
 import { Button } from '@/ui/controls';
 import { spring } from '@/ui/motion';
@@ -73,13 +72,6 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
       </motion.article>
 
       <div className="mt-auto flex w-full flex-col gap-2.5 px-4 pt-6 pb-bar-lg">
-        <Button
-          variant="whatsapp"
-          icon={<MessageCircle size={20} />}
-          onClick={() => openExternal(whatsappUrl(SHOP.phone, `היי, קבעתי תור ל${appt.serviceName}, ${when}. שם: ${appt.customerName}`))}
-        >
-          {g('שלח אישור לוואטסאפ', 'שלחי אישור לוואטסאפ', 'שלחו אישור לוואטסאפ')}
-        </Button>
         <Button
           variant="secondary"
           icon={<CalendarCheck size={20} />}
