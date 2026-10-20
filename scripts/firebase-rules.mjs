@@ -23,6 +23,10 @@ ${
     match /trialShops/{slug} {
       allow read: if true;
     }
+    // A barber's own site (<siteId>.web.app) -> his slug.
+    match /trialSites/{siteId} {
+      allow read: if true;
+    }
 
 `
     : ''

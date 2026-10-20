@@ -32,6 +32,8 @@ if (!existsSync(`shops/${id}`)) {
   const defaults = { services: services.length ? services : shop.defaults.services, settings: settings ?? shop.defaults.settings };
 
   node(`scripts/new-shop.mjs ${id}`);
+  // Keeps his own trial site from being cleaned up while he moves over (scripts/trial-sites.mjs).
+  await trialDb.doc(`trialShops/${slug}`).update({ graduatedTo: id });
   const file = `shops/${id}/config.ts`;
   const fields = {
     brand: shop.brand,

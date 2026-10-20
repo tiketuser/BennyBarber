@@ -42,6 +42,10 @@ jobs:
             SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
             echo "::endgroup::"
           done
+          # Trial barbers with their own site get the new build too (scripts/trial-sites.mjs).
+          if node --experimental-strip-types --no-warnings scripts/list-shops.mjs | grep -qx trial && ! echo "$failed" | grep -qw trial; then
+            node --experimental-strip-types --no-warnings scripts/trial-sites.mjs sync || failed="$failed trial-sites"
+          fi
           # One shop failing (e.g. its project is not set up yet) must not stop the others; report it at the end.
           if [ -n "$failed" ]; then echo "::error::Deploy failed for:$failed"; exit 1; fi
       - if: steps.key.outputs.present != 'true'

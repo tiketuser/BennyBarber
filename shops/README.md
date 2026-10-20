@@ -42,7 +42,7 @@ One folder per shop: `config.ts` (everything that makes the app that shop) and `
 
 ## Trial shops (shops/trial)
 
-One shared site, `https://barber-trial.web.app/<slug>`, for every barber on a free trial week. The app reads the shop's
+One shared site, `https://barber-trial-310e8.web.app/<slug>`, for every barber on a free trial week. The app reads the shop's
 details at runtime from Firestore `trialShops/{slug}` (src/trial/), so a new trial needs no build and no project:
 
 - **Create / update:** the "Create trial shop" workflow (inputs `slug`, `config` JSON), triggered by the outreach automation.
@@ -50,3 +50,6 @@ details at runtime from Firestore `trialShops/{slug}` (src/trial/), so a new tri
   The rules refuse new bookings; nothing is deleted.
 - **Graduate:** the "Graduate trial shop" workflow (`slug`, `id`) creates `shops/<id>` from the trial; after his own
   Firebase project is set up and filled in, run it again to copy his data there.
+- **Own address:** `siteId` in the config ("barber-<name>", 6-30 chars) gives him `https://<siteId>.web.app`, a Hosting
+  site in the trial project (scripts/trial-sites.mjs). Every deploy updates those sites; a week after a trial ends
+  without graduating its site is deleted (36 sites per project), and the main-site address keeps working.

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       slug:
-        description: trial address (barber-trial.web.app/<slug>)
+        description: trial address (barber-trial-310e8.web.app/<slug>)
         required: true
       id:
         description: new shop id (lowercase latin and digits)

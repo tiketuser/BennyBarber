@@ -1,5 +1,6 @@
 /**
- * The shared trial site: one build for every barber on a free trial week, at https://barber-trial.web.app/<slug>.
+ * The shared trial site: one build for every barber on a free trial week, at https://barber-trial-310e8.web.app/<slug>,
+ * or his own https://barber-<name>.web.app (scripts/trial-sites.mjs).
  * The shop's own details are not here: the app reads them at runtime from Firestore trialShops/{slug}, which the
  * outreach automation writes (src/trial/trialShop.ts, shape in /mnt/project-files/outreach/trial-spec.md).
  * What's below is the fallback for anything that document leaves out, plus the trial project's Firebase config.
@@ -24,16 +25,15 @@ export default defineShop({
   bookingMonthsAhead: 3,
   colors: { brand: '#111111', accent: '#FFD200' },
   appId: 'il.co.trial.barber',
-  // Stays 'demo' (not deployed) until the Firebase project exists and its config is below.
-  backend: 'demo',
+  backend: 'firebase',
   shopId: 'trial',
   firebase: {
-    apiKey: '',
-    authDomain: 'barber-trial.firebaseapp.com',
-    projectId: 'barber-trial',
-    storageBucket: 'barber-trial.firebasestorage.app',
-    messagingSenderId: '',
-    appId: '',
+    apiKey: 'AIzaSyAiY8fHyfvMRjWGKOOUTghs7tk4dGc6adw',
+    authDomain: 'barber-trial-310e8.firebaseapp.com',
+    projectId: 'barber-trial-310e8',
+    storageBucket: 'barber-trial-310e8.firebasestorage.app',
+    messagingSenderId: '305985684663',
+    appId: '1:305985684663:web:b309c4f4fbfef102043932',
   },
   // Who the barber talks to when the free week ends ("תקופת הניסיון הסתיימה").
   trial: { contactName: 'אביב', contactPhone: '054-4437070' },

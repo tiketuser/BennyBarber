@@ -51,6 +51,8 @@ export interface ShopConfig {
    * (https://<site>/<slug>) and the shop details are read at runtime from Firestore trialShops/{slug}. See src/trial/.
    */
   trial?: { contactName: string; contactPhone: string };
+  /** Trial shops: this shop's public address (set at runtime), for links in shared messages. */
+  appUrl?: string;
   /** Trial shops: when the free week ends (ISO time). After it customers can't book online; the data stays. */
   trialEndsAt?: string;
   /** Trial shops: starting photos (e.g. from Google Maps), shown until the admin's first sign-in copies them into the gallery. */

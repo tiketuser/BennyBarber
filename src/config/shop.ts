@@ -40,7 +40,7 @@ export const SHOP = {
   /** null when the course is turned off in the shop config (shops/<id>/config.ts); every course screen and link checks this. */
   course: courseFrom(config.course),
   /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */
-  appUrl: (import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '') + (config.trial ? `/${config.shopId}` : ''),
+  appUrl: config.appUrl ?? import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '',
 } as const;
 
 export const ADMIN_PHONES = config.adminPhones.map(phoneDigits);
