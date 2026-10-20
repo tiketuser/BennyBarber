@@ -11,6 +11,8 @@ import { useIsDesktop } from '@/ui/useIsDesktop';
 import { useOnChange } from '@/ui/useOnChange';
 import { DeskAdminApp } from '@/features/admin/desktop/DeskAdminApp';
 import { DeskCustomerApp } from '@/features/customer/desktop/DeskCustomerApp';
+import { TrialEnded } from '@/features/trial/TrialEnded';
+import { trialEnded } from '@/config/shop';
 import { AppShell } from './AppShell';
 
 /**
@@ -24,13 +26,18 @@ export function App() {
   useOnChange(!session, (signedOut) => signedOut && setLoggingIn(true));
   const showLogin = !session || loggingIn;
   const desktop = useIsDesktop();
+  // A trial shop after its free week: a notice instead of booking; "כניסה לבעל העסק" opens the login for the owner.
+  const ended = trialEnded();
+  const [ownerLogin, setOwnerLogin] = useState(false);
 
   return (
     <MotionConfig reducedMotion="user">
       <AppShell wide={desktop}>
         <OverlayHost>
           <ToastProvider>
-            {showLogin ? (
+            {ended && !(showLogin && ownerLogin) ? (
+              <TrialEnded admin={!showLogin && session.role === 'admin'} onOwnerLogin={() => setOwnerLogin(true)} />
+            ) : showLogin ? (
               desktop ? (
                 <DeskLogin onDone={() => setLoggingIn(false)} />
               ) : (

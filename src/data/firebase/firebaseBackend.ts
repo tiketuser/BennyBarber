@@ -24,7 +24,7 @@ import { connectStorageEmulator, getDownloadURL, getStorage, ref, uploadBytes } 
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Service, Session, Settings, WaitlistEntry } from '@/domain/types';
 import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
-import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE, g } from '@/config/shop';
+import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE, STARTER_GALLERY, g } from '@/config/shop';
 import { fromIntl, phoneDigits, toIntl } from '@/lib/phone';
 import { todayKey } from '@/lib/time';
 
@@ -122,7 +122,8 @@ export async function createFirebaseBackend(): Promise<Backend> {
       appointments,
       blocks: busyBlocks,
       waitlist,
-      gallery,
+      // Until the admin's first sign-in seeds the shop, customers see its starting photos (trial shops).
+      gallery: settings ? gallery : gallery.length ? gallery : STARTER_GALLERY,
     };
   };
   let db = build();
@@ -193,6 +194,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
     const batch = writeBatch(fs);
     batch.set(settingsRef, DEFAULTS.settings);
     for (const s of DEFAULTS.services) batch.set(doc(col('services'), s.id), withoutId(s));
+    for (const g of STARTER_GALLERY) batch.set(doc(col('gallery'), g.id), withoutId(g));
     await batch.commit();
   };
 

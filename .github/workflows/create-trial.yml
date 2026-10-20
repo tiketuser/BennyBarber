@@ -1,0 +1,38 @@
+# Creates (or updates) one barber's free-trial app in the shared trial project: writes Firestore trialShops/{slug}.
+# Triggered by the outreach automation (n8n) through workflow_dispatch; the app is live at once, no deploy needed.
+# Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy (granted "Firebase Admin" on the trial project).
+name: Create trial shop
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: address after the site name (lowercase latin, digits, dashes)
+        required: true
+      config:
+        description: the trialShops document as JSON (see src/trial/trialDoc.ts)
+        required: true
+
+# One write per slug at a time; different barbers run side by side.
+concurrency:
+  group: create-trial-${{ inputs.slug }}
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Passed through the environment, never pasted into the script, so nothing in the inputs runs as code.
+          SLUG: ${{ inputs.slug }}
+          CONFIG: ${{ inputs.config }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          node --experimental-strip-types --no-warnings scripts/create-trial.mjs

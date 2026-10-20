@@ -1,5 +1,6 @@
 import config from '../../shop.config';
 import { phoneDigits } from '@/lib/phone';
+import type { GalleryItem } from '@/domain/types';
 
 export const courseFrom = (c: { enabled: boolean; details: string }) => (c.enabled ? { details: c.details } : null);
 
@@ -39,7 +40,7 @@ export const SHOP = {
   /** null when the course is turned off in the shop config (shops/<id>/config.ts); every course screen and link checks this. */
   course: courseFrom(config.course),
   /** Public booking link for shared messages. Inside the native apps location.origin is not a web address. */
-  appUrl: import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '',
+  appUrl: (import.meta.env.VITE_APP_URL ?? globalThis.location?.origin ?? '') + (config.trial ? `/${config.shopId}` : ''),
 } as const;
 
 export const ADMIN_PHONES = config.adminPhones.map(phoneDigits);
@@ -48,3 +49,18 @@ export const BOOKING_MONTHS = config.bookingMonthsAhead;
 /** Where the data lives; VITE_BACKEND overrides it (the e2e tests and the shareable demo use 'demo'). */
 export const BACKEND: 'demo' | 'firebase' = (import.meta.env.VITE_BACKEND as 'demo' | 'firebase' | undefined) ?? config.backend;
 export const FIREBASE = { config: config.firebase, shopId: config.shopId };
+
+/** Trial shops (shops/trial): when the free week ends and who to talk to about keeping the app. null for every real shop. */
+export const TRIAL = config.trial
+  ? { endsAt: config.trialEndsAt ? new Date(config.trialEndsAt) : null, contactName: config.trial.contactName, contactPhone: phoneDigits(config.trial.contactPhone) }
+  : null;
+export const trialEnded = (now = new Date()) => !!TRIAL?.endsAt && now >= TRIAL.endsAt;
+
+/** Starting photos (trial shops: from Google Maps). The admin's first sign-in copies them into the real gallery. */
+export const STARTER_GALLERY: GalleryItem[] = (config.galleryUrls ?? []).map((src, i) => ({
+  id: `starter-${i}`,
+  src,
+  category: 'haircut',
+  pinned: i < 4,
+  order: i,
+}));

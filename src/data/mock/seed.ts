@@ -1,6 +1,6 @@
 // Deterministic demo data relative to "today", so the app always looks lived-in.
 import type { Appointment, DbSnapshot, GalleryItem, Settings, WaitlistEntry } from '@/domain/types';
-import { DEFAULTS } from '@/config/shop';
+import { DEFAULTS, STARTER_GALLERY } from '@/config/shop';
 import { addDays, todayKey } from '@/lib/time';
 import { hoursFor, slotsFor } from '@/domain/schedule';
 
@@ -27,7 +27,7 @@ export function buildSeed(now = new Date()): DbSnapshot {
     appointments: [],
     blocks: [],
     waitlist: [],
-    gallery: buildGallery(),
+    gallery: STARTER_GALLERY.length ? STARTER_GALLERY.map((g) => ({ ...g })) : buildGallery(),
   };
   let n = 0;
   const id = () => `seed-${++n}`;

@@ -1,0 +1,47 @@
+# Moves a paying barber from the shared trial project to his own app (scripts/graduate.mjs), run by hand twice:
+# first to create shops/<id> from his trial (committed to this branch), then, once his Firebase project exists and its
+# config is filled, again to copy his trial data into it.
+name: Graduate trial shop
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: trial address (barber-trial.web.app/<slug>)
+        required: true
+      id:
+        description: new shop id (lowercase latin and digits)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  graduate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SLUG: ${{ inputs.slug }}
+          ID: ${{ inputs.id }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          node --experimental-strip-types --no-warnings scripts/graduate.mjs "$SLUG" "$ID"
+      - name: Commit the new shop
+        env:
+          ID: ${{ inputs.id }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          git add shops
+          git diff --cached --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Add shop $ID from trial $SLUG"
+          git push
