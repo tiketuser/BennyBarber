@@ -1,4 +1,5 @@
-# Run by hand from the Actions tab: adds made-up bookings to the live app until the end of the month, or removes them.
+# Run by hand from the Actions tab: adds made-up bookings to the live app (until the end of the month, or the next
+# `days` days), or removes them. Trial shops: shop = trial and the shop's slug.
 # Only appointments marked demo: true are ever touched. Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy.
 name: Demo data
 
@@ -15,6 +16,14 @@ on:
         description: shop id (folder in shops/)
         required: true
         default: bennycohen
+      slug:
+        description: trial shops only (shop = trial) - the shop's slug
+        required: false
+        default: ''
+      days:
+        description: how many days ahead (empty = until the end of the month)
+        required: false
+        default: ''
 
 jobs:
   demo-data:
@@ -31,6 +40,9 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           TZ: Asia/Jerusalem
           SHOP: ${{ inputs.shop }}
+          SLUG: ${{ inputs.slug }}
+          DAYS: ${{ inputs.days }}
+          SHOP_STATIC: '1'
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"

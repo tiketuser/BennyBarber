@@ -6,7 +6,8 @@ import { fileURLToPath, URL } from 'node:url';
 import shop, { SHOP_ID } from './shop.config';
 
 // The trial build (shops/trial) serves every trial barber from one site and reads the shop at runtime (src/trial).
-const trial = !!shop.trial;
+// Node scripts run through vite-node (scripts/demo-data.ts) set SHOP_STATIC=1 to get the plain config instead.
+const trial = !!shop.trial && !process.env.SHOP_STATIC;
 
 const description = `קביעת תור ל${shop.fullName}, ${shop.address.street} ${shop.address.city}`;
 
