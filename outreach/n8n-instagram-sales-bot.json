@@ -1,0 +1,1042 @@
+{
+  "name": "אינסטגרם: שיחות מכירה עם ספרים",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "אימות Meta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "ig-sales",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "a7b1c2d3-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "n2",
+      "name": "החזר challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n3",
+      "name": "הודעה נכנסת",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "path": "ig-sales",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "a7b1c2d3-0000-4000-8000-000000000002"
+    },
+    {
+      "id": "n4",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0",
+              "name": "IG_ACCESS_TOKEN",
+              "value": "הדבק כאן את הטוקן של אינסטגרם",
+              "type": "string"
+            },
+            {
+              "id": "c1",
+              "name": "IG_API_VERSION",
+              "value": "v23.0",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "GEMINI_API_KEY",
+              "value": "הדבק כאן מפתח מ-aistudio.google.com",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "GEMINI_MODEL",
+              "value": "gemini-flash-latest",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "TELEGRAM_BOT_TOKEN",
+              "value": "הדבק כאן טוקן מ-BotFather",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "TELEGRAM_CHAT_ID",
+              "value": "הדבק כאן את ה-chat id שלך",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "OPENER_MARK",
+              "value": "קוראים לי אביב",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "DEMO_LINK",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c8",
+              "name": "TRIAL_ENABLED",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "c9",
+              "name": "TRIAL_BASE_URL",
+              "value": "https://barber-trial-310e8.web.app",
+              "type": "string"
+            },
+            {
+              "id": "c10",
+              "name": "TRIAL_DAYS",
+              "value": "7",
+              "type": "string"
+            },
+            {
+              "id": "c11",
+              "name": "ADMIN_PHONE",
+              "value": "054-4437070",
+              "type": "string"
+            },
+            {
+              "id": "c12",
+              "name": "GOOGLE_MAPS_API_KEY",
+              "value": "הדבק כאן את מפתח Google Maps",
+              "type": "string"
+            },
+            {
+              "id": "c13",
+              "name": "GITHUB_TOKEN",
+              "value": "הדבק כאן טוקן של GitHub (Actions: write)",
+              "type": "string"
+            },
+            {
+              "id": "c14",
+              "name": "GITHUB_REPO",
+              "value": "tiketuser/BennyBarber",
+              "type": "string"
+            },
+            {
+              "id": "c15",
+              "name": "GITHUB_WORKFLOW",
+              "value": "create-trial.yml",
+              "type": "string"
+            },
+            {
+              "id": "c16",
+              "name": "GITHUB_REF",
+              "value": "claude/build-barber-app-d1lrhc",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n5",
+      "name": "הודעה או חידוש טוקן?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "i1",
+              "leftValue": "={{ $('הודעה נכנסת').isExecuted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n6",
+      "name": "עיבוד אירוע",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// מעבד אירועי webhook מאינסטגרם ושומר את מצב השיחות בזיכרון של ה-workflow.\n// סטטוסים: active = הבוט עונה, handoff = מחכה לאביב, human = אביב ענה בעצמו, optout = לא מעוניין.\nconst cfg = $('Config').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.convos = state.convos || {};\nconst body = $('הודעה נכנסת').first().json.body || {};\nconst mark = (cfg.OPENER_MARK || '').trim();\nconst out = [];\n\nfor (const entry of body.entry || []) {\n  for (const ev of entry.messaging || []) {\n    const msg = ev.message;\n    if (!msg || msg.is_deleted) continue;\n    const text = (msg.text || (msg.attachments ? '[צרף קובץ/תמונה]' : '')).trim();\n    if (!text) continue;\n\n    if (msg.is_echo) {\n      // הודעה שיצאה מהחשבון של אביב (מהטלפון או מהבוט)\n      const other = ev.recipient.id;\n      let c = state.convos[other];\n      if (!c) {\n        if (mark && text.includes(mark)) {\n          state.convos[other] = { status: 'active', opened: Date.now(), history: [{ who: 'אביב', text }], botTexts: [] };\n        }\n        continue;\n      }\n      const i = c.botTexts.indexOf(text);\n      if (i !== -1) { c.botTexts.splice(i, 1); continue; } // הד של הודעה שהבוט שלח\n      c.history.push({ who: 'אביב', text });\n      const barberWrote = c.history.some((h) => h.who === 'ספר');\n      // הודעות הפתיחה נשלחות כמה ברצף: עד שהספר עונה, הודעות של אביב הן עוד חלק מהפתיחה.\n      if (barberWrote && (c.status === 'active' || c.status === 'handoff')) c.status = 'human'; // אביב נכנס לשיחה, הבוט זז הצידה\n      continue;\n    }\n\n    const igsid = ev.sender.id;\n    const c = state.convos[igsid];\n    if (!c) continue; // לא ליד שאביב פתח מולו שיחה, הבוט לא נוגע\n    c.history.push({ who: 'ספר', text });\n    c.history = c.history.slice(-30);\n    c.lastMid = msg.mid;\n    c.lastAt = Date.now();\n    if (c.status === 'active') {\n      out.push({ json: { igsid, mid: msg.mid } });\n    } else if (c.status === 'handoff') {\n      out.push({ json: { igsid, mid: msg.mid, notifyOnly: true } });\n    }\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "n7",
+      "name": "המתנה להודעות נוספות",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        200
+      ],
+      "parameters": {
+        "amount": 20
+      },
+      "webhookId": "a7b1c2d3-0000-4000-8000-000000000003"
+    },
+    {
+      "id": "n8",
+      "name": "עדיין ההודעה האחרונה?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// מחכים קצת כי ספרים שולחים כמה הודעות ברצף. עונים רק על האחרונה.\nconst state = $getWorkflowStaticData('global');\nreturn $input.all().filter((it) => {\n  const c = state.convos?.[it.json.igsid];\n  return c && c.lastMid === it.json.mid;\n});"
+      }
+    },
+    {
+      "id": "n9",
+      "name": "בניית בקשה",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const state = $getWorkflowStaticData('global');\nconst cfg = $('Config').first().json;\nconst trialOn = String(cfg.TRIAL_ENABLED).toLowerCase() === 'true';\nreturn $input.all().map((it) => {\n  const c = state.convos[it.json.igsid];\n  const transcript = c.history.map((h) => h.who + ': ' + h.text).join('\\n');\n  let rule;\n  if (c.trialSlug) {\n    rule = 'כבר שלחת לו לינק לאפליקציה שלו: ' + c.trialUrl + ' . שבוע הניסיון בחינם נגמר ב-' + c.trialEndsHe + '. עזור לו עם שאלות על האפליקציה. מחיר וסגירה: handoff.';\n  } else if (!trialOn) {\n    rule = 'אם הספר אומר כן או רוצה לראות: כתוב משהו כמו \"סבבה, אני שולח לך את הלינק עוד מעט\", agreed = true, action = \"handoff\".';\n  } else {\n    rule = 'אם הספר אומר כן או רוצה לראות (agreed = true): '\n      + (c.mobile\n        ? 'הנייד שלו ידוע (' + c.mobile + '). כתוב משהו כמו \"סבבה, עוד כמה דקות אני שולח לך את הלינק\" ו-action = \"trial\".'\n        : 'שאל בקצרה לאיזה מספר נייד לחבר לו את הצד של הניהול (action = \"continue\"). כשהוא נותן מספר, כתוב משהו כמו \"סבבה, עוד כמה דקות אני שולח לך את הלינק\", mobile = המספר ו-action = \"trial\".')\n      + (c.agreed ? ' (הוא כבר הסכים קודם בשיחה.)' : '');\n  }\n  return { json: { ...it.json, prompt: 'השיחה עד עכשיו:\\n' + transcript + '\\n\\nמצב: ' + rule + '\\n\\nכתוב את ההודעה הבאה של אביב.' } };\n});"
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/{{ $('Config').first().json.GEMINI_MODEL }}:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $('Config').first().json.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  systemInstruction: { parts: [{ text: \"אתה כותב הודעות אינסטגרם בשם אביב, בחור ישראלי שבונה לספרים אפליקציית תורים משלהם. אתה מדבר עם בעל מספרה שאביב שלח לו שלוש הודעות פתיחה (\\\"מה איתך אחי\\\", \\\"קוראים לי אביב יצא לי לראות את התספורות שלך באינסטגרם אהבתי ובניתי לך אפליקציה לקביעת תורים וניהול של המספרה\\\", \\\"רציתי לשאול אם תרצה לראות איך יצא כמובן שבחינם\\nואם יעניין אותך אפשר לדבר\\\"), והוא ענה. המטרה: שהספר יסכים לנסות את האפליקציה שבוע חינם. את הסגירה עצמה (מחיר, תשלום, בניית הגרסה שלו) אביב עושה בעצמו.\\n\\nאיך כותבים:\\n- כתוב כמו בן אדם רגיל שמתכתב בוואטסאפ, לא כמו איש מכירות ולא כמו בוט. משפט או שניים, ובדרך כלל הודעה אחת.\\n- דבר כמו אביב: \\\"אחי\\\" מדי פעם זה בסדר, אבל בלי סלנג מוגזם (\\\"גבר\\\", \\\"נקי\\\", \\\"מלך\\\"), בלי סימני פיסוק בכלל (בלי פסיקים, נקודות, סימני שאלה וסימני קריאה), כמו שאביב כותב, בלי התלהבות (\\\"מעולה!\\\", \\\"סגור לגמרי\\\", \\\"מטורף\\\"), בלי לחזור על מה שהוא אמר ובלי להסביר יותר מדי.\\n- עונים על מה שהוא שאל. לא מוסיפים רשימת פיצ'רים אם הוא לא ביקש.\\n- בלי רשימות, בלי כוכביות, בלי מקפים ארוכים (רק מקף רגיל), אימוג'י אחד לכל היותר ורק אם זה טבעי.\\n- לא לחפור ולא ללחוץ. קודם שואלים ומקשיבים, ורק אחר כך מספרים על האפליקציה.\\n- אם לא ברור אם מדובר בגבר או אישה, כתוב ברבים (\\\"אצלכם\\\").\\n- אף פעם אל תזכיר ספרים או מספרות אחרות בשמם. כל ספר צריך להרגיש שהאפליקציה נבנתה בשבילו.\\n\\nמה האפליקציה עושה (רק את זה מותר להבטיח):\\n- אפליקציה עם השם, הצבעים והעבודות של המספרה. הלקוח מוסיף אותה למסך הבית מהדפדפן ורואה רק את המספרה הזאת.\\n- כניסה עם מספר טלפון וקוד ב-SMS, בחירת טיפול, יום ושעה. השם נשמר אחרי הפעם הראשונה.\\n- \\\"התורים שלי\\\" עם הזזה וביטול, אישור לוואטסאפ, הוספה ליומן, ניווט בווייז.\\n- רשימת המתנה עם התראה כשמתפנה תור.\\n- צד ניהול לספר: יומן יומי, תור מהיר ללקוח מהרחוב, חסימת הפסקה, חופש, שינוי מחירים ושעות מהטלפון.\\n- כפתור \\\"מתעכב\\\": לחיצה אחת וכל מי שיש לו תור אחר כך מקבל הודעה בוואטסאפ.\\n- גלריית עבודות, אינסטגרם, ווייז, ואם רוצים גם טופס לקורס ספרות.\\n- הכל רץ על השרתים של גוגל (Firebase), ואביב זמין ישירות בוואטסאפ.\\n\\nמה אסור להבטיח: קופה, חשבוניות, תשלום מראש או דמי ביטול (אין כרגע). אפליקציה בחנויות של אפל וגוגל (עוד לא יצאה, כרגע מוסיפים למסך הבית מהדפדפן).\\n\\nמחיר: תשלום אחד ולא מנוי חודשי, ושבוע ראשון חינם בלי כרטיס אשראי. אל תמציא סכום. אם שואלים כמה, תגיד שזה תשלום חד פעמי ושקודם כדאי לנסות שבוע, ואם הוא מתעקש על מספר העבר לאביב.\\nאם הוא עובד עם קלמרק: פרימיום עולה 139 ₪ לחודש לפני מע\\\"מ, בערך 1,970 ₪ בשנה וכל שנה מחדש, ורשימת המתנה יש רק מפרימיום. אצלנו משלמים פעם אחת. אפשר להשאיר את קלמרק במקביל בשבוע הניסיון.\\n\\nהתנגדויות:\\n- \\\"מסתדר עם הוואטסאפ\\\": ברור, ככה כולם עובדים, אבל כמה הודעות של \\\"יש לך משהו מחר ב-5?\\\" עונים באמצע תספורת. פה הלקוחות רואים לבד מה פנוי.\\n- \\\"צריך לחשוב\\\": בטח, השבוע הראשון בחינם בכל מקרה.\\n- \\\"יש לי את כל הלקוחות בקלמרק\\\": בגלל זה יש שבוע ניסיון, שולחים לינק אחד ללקוחות וקלמרק נשאר במקביל.\\n@@DEMO@@\\n\\nמתי להעביר לאביב (action = \\\"handoff\\\"), ואז ההודעה שלך רק אומרת בקצרה שאביב חוזר אליו בהקדם:\\n- (מה עושים כשהספר אומר \\\"כן\\\" או רוצה לראות כתוב בסוף ההודעה של המשתמש, לפי המצב של השיחה. הודעת הפתיחה אמרה לו שבנינו לו אפליקציה, אז לא אומרים \\\"אני בונה לך\\\".)\\n- מבקש מחיר מדויק, מתמקח, או רוצה לסגור.\\n- מבקש לדבר בטלפון.\\n- שואל אם הוא מדבר עם בוט. לא משקרים: תגיד שזה עוזר אוטומטי שעונה בשם אביב ושאביב עצמו חוזר אליו, והעבר.\\n- כל שאלה שאתה לא בטוח בתשובה עליה, תלונה, או משהו לא קשור.\\n\\nאם הוא עונה \\\"לא\\\", \\\"לא תודה\\\", \\\"לא מעוניין\\\" או מבקש להפסיק, גם אם הוא מוסיף \\\"אני מסתדר\\\", זה סוף השיחה: לא מנסים לשכנע ולא שואלים עוד שאלה (action = \\\"optout\\\").\\nאם הוא לא מעוניין או מבקש להפסיק (action = \\\"optout\\\"): הודעה אחת קצרה ומנומסת, למשל \\\"אין בעיה, תודה על התשובה. בהצלחה\\\" ואם הוא גס, בלי הודעה בכלל (messages ריק).\\n\\nהחזר JSON בלבד, בפורמט:\\n{\\\"messages\\\": [\\\"הודעה 1\\\", \\\"הודעה 2 (לא חובה)\\\"], \\\"action\\\": \\\"continue\\\" | \\\"handoff\\\" | \\\"optout\\\" | \\\"trial\\\", \\\"agreed\\\": true/false (האם הספר כבר אמר שהוא רוצה לראות או לנסות), \\\"mobile\\\": \\\"מספר נייד שהספר נתן, או null\\\", \\\"reason\\\": \\\"למה העברת לאביב, בקצרה (רק ב-handoff)\\\", \\\"summary\\\": \\\"שורה אחת: איפה השיחה עומדת ומה הספר רוצה\\\"}\".replace('@@DEMO@@', $('Config').first().json.DEMO_LINK ? 'יש לינק לדוגמה שמותר לשלוח אם הספר מבקש לראות איך זה נראה: ' + $('Config').first().json.DEMO_LINK : 'אין לינק מוכן. אם הספר רוצה לראות, זה handoff כי אביב מכין לו את הגרסה עם השם שלו ושולח בעצמו.') }] },\n  contents: [{ role: 'user', parts: [{ text: $json.prompt }] }],\n  generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }\n}) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "n11",
+      "name": "פירוק תשובה",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// מפרק את תשובת ה-AI, מעדכן את מצב השיחה ומפצל לשליחה / התראה.\nconst state = $getWorkflowStaticData('global');\nconst out = [];\nconst prompts = $('בניית בקשה').all();\n$input.all().forEach((it, idx) => {\n  const { igsid, notifyOnly } = prompts[idx]?.json || {};\n  const c = state.convos[igsid];\n  if (!c) return;\n  if (notifyOnly) {\n    out.push({ json: { kind: 'notify', igsid, reason: 'הספר כתב שוב בשיחה שמחכה לך', summary: c.summary || '', last: c.history.at(-1)?.text || '' } });\n    return;\n  }\n  let r;\n  try {\n    const raw = it.json.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';\n    r = JSON.parse(raw.replace(/^```(json)?|```$/g, '').trim());\n  } catch (e) {\n    r = { messages: [], action: 'handoff', reason: 'ה-AI לא החזיר תשובה תקינה: ' + (it.json.error?.message || e.message) };\n  }\n  const messages = (r.messages || []).slice(0, 2)\n    .map((m) => String(m).replace(/[\\u2014\\u2013]/g, '-').replace(/[!?]+/g, '').replace(/,(?!\\d)/g, '').replace(/(?<!\\d)\\.(?=\\s|$)/g, '').trim())\n    .filter(Boolean);\n  for (const m of messages) {\n    c.history.push({ who: 'אביב', text: m });\n    c.botTexts.push(m);\n    out.push({ json: { kind: 'send', igsid, text: m } });\n  }\n  c.botTexts = c.botTexts.slice(-10);\n  c.summary = r.summary || c.summary;\n  if (r.agreed) c.agreed = true;\n  const mob = String(r.mobile || '').replace(/\\D/g, '').replace(/^972/, '0');\n  if (/^05\\d{8}$/.test(mob)) c.mobile = mob.slice(0, 3) + '-' + mob.slice(3);\n  if (r.action === 'trial') {\n    if (c.mobile && !c.trialSlug && !c.trialPending) {\n      c.trialPending = true;\n      out.push({ json: { kind: 'trial', igsid, mobile: c.mobile } });\n    } else if (!c.mobile) {\n      r.action = 'handoff';\n      r.reason = 'הספר רוצה לנסות אבל אין לנו מספר נייד שלו';\n    }\n  }\n  if (r.action === 'handoff') {\n    c.status = 'handoff';\n    out.push({ json: { kind: 'notify', igsid, reason: r.reason || 'צריך אותך', summary: c.summary || '', last: c.history.filter((h) => h.who === 'ספר').at(-1)?.text || '' } });\n  } else if (r.action === 'optout') {\n    c.status = 'optout';\n  }\n});\nreturn out;"
+      }
+    },
+    {
+      "id": "n12",
+      "name": "לשלוח או להתריע?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2160,
+        200
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "send",
+              "renameOutput": true,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s1",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "send",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "trial",
+              "renameOutput": true,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s3",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "trial",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "notify",
+              "renameOutput": true,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s2",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "notify",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n13",
+      "name": "שליחה באינסטגרם",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/{{ $('Config').first().json.IG_API_VERSION }}/me/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $getWorkflowStaticData('global').token || $('Config').first().json.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ recipient: { id: $json.igsid }, message: { text: $json.text } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2500
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n14",
+      "name": "שם המשתמש של הספר",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        400
+      ],
+      "parameters": {
+        "url": "=https://graph.instagram.com/{{ $('Config').first().json.IG_API_VERSION }}/{{ $json.igsid }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "username,name"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $getWorkflowStaticData('global').token || $('Config').first().json.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n15",
+      "name": "התראה בטלגרם",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Config').first().json.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  chat_id: $('Config').first().json.TELEGRAM_CHAT_ID,\n  disable_web_page_preview: true,\n  text: '🔔 ' + $('לשלוח או להתריע?').item.json.reason\n    + '\\n\\nספר: ' + ($json.username ? '@' + $json.username + ' (https://instagram.com/' + $json.username + ')' : $('לשלוח או להתריע?').item.json.igsid)\n    + '\\nאיפה זה עומד: ' + $('לשלוח או להתריע?').item.json.summary\n    + '\\nהודעה אחרונה שלו: ' + $('לשלוח או להתריע?').item.json.last\n    + '\\n\\nהבוט לא עונה לו יותר. תענה לו בעצמך באינסטגרם (יש לך 24 שעות מההודעה האחרונה שלו).'\n}) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n16",
+      "name": "פרופיל אינסטגרם",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        800
+      ],
+      "parameters": {
+        "url": "=https://graph.instagram.com/{{ $('Config').first().json.IG_API_VERSION }}/{{ $json.igsid }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "username,name"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $getWorkflowStaticData('global').token || $('Config').first().json.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n17",
+      "name": "חיפוש בגוגל מפות",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        800
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "={{ $('Config').first().json.GOOGLE_MAPS_API_KEY }}"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.regularOpeningHours,places.primaryType,places.types"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ textQuery: $json.name || $json.username || 'barber', languageCode: 'he', regionCode: 'IL', pageSize: 5 }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n18",
+      "name": "בניית אפליקציית ניסיון",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        800
+      ],
+      "parameters": {
+        "jsCode": "// בונה את ההגדרות של האפליקציה לספר הזה מגוגל מפות ומהאינסטגרם שלו.\nconst cfg = $('Config').first().json;\nconst state = $getWorkflowStaticData('global');\nconst HAIR = ['barber_shop', 'hair_salon', 'hair_care', 'beauty_salon'];\nconst trial = $('לשלוח או להתריע?').item.json;\nconst profile = $('פרופיל אינסטגרם').item.json;\nconst place = ($json.places || []).find((p) => (p.types || []).some((t) => HAIR.includes(t)));\nconst c = state.convos[trial.igsid];\nif (!place) {\n  c.trialPending = false;\n  c.status = 'handoff';\n  return { json: { ok: false, igsid: trial.igsid, text: '⚠️ ספר רוצה לנסות, אבל לא מצאתי את המספרה שלו בגוגל מפות (חיפשתי: ' + (profile.name || profile.username) + '). הנייד שלו: ' + trial.mobile + '. צריך לפתוח לו ידנית. https://instagram.com/' + (profile.username || '') } };\n}\nconst barber = place.primaryType === 'barber_shop' || /ברבר|barber|גבר/i.test(place.displayName?.text || '');\nlet slug = String(profile.username || place.displayName?.text || 'shop').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30);\nif (slug.length < 2) slug = 'shop-' + slug;\nstate.slugs = state.slugs || {};\nwhile (state.slugs[slug] && state.slugs[slug] !== trial.igsid) slug += '-2';\nstate.slugs[slug] = trial.igsid;\n// כתובת משלו: barber-<שם>.web.app (עד 30 תווים, ייחודי בכל Firebase). אם תפוס, האפליקציה נשארת גם ב-barber-trial.web.app/<slug>.\n// כמו המספרות הקבועות: barber-<שם>.web.app\nlet siteId = ('barber-' + slug.replace(/^barber-?/, '')).slice(0, 30).replace(/-$/, '');\n\nconst parts = (place.formattedAddress || '').split(',').map((x) => x.trim()).filter((x) => x && x !== 'ישראל' && !/^\\d{5,7}$/.test(x));\nconst street = parts[0] || '';\nconst city = (parts[1] || '').replace(/\\s*\\d{5,7}$/, '');\nconst hours = {};\nfor (let d = 0; d < 7; d++) hours[d] = { open: false, from: 9 * 60, to: 20 * 60 };\nfor (const per of place.regularOpeningHours?.periods || []) {\n  const d = per.open?.day;\n  if (d == null || !per.close) continue;\n  const from = per.open.hour * 60 + (per.open.minute || 0);\n  const to = per.close.day === d ? per.close.hour * 60 + (per.close.minute || 0) : 24 * 60 - 1;\n  const h = hours[d];\n  hours[d] = h.open ? { open: true, from: Math.min(h.from, from), to: Math.max(h.to, to) } : { open: true, from, to };\n}\nif (!Object.values(hours).some((h) => h.open)) {\n  for (let d = 0; d < 5; d++) hours[d] = { open: true, from: 9 * 60, to: 20 * 60 };\n  hours[5] = { open: true, from: 9 * 60, to: 14 * 60 };\n}\nconst services = barber\n  ? [\n      { id: 'cut', name: 'תספורת גבר', shortName: 'תספורת', price: 70, durationMin: 30, priceHidden: false, order: 0 },\n      { id: 'cut-beard', name: 'תספורת + זקן', shortName: 'תספורת + זקן', price: 100, durationMin: 45, priceHidden: false, popular: true, order: 1 },\n      { id: 'beard', name: 'עיצוב וגילוח זקן', shortName: 'זקן', price: 50, durationMin: 20, priceHidden: false, order: 2 },\n      { id: 'kid', name: 'תספורת ילד', shortName: 'ילד', price: 60, durationMin: 30, priceHidden: false, order: 3 },\n    ]\n  : [\n      { id: 'cut-women', name: 'תספורת נשים', shortName: 'תספורת', price: 150, durationMin: 45, priceHidden: false, order: 0 },\n      { id: 'blow', name: 'פן', shortName: 'פן', price: 80, durationMin: 30, priceHidden: false, order: 1 },\n      { id: 'color', name: 'צבע', shortName: 'צבע', price: 250, durationMin: 90, priceHidden: true, popular: true, order: 2 },\n      { id: 'cut-men', name: 'תספורת גבר', shortName: 'גבר', price: 70, durationMin: 30, priceHidden: false, order: 3 },\n    ];\nconst e164 = (p) => '+972' + p.replace(/\\D/g, '').replace(/^0/, '');\nconst admins = [trial.mobile, cfg.ADMIN_PHONE].filter(Boolean);\nconst days = Number(cfg.TRIAL_DAYS || 7);\nconst now = new Date();\nconst ends = new Date(now.getTime() + days * 86400000);\nconst brand = place.displayName?.text || profile.name || profile.username;\nconst config = {\n  slug,\n  siteId,\n  brand,\n  fullName: brand,\n  kind: barber ? 'ברברשופ' : 'סלון',\n  place: barber ? 'המספרה' : 'הסלון',\n  audience: barber ? 'men' : 'all',\n  tagline: '',\n  address: { street, city },\n  phone: place.nationalPhoneNumber || trial.mobile,\n  adminPhones: admins,\n  adminPhonesE164: admins.map(e164),\n  instagram: profile.username || null,\n  colors: { brand: '#111111', accent: '#E8C77A' },\n  course: { enabled: false, details: '' },\n  bookingMonthsAhead: 3,\n  defaults: { services, settings: { hours, breakTime: null, vacations: [] } },\n  galleryUrls: [],\n  createdAt: now.toISOString(),\n  trialEndsAt: ends.toISOString(),\n  source: 'instagram-bot',\n};\nc.trialSlug = slug;\nc.trialUrl = String(cfg.TRIAL_BASE_URL).replace(/\\/$/, '') + '/' + slug;\nc.trialSiteUrl = 'https://' + siteId + '.web.app';\nc.trialEndsHe = ends.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'numeric' });\nc.trialPending = false;\nreturn { json: { ok: true, igsid: trial.igsid, slug, siteId, siteUrl: c.trialSiteUrl, url: c.trialUrl, mobile: trial.mobile, brand, config: JSON.stringify(config) } };",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "n19",
+      "name": "נמצאה מספרה?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        800
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "t1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n20",
+      "name": "יצירת האתר (GitHub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{ $('Config').first().json.GITHUB_REPO }}/actions/workflows/{{ $('Config').first().json.GITHUB_WORKFLOW }}/dispatches",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ref: $('Config').first().json.GITHUB_REF, inputs: { slug: $json.slug, config: $json.config } }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n21",
+      "name": "התראה: נפתח ניסיון",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3600,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Config').first().json.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Config').first().json.TELEGRAM_CHAT_ID, disable_web_page_preview: true, text: '🎉 נפתחה אפליקציית ניסיון ל' + $('בניית אפליקציית ניסיון').item.json.brand + ': ' + $('בניית אפליקציית ניסיון').item.json.url + '\\nהלינק יישלח לו באינסטגרם בעוד 2 דקות (הכתובת שלו אם עלתה, אחרת הכתובת המשותפת). אם הוא כותב משהו, הבוט ממשיך לענות.' }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n22",
+      "name": "מחכים שהאתר יעלה",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3600,
+        600
+      ],
+      "parameters": {
+        "amount": 120
+      },
+      "webhookId": "a7b1c2d3-0000-4000-8000-000000000004"
+    },
+    {
+      "id": "n23",
+      "name": "בדיקת הכתובת שלו",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3840,
+        400
+      ],
+      "parameters": {
+        "url": "={{ $('בניית אפליקציית ניסיון').item.json.siteUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n24",
+      "name": "הודעה עם הלינק",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        600
+      ],
+      "parameters": {
+        "jsCode": "// אחרי שהאתר עלה: שולחים לספר את הלינק ואת השבוע בחינם.\nconst state = $getWorkflowStaticData('global');\nconst out = [];\n$input.all().forEach((_, i) => {\nconst t = $('בניית אפליקציית ניסיון').itemMatching(i).json;\nconst c = state.convos[t.igsid];\n// אם הכתובת שלו עלתה משתמשים בה, אחרת בכתובת המשותפת.\nconst res = $input.all()[i].json;\nconst siteOk = res.statusCode === 200 && !/Site Not Found/i.test(String(res.body || res.data || ''));\nif (siteOk) c.trialUrl = t.siteUrl;\nt.url = c.trialUrl;\nconst msgs = [\n  'הנה היא ' + t.url,\n  'שבוע ראשון בחינם גם עם הלקוחות שלך\\nנכנסים עם ' + t.mobile + ' ורואים גם את הצד של הניהול ומשם אפשר לשנות מחירים שעות ושירותים',\n];\nfor (const m of msgs) { c.history.push({ who: 'אביב', text: m }); c.botTexts.push(m); out.push({ json: { igsid: t.igsid, text: m } }); }\n});\nreturn out;"
+      }
+    },
+    {
+      "id": "n25",
+      "name": "התראה: לא נמצא",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        1000
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Config').first().json.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Config').first().json.TELEGRAM_CHAT_ID, disable_web_page_preview: true, text: $json.text }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n26",
+      "name": "כל שבוע",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n27",
+      "name": "חידוש טוקן",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        600
+      ],
+      "parameters": {
+        "url": "https://graph.instagram.com/refresh_access_token",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "ig_refresh_token"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $getWorkflowStaticData('global').token || $('Config').first().json.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n28",
+      "name": "שמירת טוקן",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        600
+      ],
+      "parameters": {
+        "jsCode": "const state = $getWorkflowStaticData('global');\nconst t = $input.first().json.access_token;\nif (t) { state.token = t; state.tokenRefreshedAt = new Date().toISOString(); }\nreturn [{ json: { ok: !!t, refreshedAt: state.tokenRefreshedAt } }];"
+      }
+    }
+  ],
+  "connections": {
+    "אימות Meta": {
+      "main": [
+        [
+          {
+            "node": "החזר challenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "הודעה נכנסת": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "הודעה או חידוש טוקן?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "הודעה או חידוש טוקן?": {
+      "main": [
+        [
+          {
+            "node": "עיבוד אירוע",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "חידוש טוקן",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "עיבוד אירוע": {
+      "main": [
+        [
+          {
+            "node": "המתנה להודעות נוספות",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "המתנה להודעות נוספות": {
+      "main": [
+        [
+          {
+            "node": "עדיין ההודעה האחרונה?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "עדיין ההודעה האחרונה?": {
+      "main": [
+        [
+          {
+            "node": "בניית בקשה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "בניית בקשה": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "פירוק תשובה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "פירוק תשובה": {
+      "main": [
+        [
+          {
+            "node": "לשלוח או להתריע?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "לשלוח או להתריע?": {
+      "main": [
+        [
+          {
+            "node": "שליחה באינסטגרם",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "פרופיל אינסטגרם",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "שם המשתמש של הספר",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "פרופיל אינסטגרם": {
+      "main": [
+        [
+          {
+            "node": "חיפוש בגוגל מפות",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "חיפוש בגוגל מפות": {
+      "main": [
+        [
+          {
+            "node": "בניית אפליקציית ניסיון",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "בניית אפליקציית ניסיון": {
+      "main": [
+        [
+          {
+            "node": "נמצאה מספרה?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "נמצאה מספרה?": {
+      "main": [
+        [
+          {
+            "node": "יצירת האתר (GitHub)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "התראה: לא נמצא",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "יצירת האתר (GitHub)": {
+      "main": [
+        [
+          {
+            "node": "התראה: נפתח ניסיון",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "מחכים שהאתר יעלה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "מחכים שהאתר יעלה": {
+      "main": [
+        [
+          {
+            "node": "בדיקת הכתובת שלו",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "בדיקת הכתובת שלו": {
+      "main": [
+        [
+          {
+            "node": "הודעה עם הלינק",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "הודעה עם הלינק": {
+      "main": [
+        [
+          {
+            "node": "שליחה באינסטגרם",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "שם המשתמש של הספר": {
+      "main": [
+        [
+          {
+            "node": "התראה בטלגרם",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "כל שבוע": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "חידוש טוקן": {
+      "main": [
+        [
+          {
+            "node": "שמירת טוקן",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
