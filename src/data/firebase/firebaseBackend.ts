@@ -47,13 +47,22 @@ const ERRORS: Record<string, string> = {
   'auth/unauthorized-domain': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
   'auth/invalid-app-credential': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
   'auth/captcha-check-failed': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
+  // Google refuses to text this number right now (blocked, unused or flagged number, or the project's SMS limit).
+  'auth/error-code:-39': `לא ניתן לשלוח SMS למספר הזה כרגע. ${g('בדוק', 'בדקי', 'בדקו')} שהמספר נכון או ${g('נסה', 'נסי', 'נסו')} שוב מאוחר יותר`,
+  'auth/missing-phone-number': 'צריך להזין מספר נייד',
+  'auth/invalid-recaptcha-token': `בדיקת האבטחה של Google נכשלה. ${g('רענן', 'רענני', 'רעננו')} את הדף ${g('ונסה', 'ונסי', 'ונסו')} שוב`,
+  'auth/missing-recaptcha-token': `בדיקת האבטחה של Google נכשלה. ${g('רענן', 'רענני', 'רעננו')} את הדף ${g('ונסה', 'ונסי', 'ונסו')} שוב`,
+  'auth/recaptcha-not-enabled': `בדיקת האבטחה של Google נכשלה. ${g('רענן', 'רענני', 'רעננו')} את הדף ${g('ונסה', 'ונסי', 'ונסו')} שוב`,
   'permission-denied': 'אין הרשאה לפעולה הזו',
   unavailable: 'אין חיבור לאינטרנט',
 };
 /** Firebase errors in Hebrew; our own (already Hebrew) messages pass through. */
 const friendly = (e: unknown) => {
   const code = (e as { code?: string }).code?.replace(/^firestore\//, '');
-  return code && ERRORS[code] ? new Error(ERRORS[code]) : e instanceof Error && !code ? e : new Error(`משהו השתבש, ${g('נסה', 'נסי', 'נסו')} שוב`);
+  if (code && ERRORS[code]) return new Error(ERRORS[code]);
+  if (e instanceof Error && !code) return e;
+  // Unknown: keep the code visible, so a screenshot says what actually failed.
+  return new Error(`משהו השתבש, ${g('נסה', 'נסי', 'נסו')} שוב${code ? ` (${code.replace(/^auth\//, '')})` : ''}`);
 };
 const guard =
   <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
