@@ -106,60 +106,66 @@
             },
             {
               "id": "c7",
+              "name": "MAX_CONVERSATIONS",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "c8",
               "name": "DEMO_LINK",
               "value": "",
               "type": "string"
             },
             {
-              "id": "c8",
+              "id": "c9",
               "name": "TRIAL_ENABLED",
               "value": "true",
               "type": "string"
             },
             {
-              "id": "c9",
+              "id": "c10",
               "name": "TRIAL_BASE_URL",
               "value": "https://barber-trial-310e8.web.app",
               "type": "string"
             },
             {
-              "id": "c10",
+              "id": "c11",
               "name": "TRIAL_DAYS",
               "value": "7",
               "type": "string"
             },
             {
-              "id": "c11",
+              "id": "c12",
               "name": "ADMIN_PHONE",
               "value": "054-4437070",
               "type": "string"
             },
             {
-              "id": "c12",
+              "id": "c13",
               "name": "GOOGLE_MAPS_API_KEY",
               "value": "הדבק כאן את מפתח Google Maps",
               "type": "string"
             },
             {
-              "id": "c13",
+              "id": "c14",
               "name": "GITHUB_TOKEN",
               "value": "הדבק כאן טוקן של GitHub (Actions: write)",
               "type": "string"
             },
             {
-              "id": "c14",
+              "id": "c15",
               "name": "GITHUB_REPO",
               "value": "tiketuser/BennyBarber",
               "type": "string"
             },
             {
-              "id": "c15",
+              "id": "c16",
               "name": "GITHUB_WORKFLOW",
               "value": "create-trial.yml",
               "type": "string"
             },
             {
-              "id": "c16",
+              "id": "c17",
               "name": "GITHUB_REF",
               "value": "claude/build-barber-app-d1lrhc",
               "type": "string"
@@ -212,7 +218,7 @@
         200
       ],
       "parameters": {
-        "jsCode": "// מעבד אירועי webhook מאינסטגרם ושומר את מצב השיחות בזיכרון של ה-workflow.\n// סטטוסים: active = הבוט עונה, handoff = מחכה לאביב, human = אביב ענה בעצמו, optout = לא מעוניין.\nconst cfg = $('Config').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.convos = state.convos || {};\nconst body = $('הודעה נכנסת').first().json.body || {};\nconst mark = (cfg.OPENER_MARK || '').trim();\nconst out = [];\n\nfor (const entry of body.entry || []) {\n  for (const ev of entry.messaging || []) {\n    const msg = ev.message;\n    if (!msg || msg.is_deleted) continue;\n    const text = (msg.text || (msg.attachments ? '[צרף קובץ/תמונה]' : '')).trim();\n    if (!text) continue;\n\n    if (msg.is_echo) {\n      // הודעה שיצאה מהחשבון של אביב (מהטלפון או מהבוט)\n      const other = ev.recipient.id;\n      let c = state.convos[other];\n      if (!c) {\n        if (mark && text.includes(mark)) {\n          state.convos[other] = { status: 'active', opened: Date.now(), history: [{ who: 'אביב', text }], botTexts: [] };\n        }\n        continue;\n      }\n      const i = c.botTexts.indexOf(text);\n      if (i !== -1) { c.botTexts.splice(i, 1); continue; } // הד של הודעה שהבוט שלח\n      c.history.push({ who: 'אביב', text });\n      const barberWrote = c.history.some((h) => h.who === 'ספר');\n      // הודעות הפתיחה נשלחות כמה ברצף: עד שהספר עונה, הודעות של אביב הן עוד חלק מהפתיחה.\n      if (barberWrote && (c.status === 'active' || c.status === 'handoff')) c.status = 'human'; // אביב נכנס לשיחה, הבוט זז הצידה\n      continue;\n    }\n\n    const igsid = ev.sender.id;\n    const c = state.convos[igsid];\n    if (!c) continue; // לא ליד שאביב פתח מולו שיחה, הבוט לא נוגע\n    c.history.push({ who: 'ספר', text });\n    c.history = c.history.slice(-30);\n    c.lastMid = msg.mid;\n    c.lastAt = Date.now();\n    if (c.status === 'active') {\n      out.push({ json: { igsid, mid: msg.mid } });\n    } else if (c.status === 'handoff') {\n      out.push({ json: { igsid, mid: msg.mid, notifyOnly: true } });\n    }\n  }\n}\nreturn out;"
+        "jsCode": "// מעבד אירועי webhook מאינסטגרם ושומר את מצב השיחות בזיכרון של ה-workflow.\n// סטטוסים: active = הבוט עונה, handoff = מחכה לאביב, human = אביב ענה בעצמו, optout = לא מעוניין.\nconst cfg = $('Config').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.convos = state.convos || {};\nconst body = $('הודעה נכנסת').first().json.body || {};\nconst mark = (cfg.OPENER_MARK || '').trim();\nconst out = [];\n\nfor (const entry of body.entry || []) {\n  for (const ev of entry.messaging || []) {\n    const msg = ev.message;\n    if (!msg || msg.is_deleted) continue;\n    const text = (msg.text || (msg.attachments ? '[צרף קובץ/תמונה]' : '')).trim();\n    if (!text) continue;\n\n    if (msg.is_echo) {\n      // הודעה שיצאה מהחשבון של אביב (מהטלפון או מהבוט)\n      const other = ev.recipient.id;\n      let c = state.convos[other];\n      if (!c) {\n        // מצב בדיקה: MAX_CONVERSATIONS מגביל כמה שיחות הבוט פותח בכלל (ריק = בלי הגבלה).\n        const max = parseInt(cfg.MAX_CONVERSATIONS, 10);\n        const full = max > 0 && Object.keys(state.convos).length >= max;\n        if (mark && text.includes(mark) && !full) {\n          state.convos[other] = { status: 'active', opened: Date.now(), history: [{ who: 'אביב', text }], botTexts: [] };\n        }\n        continue;\n      }\n      const i = c.botTexts.indexOf(text);\n      if (i !== -1) { c.botTexts.splice(i, 1); continue; } // הד של הודעה שהבוט שלח\n      c.history.push({ who: 'אביב', text });\n      const barberWrote = c.history.some((h) => h.who === 'ספר');\n      // הודעות הפתיחה נשלחות כמה ברצף: עד שהספר עונה, הודעות של אביב הן עוד חלק מהפתיחה.\n      if (barberWrote && (c.status === 'active' || c.status === 'handoff')) c.status = 'human'; // אביב נכנס לשיחה, הבוט זז הצידה\n      continue;\n    }\n\n    const igsid = ev.sender.id;\n    const c = state.convos[igsid];\n    if (!c) continue; // לא ליד שאביב פתח מולו שיחה, הבוט לא נוגע\n    c.history.push({ who: 'ספר', text });\n    c.history = c.history.slice(-30);\n    c.lastMid = msg.mid;\n    c.lastAt = Date.now();\n    if (c.status === 'active') {\n      out.push({ json: { igsid, mid: msg.mid } });\n    } else if (c.status === 'handoff') {\n      out.push({ json: { igsid, mid: msg.mid, notifyOnly: true } });\n    }\n  }\n}\nreturn out;"
       }
     },
     {
