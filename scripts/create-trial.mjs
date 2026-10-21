@@ -57,6 +57,11 @@ await existing.set({
   createdAt: when(doc.createdAt, before.get('createdAt')?.toDate() ?? now),
   trialEndsAt: when(doc.trialEndsAt, before.get('trialEndsAt')?.toDate() ?? new Date(now.getTime() + 7 * 24 * 3600 * 1000)),
 });
+// His name and logo in the site's link preview (also after a rename or a new logo).
+if (siteId) {
+  const why = await ensureSite(siteId, slug, (await existing.get()).data());
+  if (why) console.log(`::warning::Site ${siteId} not refreshed: ${why}`);
+}
 const url = siteId ? `https://${siteId}.web.app` : `https://${trial.firebase.projectId}.web.app/${slug}`;
 console.log(`${before.exists ? 'Updated' : 'Created'} trial shop ${slug}: ${url}`);
 if (process.env.GITHUB_STEP_SUMMARY) {

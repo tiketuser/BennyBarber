@@ -4,12 +4,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import shop, { SHOP_ID } from './shop.config';
+import { shareDescription } from './shops/share';
 
 // The trial build (shops/trial) serves every trial barber from one site and reads the shop at runtime (src/trial).
 // Node scripts run through vite-node (scripts/demo-data.ts) set SHOP_STATIC=1 to get the plain config instead.
 const trial = !!shop.trial && !process.env.SHOP_STATIC;
 
-const description = `קביעת תור ל${shop.fullName}, ${shop.address.street} ${shop.address.city}`;
+const description = shareDescription(shop);
+// Each shop's own Hosting site; link previews need absolute URLs.
+const siteUrl = `https://${shop.firebase.projectId}.web.app`;
 
 export default defineConfig({
   define: {
@@ -40,9 +43,9 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      // Fills the shop's name into index.html (%SHOP_FULL_NAME% etc.).
+      // Fills the shop's name and link-preview tags into index.html (%SHOP_FULL_NAME% etc.).
       name: 'shop-html',
-      transformIndexHtml: (html) => html.replaceAll('%SHOP_FULL_NAME%', shop.fullName).replaceAll('%SHOP_BRAND%', shop.brand).replaceAll('%SHOP_DESCRIPTION%', description),
+      transformIndexHtml: (html) => html.replaceAll('%SHOP_FULL_NAME%', shop.fullName).replaceAll('%SHOP_BRAND%', shop.brand).replaceAll('%SHOP_DESCRIPTION%', description).replaceAll('%SHOP_URL%', siteUrl),
     },
     VitePWA({
       registerType: 'autoUpdate',
