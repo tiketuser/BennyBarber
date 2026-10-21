@@ -11,6 +11,7 @@ import { useOnChange } from '@/ui/useOnChange';
 import { useToast } from '@/ui/useToast';
 import { money } from '../format';
 import { SHOP } from '@/config/shop';
+import { FromTo, lenChoices, lenMinutes, type LenChoice } from './apptLength';
 
 /** Walk-in in two taps, or block 30 / 60 minutes / until closing. */
 export function QuickSheet({ open, onClose, date, start }: { open: boolean; onClose: () => void; date: DateKey; start: Minutes | null }) {
@@ -20,22 +21,35 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
   const services = [...db.services].sort((a, b) => a.order - b.order);
   const [picked, setPicked] = useState<string | null>(null);
   const [name, setName] = useState('');
-  useOnChange(open, (isOpen) => isOpen && setName(''));
+  const [len, setLen] = useState<LenChoice>('service');
+  const [custom, setCustom] = useState<{ from: Minutes; to: Minutes } | null>(null);
+  useOnChange(open, (isOpen) => {
+    if (!isOpen) return;
+    setName('');
+    setLen('service');
+    setCustom(null);
+  });
 
   // Falls back to the first service when nothing is picked or the picked one was deleted.
   const service = services.find((s) => s.id === picked) ?? services[0];
   const hours = hoursFor(db.settings, date);
-  const from = start ?? nextFreeStart(db, date, service?.durationMin ?? 20);
+  const serviceMin = service?.durationMin ?? 20;
+  const length = lenMinutes(len, serviceMin);
+  const from = start ?? nextFreeStart(db, date, serviceMin);
+  // A longer choice looks for the first window it fits in; if none, the clash message explains.
+  const apptFrom = start ?? nextFreeStart(db, date, length) ?? from;
   const isToday = date === todayKey();
+  // The custom range starts where the quick one would, until the barber moves it.
+  const range = from == null ? null : len === 'custom' ? (custom ?? { from: apptFrom!, to: apptFrom! + serviceMin }) : { from: apptFrom!, to: apptFrom! + length };
 
   const addWalkIn = async () => {
-    if (from == null || !service) return;
+    if (!range || !service) return;
     try {
-      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: from, customerName: name });
+      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: range.from, end: range.to, customerName: name });
       haptic('success');
       onClose();
       toast({
-        text: `נוסף ליומן ב-${fmtTime(from)}`,
+        text: `נוסף ליומן ${fmtRange(range.from, range.to)}`,
         action: {
           label: 'ביטול',
           run: async () => {
@@ -79,12 +93,21 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
               </Chip>
             ))}
           </div>
+          <span className="mt-3.5 block text-[13px] text-ink-soft">כמה זמן</span>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {lenChoices(serviceMin).map((c) => (
+              <Chip key={c.id} on={c.id === len} onClick={() => setLen(c.id)}>
+                {c.label}
+              </Chip>
+            ))}
+          </div>
+          {len === 'custom' && range && <FromTo className="mt-3" from={range.from} to={range.to} onChange={(f, t) => setCustom({ from: f, to: t })} />}
           <label htmlFor="walkin" className="mt-3.5 block text-[13px] text-ink-soft">
             שם (לא חובה)
           </label>
           <TextInput id="walkin" placeholder="למשל: רון" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-12" />
-          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!service}>
-            הוסף ליומן מ-{fmtTime(from)}
+          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!service || !range || range.to <= range.from}>
+            <span className="num">הוסף ליומן {range && fmtRange(range.from, range.to)}</span>
           </Button>
 
           <div aria-hidden className="mt-6 border-t border-line-soft" />

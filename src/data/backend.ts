@@ -33,6 +33,8 @@ export interface WalkInInput {
   serviceId: string;
   date: DateKey;
   start: Minutes;
+  /** Admin-chosen end (half an hour, an hour, or a custom range). Defaults to the service's length. */
+  end?: Minutes;
   customerName?: string;
   phone?: string;
   notes?: string;

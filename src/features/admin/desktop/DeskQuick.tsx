@@ -12,6 +12,7 @@ import { Switch } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { useToast } from '@/ui/useToast';
 import { firstName, money } from '../../format';
+import { FromTo, lenChoices, lenMinutes, type LenChoice } from '../apptLength';
 
 type Mode = 'appt' | 'block';
 const LENGTHS = [
@@ -34,6 +35,8 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
   const [mode, setMode] = useState<Mode>('appt');
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [lenIdx, setLenIdx] = useState(0);
+  const [apptLen, setApptLen] = useState<LenChoice>('service');
+  const [custom, setCustom] = useState<{ from: Minutes; to: Minutes } | null>(null);
   const days = Array.from({ length: DAYS }, (_, i) => addDays(today, i));
   // Opened from a free slot: that day. Otherwise the first day that still has room.
   const [date, setDate] = useState<DateKey>(() => (initialStart != null && initialDate >= today ? initialDate : (days.find((d) => freeGaps(db, d, 20, now).length > 0) ?? today)));
@@ -48,7 +51,9 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
   const service = services.find((s) => s.id === serviceId) ?? services[0];
   const hours = hoursFor(db.settings, date);
   const isAppt = mode === 'appt';
-  const need = isAppt ? (service?.durationMin ?? 30) : 15;
+  const serviceMin = service?.durationMin ?? 30;
+  const isCustom = isAppt && apptLen === 'custom';
+  const need = isAppt ? lenMinutes(apptLen, serviceMin) : 15;
 
   // Start options: each free window's start, plus every half hour inside it that still fits.
   const options = useMemo(() => {
@@ -59,12 +64,14 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
     }
     return out;
   }, [db, date, need, now]);
-  const start = picked != null && options.includes(picked) ? picked : (options[0] ?? null);
+  const quickStart = picked != null && options.includes(picked) ? picked : (options[0] ?? null);
+  // A custom range starts at the picked slot until the barber moves it; it can be any time that day.
+  const start = isCustom && hours ? (custom?.from ?? quickStart ?? hours.from) : quickStart;
 
   const items = busyFor(db, date);
   let end: Minutes | null = null;
   if (start != null && hours) {
-    if (isAppt) end = start + need;
+    if (isAppt) end = isCustom ? (custom?.to ?? start + serviceMin) : start + need;
     else {
       const len = LENGTHS[lenIdx].len;
       const nextBusy = Math.min(hours.to, ...items.filter((b) => b.from >= start + 1).map((b) => b.from));
@@ -96,11 +103,11 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
     };
 
   const save = async () => {
-    if (start == null || end == null || !service || busy) return;
+    if (start == null || end == null || end <= start || !service || busy) return;
     setBusy(true);
     try {
       if (isAppt) {
-        const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start, customerName: name, phone, notes });
+        const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start, end, customerName: name, phone, notes });
         const confirm = phoneOk && wa;
         if (confirm)
           openExternal(
@@ -210,6 +217,27 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
                   })}
                 </div>
               </div>
+              <div className="flex flex-col gap-2">
+                <span id="l-alen" className="text-sm font-semibold">
+                  כמה זמן
+                </span>
+                <div role="group" aria-labelledby="l-alen" className="flex flex-wrap gap-2">
+                  {lenChoices(serviceMin).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={c.id === apptLen}
+                      onClick={() => {
+                        change(setApptLen)(c.id);
+                        setCustom(null);
+                      }}
+                      className={cx('h-12 rounded-full px-4 text-sm font-semibold', c.id === apptLen ? 'bg-brand text-white' : 'border border-line hover:border-ink-faint')}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           ) : (
             <>
@@ -271,9 +299,11 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
 
           <div className="flex flex-col gap-2">
             <span id="l-time" className="text-sm font-semibold">
-              {isAppt ? `שעה פנויה (${need} דק׳)` : 'מאיזו שעה לחסום'}
+              {isCustom ? 'שעות התור' : isAppt ? `שעה פנויה (${need} דק׳)` : 'מאיזו שעה לחסום'}
             </span>
-            {options.length ? (
+            {isCustom && start != null && end != null ? (
+              <FromTo className="max-w-[360px]" from={start} to={end} onChange={(f, t) => change(setCustom)({ from: f, to: t })} />
+            ) : options.length ? (
               <div role="group" aria-labelledby="l-time" className="flex flex-wrap gap-2">
                 {options.map((t) => {
                   const on = t === start;
@@ -336,7 +366,7 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
           ) : (
             <button
               type="button"
-              disabled={start == null || busy}
+              disabled={start == null || end == null || end <= start || busy}
               onClick={save}
               className={cx('press h-14 rounded-2xl text-[17px] font-semibold disabled:opacity-40', isAppt ? 'bg-brand text-brand-accent' : 'bg-danger text-white')}
             >

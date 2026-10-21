@@ -33,6 +33,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { connectStorageEmulator, getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
+import { walkInEnd } from '../walkIn';
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Service, Session, Settings, WaitlistEntry } from '@/domain/types';
 import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
@@ -399,10 +400,11 @@ export async function createFirebaseBackend(): Promise<Backend> {
       addWalkIn: guard(async (input: WalkInInput) => {
         requireAdmin();
         const svc = service(input.serviceId);
+        const end = walkInEnd(input, svc.durationMin);
         return placeAppointment({
           date: input.date,
           start: input.start,
-          end: input.start + svc.durationMin,
+          end,
           serviceId: svc.id,
           serviceName: svc.name,
           price: svc.price,

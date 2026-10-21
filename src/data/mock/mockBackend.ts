@@ -1,5 +1,6 @@
 // In-memory backend persisted to localStorage. Behaves like the real one (async, validated, live updates),
 // and syncs between browser tabs so customer and admin can be tested side by side.
+import { walkInEnd } from '../walkIn';
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
 import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
@@ -186,7 +187,7 @@ export function createMockBackend(): Backend {
         requireAdmin();
         await wait(60);
         const svc = service(input.serviceId);
-        const end = input.start + svc.durationMin;
+        const end = walkInEnd(input, svc.durationMin);
         assertBookable(db, input.date, input.start, end);
         const appt: Appointment = {
           id: uid(),

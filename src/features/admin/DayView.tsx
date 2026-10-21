@@ -32,6 +32,13 @@ interface Props {
 }
 
 /** "יומן": summary tiles, waitlist alert, and the day's timeline with one-tap actions. */
+/** Every time a walk-in can start in a free window: its start, then each half hour that still leaves 20 minutes. */
+function slotStarts(from: Minutes, to: Minutes): Minutes[] {
+  const out = [from];
+  for (let t = Math.ceil((from + 1) / 30) * 30; t + 20 <= to; t += 30) out.push(t);
+  return out;
+}
+
 export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const db = useDb();
   const now = useNow();
@@ -148,17 +155,23 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                   </div>
                 )}
                 {r.kind === 'free' && (
-                  <button
-                    type="button"
-                    onClick={() => onQuick(r.from)}
-                    className="press flex h-[52px] w-full items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong px-3.5 text-right text-sm text-ink-soft"
-                  >
-                    <span className="flex-1">פנוי • {fmtRange(r.from, r.to)}</span>
-                    <span className="flex items-center gap-1 font-semibold text-brand">
-                      <Plus size={16} />
-                      הוסף
-                    </span>
-                  </button>
+                  <div className="flex flex-col gap-2.5 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-3 text-sm text-ink-soft">
+                    <span>פנוי • {fmtRange(r.from, r.to)} • לחץ על שעה כדי להוסיף לקוח</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {slotStarts(r.from, r.to).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-label={`הוסף לקוח ב-${fmtTime(t)}`}
+                          onClick={() => onQuick(t)}
+                          className="press num flex h-11 items-center justify-center gap-1 rounded-xl bg-surface text-[15px] font-semibold text-ink"
+                        >
+                          <Plus size={14} className="text-ink-mute" />
+                          {fmtTime(t)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </motion.div>
