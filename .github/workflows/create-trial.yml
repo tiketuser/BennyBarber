@@ -1,5 +1,5 @@
 # Creates (or updates) one barber's free-trial app in the shared trial project: writes Firestore trialShops/{slug}.
-# Triggered by the outreach automation (n8n) through workflow_dispatch; the app is live at once, no deploy needed.
+# Triggered by the outreach automation (n8n) through workflow_dispatch; the app is live at once (only storage rules redeploy).
 # Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy (granted "Firebase Admin" on the trial project).
 name: Create trial shop
 
@@ -38,3 +38,6 @@ jobs:
           # Frees the sites of trials that ended a week ago, to stay under Firebase's 36 sites per project.
           node --experimental-strip-types --no-warnings scripts/trial-sites.mjs cleanup || echo "::warning::cleanup failed"
           node --experimental-strip-types --no-warnings scripts/create-trial.mjs
+          # Lets his admin number upload gallery photos (storage.rules lists each trial shop's admins).
+          SHOP=trial npm run firebase:rules
+          npx firebase deploy --only storage --non-interactive

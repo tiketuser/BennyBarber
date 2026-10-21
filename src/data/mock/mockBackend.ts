@@ -206,6 +206,14 @@ export function createMockBackend(): Backend {
         requireAdmin();
         patchAppointments((a) => (a.id === id ? { ...a, openingHandled: true } : a));
       },
+      async retime(date, times) {
+        requireAdmin();
+        const byId = new Map(times.map((x) => [x.id, x]));
+        patchAppointments((a) => {
+          const x = a.date === date ? byId.get(a.id) : undefined;
+          return x ? { ...a, start: x.start, end: x.end } : a;
+        });
+      },
     },
 
     blocks: {

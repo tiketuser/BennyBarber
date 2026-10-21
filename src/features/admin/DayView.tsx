@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
+import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, Timer, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
 import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
@@ -11,7 +11,7 @@ import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { firstName, money } from '../format';
-import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, FreeSlotsSheet } from './DaySheets';
+import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, DurationSheet, FreeSlotsSheet } from './DaySheets';
 import { useReleaseBlock } from './useReleaseBlock';
 import { OpeningAlert } from './OpeningAlert';
 import { useOpenings } from './openings';
@@ -42,6 +42,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const [delayOpen, setDelayOpen] = useState(false);
   const [editBlock, setEditBlock] = useState<Block | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
+  const [durationAppt, setDurationAppt] = useState<Appointment | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const openings = useOpenings();
   const releaseBlock = useReleaseBlock();
@@ -120,7 +121,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                       <span className="font-semibold">{money(r.appt.price)}</span>
                     </div>
                   ) : (
-                    <AppointmentCard appt={r.appt} today={today} current={current} onCancel={() => setCancelAppt(r.appt)} />
+                    <AppointmentCard appt={r.appt} today={today} current={current} onCancel={() => setCancelAppt(r.appt)} onDuration={() => setDurationAppt(r.appt)} />
                   ))}
                 {r.kind === 'block' && (
                   <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
@@ -181,6 +182,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
       <DelaySheet open={delayOpen} onClose={() => setDelayOpen(false)} />
       <BlockSheet block={editBlock} onClose={() => setEditBlock(null)} />
       <AdminCancelSheet appt={cancelAppt} onClose={() => setCancelAppt(null)} />
+      <DurationSheet appt={durationAppt} onClose={() => setDurationAppt(null)} />
       <CalendarSheet open={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </>
   );
@@ -396,7 +398,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   );
 }
 
-function AppointmentCard({ appt, today, current, onCancel }: { appt: Appointment; today: DateKey; current: boolean; onCancel: () => void }) {
+function AppointmentCard({ appt, today, current, onCancel, onDuration }: { appt: Appointment; today: DateKey; current: boolean; onCancel: () => void; onDuration: () => void }) {
   const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} ${SHOP.inPlace}. נתראה!`;
   return (
     <div className={cx('flex flex-col gap-2.5 rounded-2xl px-3.5 py-3', current ? 'border-2 border-brand' : 'border border-line')}>
@@ -406,8 +408,11 @@ function AppointmentCard({ appt, today, current, onCancel }: { appt: Appointment
             {appt.customerName}
             {appt.source === 'walkin' && <span className="mr-1.5 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">נכנס מהרחוב</span>}
           </span>
-          <span className="text-[13px] text-ink-soft">
+          <span className="flex items-center gap-1 text-[13px] text-ink-soft">
             {appt.serviceName} • {fmtRange(appt.start, appt.end)}
+            <button type="button" aria-label="שינוי משך התור" onClick={onDuration} className="press -my-2 flex size-8 items-center justify-center rounded-full text-ink-soft">
+              <Timer size={15} />
+            </button>
           </span>
           {appt.notes && (
             <span className="mt-0.5 flex items-center gap-1 text-[13px] text-ink">

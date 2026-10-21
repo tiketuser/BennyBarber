@@ -369,6 +369,15 @@ export async function createFirebaseBackend(): Promise<Backend> {
         requireAdmin();
         await updateDoc(apptRef(id), { openingHandled: true });
       }),
+      retime: guard(async (date, times) => {
+        requireAdmin();
+        const byId = new Map(times.map((x) => [x.id, x]));
+        await runTransaction(fs, async (t) => {
+          const busy = await readDay(t, date);
+          for (const x of times) t.update(apptRef(x.id), { start: x.start, end: x.end });
+          t.set(dayRef(date), { busy: busy.map((b) => byId.get(b.id) ?? b) });
+        });
+      }),
     },
 
     blocks: {

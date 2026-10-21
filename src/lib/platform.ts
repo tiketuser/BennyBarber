@@ -12,12 +12,16 @@ export const isStandalone = () =>
 
 export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
+const isMobile = () => /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+
 export function openExternal(url: string) {
+  // On a phone WhatsApp opens its own app; a new tab for it would stay behind empty (about:blank in iPhone Chrome).
   if (url.startsWith('tel:')) {
     window.location.href = url;
     return;
   }
-  window.open(url, '_blank', 'noopener');
+  const whatsapp = isMobile() && /^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(url);
+  window.open(url, whatsapp ? '_self' : '_blank', 'noopener');
 }
 
 type HapticKind = 'light' | 'success' | 'warning';

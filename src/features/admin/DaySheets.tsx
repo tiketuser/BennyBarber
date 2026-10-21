@@ -414,3 +414,98 @@ export function CalendarSheet({ open, onClose }: { open: boolean; onClose: () =>
     </Sheet>
   );
 }
+
+/**
+ * Makes one appointment longer or shorter. When that runs into (or frees time before) the appointments after it the
+ * same day, asks whether to move them by the same amount.
+ */
+export function DurationSheet({ appt, onClose }: { appt: Appointment | null; onClose: () => void }) {
+  const db = useDb();
+  const backend = useBackend();
+  const toast = useToast();
+  const [minutes, setMinutes] = useState(30);
+  const [busy, setBusy] = useState(false);
+  useOnChange(appt?.id, () => appt && setMinutes(appt.end - appt.start));
+
+  const delta = appt ? minutes - (appt.end - appt.start) : 0;
+  const later = appt
+    ? db.appointments.filter((a) => a.date === appt.date && a.status === 'booked' && a.id !== appt.id && a.start >= appt.end).sort((a, b) => a.start - b.start)
+    : [];
+  // Longer and the next one starts before the new end: they have to move (or the barber accepts the overlap).
+  const clash = appt && later[0] && delta > 0 && later[0].start < appt.start + minutes;
+
+  const save = async (shiftRest: boolean) => {
+    if (!appt) return;
+    setBusy(true);
+    try {
+      const end = appt.start + minutes;
+      await backend.appointments.retime(appt.date, [
+        { id: appt.id, start: appt.start, end },
+        ...(shiftRest ? later.map((a) => ({ id: a.id, start: a.start + delta, end: a.end + delta })) : []),
+      ]);
+      haptic('success');
+      toast({ text: shiftRest && later.length ? `התור עודכן, ו${later.length === 1 ? 'התור שאחריו זז' : `-${later.length} התורים שאחריו זזו`}` : 'משך התור עודכן' });
+      onClose();
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const shiftLabel = `${delta > 0 ? 'לדחות' : 'להקדים'} את ${later.length === 1 ? 'התור שאחריו' : `${later.length} התורים שאחריו`} ב-${Math.abs(delta)} דק׳`;
+
+  return (
+    <Sheet
+      open={!!appt}
+      onClose={onClose}
+      label="משך התור"
+      footer={
+        <div className="flex flex-col gap-2">
+          {later.length > 0 && delta !== 0 && (
+            <Button block disabled={busy} onClick={() => save(true)}>
+              {shiftLabel}
+            </Button>
+          )}
+          <Button block variant={later.length > 0 && delta !== 0 ? 'secondary' : 'primary'} disabled={busy || delta === 0} onClick={() => save(false)}>
+            {later.length > 0 && delta !== 0 ? 'לשנות רק את התור הזה' : 'שמור'}
+          </Button>
+        </div>
+      }
+    >
+      {appt && (
+        <>
+          <SheetTitle>כמה זמן ייקח התור?</SheetTitle>
+          <p className="m-0 mt-1 text-sm text-ink-soft">
+            {appt.customerName} • {appt.serviceName}
+          </p>
+          <div className="mt-4">
+            <Stepper
+              big
+              value={
+                <>
+                  {minutes}
+                  <span className="text-[15px] font-medium text-ink-soft"> דק׳</span>
+                </>
+              }
+              decLabel="פחות 5 דקות"
+              incLabel="עוד 5 דקות"
+              canDec={minutes > 5}
+              canInc={minutes < 240}
+              onDec={() => setMinutes((m) => Math.max(5, m - 5))}
+              onInc={() => setMinutes((m) => Math.min(240, m + 5))}
+            />
+          </div>
+          <p className="m-0 mt-3 text-center text-[15px]">
+            <span className="num font-semibold">{fmtRange(appt.start, appt.start + minutes)}</span>
+          </p>
+          {clash && (
+            <p className="m-0 mt-2 text-center text-sm text-danger">
+              נכנס לתור של {firstName(later[0].customerName)} ב-{fmtTime(later[0].start)}
+            </p>
+          )}
+        </>
+      )}
+    </Sheet>
+  );
+}
