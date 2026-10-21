@@ -2,7 +2,12 @@
 // with a code here never gets an SMS; it signs in with its own 6-digit code instead (Firebase "phone numbers for
 // testing", at most 10 per project). Set on every shop's Firebase project; a number is still admin only where it is
 // listed in that shop's adminPhones. Run by the "Admin codes" workflow.
+// Firebase refuses a fixed code for a number that already has a sign-in account, so that account is removed first:
+// only the sign-in record, not the shop's data (admin rights and older bookings go by the verified number), and the
+// device signed in with it has to sign in again, now with the code.
 // Usage: CODES='{"0548111333":"123456"}' node scripts/admin-codes.mjs   (an empty code "" removes that number's code)
+import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { GoogleAuth } from 'google-auth-library';
 import { SHOPS } from '../shops/index.ts';
 
@@ -20,7 +25,15 @@ for (const project of projects) {
   try {
     const config = (await client.request({ url })).data;
     const tests = { ...config.signIn?.phoneNumber?.testPhoneNumbers };
+    const auth = getAuth(initializeApp({ projectId: project }, project));
     for (const [phone, code] of codes) {
+      if (code && !tests[phone]) {
+        const user = await auth.getUserByPhoneNumber(phone).catch(() => null);
+        if (user) {
+          await auth.deleteUser(user.uid);
+          console.log(`${project}: removed the old SMS sign-in of ${phone.slice(0, -4)}xxxx`);
+        }
+      }
       if (code) tests[phone] = code;
       else delete tests[phone];
     }
