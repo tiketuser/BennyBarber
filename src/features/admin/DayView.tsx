@@ -21,7 +21,7 @@ type Row =
   | { kind: 'appointment'; from: Minutes; to: Minutes; appt: Appointment }
   | { kind: 'block'; from: Minutes; to: Minutes; block: Block }
   | { kind: 'break'; from: Minutes; to: Minutes }
-  | { kind: 'free'; from: Minutes; to: Minutes };
+  | { kind: 'slot'; from: Minutes; to: Minutes };
 
 interface Props {
   date: DateKey;
@@ -63,13 +63,17 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
           ? { kind: 'block', from: b.from, to: b.to, block: b.ref as Block }
           : { kind: 'break', from: b.from, to: b.to },
     );
-    for (const g of freeGaps(db, date, 20, now)) out.push({ kind: 'free', from: g.from, to: g.to });
-    return out.sort((a, b) => a.from - b.from || (a.kind === 'free' ? 1 : -1));
+    // Calendar style: every time a client can start gets its own row.
+    for (const g of freeGaps(db, date, 20, now)) {
+      const starts = slotStarts(g.from, g.to);
+      starts.forEach((t, i) => out.push({ kind: 'slot', from: t, to: starts[i + 1] ?? g.to }));
+    }
+    return out.sort((a, b) => a.from - b.from || (a.kind === 'slot' ? 1 : -1));
   }, [db, date, now]);
 
   const appts = rows.filter((r): r is Extract<Row, { kind: 'appointment' }> => r.kind === 'appointment');
   const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
-  const free = rows.filter((r) => r.kind === 'free');
+  const free = useMemo(() => freeGaps(db, date, 20, now), [db, date, now]);
   const hasUpcoming = isToday && appts.some((r) => r.to > nowM && r.appt.phone);
   // An empty or closed day offers a jump: to the next day with appointments, else the next day the shop is open.
   const next = useMemo(() => {
@@ -154,24 +158,19 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                     <span className="flex-1">הפסקה • {fmtRange(r.from, r.to)}</span>
                   </div>
                 )}
-                {r.kind === 'free' && (
-                  <div className="flex flex-col gap-2.5 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-3 text-sm text-ink-soft">
-                    <span>פנוי • {fmtRange(r.from, r.to)} • לחץ על שעה כדי להוסיף לקוח</span>
-                    <div className="grid grid-cols-4 gap-2">
-                      {slotStarts(r.from, r.to).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          aria-label={`הוסף לקוח ב-${fmtTime(t)}`}
-                          onClick={() => onQuick(t)}
-                          className="press num flex h-11 items-center justify-center gap-1 rounded-xl bg-surface text-[15px] font-semibold text-ink"
-                        >
-                          <Plus size={14} className="text-ink-mute" />
-                          {fmtTime(t)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {r.kind === 'slot' && (
+                  <button
+                    type="button"
+                    aria-label={`הוסף לקוח ב-${fmtTime(r.from)}`}
+                    onClick={() => onQuick(r.from)}
+                    className="press flex h-[52px] w-full items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong px-3.5 text-right text-sm text-ink-soft"
+                  >
+                    <span className="flex-1">פנוי</span>
+                    <span className="flex items-center gap-1 font-semibold text-brand">
+                      <Plus size={16} />
+                      הוסף
+                    </span>
+                  </button>
                 )}
               </div>
             </motion.div>
