@@ -1,6 +1,7 @@
 // Firebase implementation of the Backend contract: phone and name for customers (anonymous sign-in), SMS code for
 // admin numbers, Firestore, Storage.
 // Data for one shop lives under shops/{shopId}; firestore.rules (generated from the shop config (shops/<id>/config.ts)) enforces who may do what.
+import { setIcsHost } from '@/lib/platform';
 import { initializeApp } from 'firebase/app';
 import {
   RecaptchaVerifier,
@@ -110,6 +111,14 @@ export async function createFirebaseBackend(): Promise<Backend> {
   const dayRef = (date: DateKey) => doc(fs, root, 'days', date);
   const apptRef = (id: string) => doc(fs, root, 'appointments', id);
   const newId = (name: string) => doc(col(name)).id;
+  // "הוסף ליומן" on iPhone: the .ics goes to Storage, under the signed-in user, and opens from its https address.
+  setIcsHost(async (ics) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error('not signed in');
+    const file = ref(storage, `${root}/ics/${uid}/${Date.now()}.ics`);
+    await uploadBytes(file, new Blob([ics], { type: 'text/calendar' }), { contentType: 'text/calendar; charset=utf-8' });
+    return getDownloadURL(file);
+  });
 
   // ---------------------------------------------------------------- live state
   let services: Service[] | null = null;

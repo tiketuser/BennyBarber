@@ -94,16 +94,39 @@ const icsEvent = (e: CalendarEvent, i: number) => [
 export const icsFile = (events: CalendarEvent[]) =>
   ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Barbershop booking//HE', ...events.flatMap(icsEvent), 'END:VCALENDAR'].filter(Boolean).join('\r\n');
 
-/** "הוסף ליומן": an .ics file opens straight into Apple/Google Calendar on phones. Several events go in one file. */
-export function addToCalendar(event: CalendarEvent | CalendarEvent[]) {
-  const ics = icsFile(Array.isArray(event) ? event : [event]);
-  // iPhone saves a downloaded .ics to Files instead of opening it. Opening it as a page
-  // shows the system "Add to Calendar" sheet instead.
+/** Where an .ics file can live at a real https address (the Firebase backend puts it in Storage). */
+let icsHost: ((ics: string) => Promise<string>) | null = null;
+export const setIcsHost = (host: typeof icsHost) => {
+  icsHost = host;
+};
+
+/** Google Calendar's "new event" page, already filled in (Android has no app that opens .ics files). */
+export const googleCalendarUrl = (e: CalendarEvent) =>
+  'https://calendar.google.com/calendar/render?' +
+  new URLSearchParams({
+    action: 'TEMPLATE',
+    text: e.title,
+    dates: `${icsDate(e.date, e.start)}/${icsDate(e.date, e.end)}`,
+    location: e.location,
+    ...(e.notes && { details: e.notes }),
+  });
+
+/** "הוסף ליומן": opens the phone's own calendar with the event(s) ready to add. */
+export async function addToCalendar(event: CalendarEvent | CalendarEvent[]) {
+  const events = Array.isArray(event) ? event : [event];
+  const ics = icsFile(events);
+  // iPhone shows its "Add to Calendar" sheet only for an .ics at a real web address: a downloaded file goes to
+  // Files, and Chrome and the home-screen app refuse a data: address.
   if (isIOS()) {
-    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    const url = icsHost ? await icsHost(ics).catch(() => null) : null;
+    window.location.href = url ?? 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
     return;
   }
-  downloadIcs(ics, Array.isArray(event) && event.length > 1 ? 'תורים.ics' : 'תור.ics');
+  if (/android/i.test(navigator.userAgent) && events.length === 1) {
+    window.location.href = googleCalendarUrl(events[0]);
+    return;
+  }
+  downloadIcs(ics, events.length > 1 ? 'תורים.ics' : 'תור.ics');
 }
 
 /** Saves an .ics file (on iPhone too), e.g. to import into Google Calendar. */

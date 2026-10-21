@@ -53,8 +53,8 @@ const req = (token, method, path, body) =>
 const put = (path, data) => ({ update: { name: `${ROOT}/${path}`, fields: fields(data) } });
 
 // Uploads like the app's SDK does (multipart, so the file's image type is part of the request).
-const upload = (token, path) => {
-  const body = `--b\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ name: path, contentType: 'image/jpeg' })}\r\n--b\r\nContent-Type: image/jpeg\r\n\r\nx\r\n--b--`;
+const upload = (token, path, type = 'image/jpeg') => {
+  const body = `--b\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ name: path, contentType: type })}\r\n--b\r\nContent-Type: ${type}\r\n\r\nx\r\n--b--`;
   return fetch(`http://127.0.0.1:9199/v0/b/${PROJECT}.firebasestorage.app/o?name=${encodeURIComponent(path)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'multipart/related; boundary=b', 'X-Goog-Upload-Protocol': 'multipart', Authorization: `Firebase ${token}` },
@@ -160,6 +160,9 @@ await expectDenied('customer: cannot upload to the gallery', upload(me, `shops/$
 console.log('\nCustomers without an SMS code');
 const anon = await signInAnon();
 const anonId = uidOf.get(anon);
+await expectAllowed('customer: can save a calendar file under own id', upload(anon, `shops/${SHOP}/ics/${anonId}/1.ics`, 'text/calendar; charset=utf-8'));
+await expectDenied("customer: cannot save a calendar file under someone else's id", upload(anon, `shops/${SHOP}/ics/someone/1.ics`, 'text/calendar; charset=utf-8'));
+await expectDenied('customer: cannot save a non-calendar file there', upload(anon, `shops/${SHOP}/ics/${anonId}/2.html`, 'text/html'));
 await expectAllowed('customer: can save own number and name', req(anon, 'PATCH', `shops/${SHOP}/users/${anonId}`, { fields: fields({ name: 'x', phone: '0521112233' }) }));
 await expectDenied(
   "customer: cannot book under someone else's sign-in",

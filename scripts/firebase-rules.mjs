@@ -171,6 +171,13 @@ service firebase.storage {
         && request.resource.size < 3 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+    // "הוסף ליומן" on iPhone: each signed-in user (customers too) keeps small .ics files under their own id.
+    match /shops/{shopId}/ics/{uid}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 64 * 1024
+        && request.resource.contentType.matches('text/calendar.*');
+    }
   }
 }
 `,
