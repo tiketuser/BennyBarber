@@ -93,8 +93,9 @@ async function add() {
   const today = todayKey(now);
   const first = pastDays ? addDays(today, -pastDays) : today;
   const monthEnd = pastDays ? addDays(today, -1) : days ? addDays(today, days - 1) : todayKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-  // Past days: every slot of the day counts as free (the real "now" would rule them all out).
-  const slotNow = pastDays ? new Date(2000, 0, 1) : now;
+  // Past days, and today too: every slot of the day counts as free (the real "now" would rule them all out), so today
+  // looks like a full day with its earlier appointments already done.
+  const slotNowFor = (date: string) => (pastDays || date === today ? new Date(2000, 0, 1) : now);
   const ops: ((b: FirebaseFirestore.WriteBatch) => void)[] = [];
   let added = 0;
 
@@ -103,6 +104,7 @@ async function add() {
     const busy = ((await dayRef(date).get()).data()?.busy ?? []) as Busy[];
     const density = (pastDays ? 0.6 : 0.5) + Math.random() * 0.35;
     const h = hoursFor(settings, date);
+    const slotNow = slotNowFor(date);
     if (!h || dayStatus(day, date, 20, slotNow) === 'vacation') continue;
     for (let guard = 0; guard < 40; guard++) {
       const svc = Math.random() < 0.4 ? (services.find((s) => s.popular) ?? services[0]) : pick(services);

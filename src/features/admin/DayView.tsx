@@ -70,7 +70,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
     const booked = new Set(db.appointments.filter((a) => a.status === 'booked' && a.date > date).map((a) => a.date));
     const soonest = [...booked].sort()[0];
     if (soonest) return { date: soonest, label: 'ליום הבא עם תורים' };
-    for (let d = addDays(date, 1), i = 0; i < 60; d = addDays(d, 1), i++) if (hoursFor(db.settings, d)) return { date: d, label: 'ליום הפתוח הבא' };
+    for (let d = addDays(date, 1), i = 0; i < 60; d = addDays(d, 1), i++) if (hoursFor(db.settings, d)) return { date: d, label: 'ליום הבא' };
     return null;
   }, [appts.length, db, date]);
 
