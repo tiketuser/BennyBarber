@@ -24,6 +24,10 @@ on:
         description: how many days ahead (empty = until the end of the month)
         required: false
         default: ''
+      past:
+        description: fill the last N days instead (finished appointments for the history tab)
+        required: false
+        default: ''
 
 jobs:
   demo-data:
@@ -42,6 +46,7 @@ jobs:
           SHOP: ${{ inputs.shop }}
           SLUG: ${{ inputs.slug }}
           DAYS: ${{ inputs.days }}
+          PAST: ${{ inputs.past }}
           SHOP_STATIC: '1'
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"

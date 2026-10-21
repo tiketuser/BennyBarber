@@ -1,4 +1,5 @@
 // Fills the live Firestore with made-up bookings for the rest of the month (DAYS=n: the next n days), or removes them.
+// PAST=n fills the last n days instead (before today), so the admin's history tab has revenue and stats to show.
 // Every made-up appointment carries demo: true, so `remove` deletes exactly those and nothing real.
 //   npx vite-node scripts/demo-data.ts add      (needs GOOGLE_APPLICATION_CREDENTIALS, see .github/workflows/demo-data.yml)
 //   npx vite-node scripts/demo-data.ts remove
@@ -9,7 +10,7 @@ import { SHOPS } from '../shops/index.ts';
 import { toShopConfig, type TrialDoc } from '../src/trial/trialDoc';
 import { dayStatus, hoursFor, slotsFor } from '../src/domain/schedule';
 import type { Appointment, Block, DbSnapshot, Service, Settings } from '../src/domain/types';
-import { addDays, todayKey } from '../src/lib/time';
+import { addDays, fromKey, todayKey } from '../src/lib/time';
 
 const FEMALE = ['נועה', 'מיכל', 'שירה', 'יעל', 'תמר', 'מאיה', 'הדר', 'רוני', 'ליאת', 'אורטל', 'שני', 'דנה', 'מורן', 'עדי', 'קרן', 'אביטל'];
 const FIRST = ['יוסי', 'דניאל', 'משה', 'רון', 'אלון', 'שי', 'עומר', 'נתנאל', 'ליאור', 'אבי', 'איתי', 'עידן', 'אורי', 'מתן', 'יונתן', 'אליה', 'תומר', 'גיא', 'עמית', 'נועם'];
@@ -27,6 +28,7 @@ const shop = SHOPS[(process.env.SHOP || 'bennycohen') as keyof typeof SHOPS];
 const slug = shop.trial ? process.env.SLUG : shop.shopId;
 if (!slug) throw new Error('Trial shops need SLUG=<slug>');
 const days = Number(process.env.DAYS) || 0;
+const pastDays = Number(process.env.PAST) || 0;
 
 initializeApp({ credential: applicationDefault(), projectId: shop.firebase.projectId });
 const fs = getFirestore();
@@ -89,19 +91,22 @@ async function add() {
 
   const now = new Date();
   const today = todayKey(now);
-  const monthEnd = days ? addDays(today, days - 1) : todayKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  const first = pastDays ? addDays(today, -pastDays) : today;
+  const monthEnd = pastDays ? addDays(today, -1) : days ? addDays(today, days - 1) : todayKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  // Past days: every slot of the day counts as free (the real "now" would rule them all out).
+  const slotNow = pastDays ? new Date(2000, 0, 1) : now;
   const ops: ((b: FirebaseFirestore.WriteBatch) => void)[] = [];
   let added = 0;
 
-  for (let date = today; date <= monthEnd; date = addDays(date, 1)) {
+  for (let date = first; date <= monthEnd; date = addDays(date, 1)) {
     const day: DbSnapshot = { services, settings, appointments: appointments.filter((a) => a.date === date), blocks, waitlist: [], gallery: [] };
     const busy = ((await dayRef(date).get()).data()?.busy ?? []) as Busy[];
-    const density = 0.5 + Math.random() * 0.35;
+    const density = (pastDays ? 0.6 : 0.5) + Math.random() * 0.35;
     const h = hoursFor(settings, date);
-    if (!h || dayStatus(day, date, 20, now) === 'vacation') continue;
+    if (!h || dayStatus(day, date, 20, slotNow) === 'vacation') continue;
     for (let guard = 0; guard < 40; guard++) {
       const svc = Math.random() < 0.4 ? (services.find((s) => s.popular) ?? services[0]) : pick(services);
-      const free = slotsFor(day, date, svc.durationMin, now).filter((s) => s.available);
+      const free = slotsFor(day, date, svc.durationMin, slotNow).filter((s) => s.available);
       const filled = day.appointments.filter((a) => a.status === 'booked').reduce((t, a) => t + (a.end - a.start), 0);
       if (!free.length || filled / (h.to - h.from) >= density) break;
       const slot = pick(free);
@@ -118,20 +123,21 @@ async function add() {
         phone,
         customerPhone: phone,
         ...(Math.random() < 0.25 && !isWomens(svc) && { notes: pick(NOTES) }),
-        status: 'booked',
+        // A few past ones were cancelled, as in real life; they free their slot.
+        status: pastDays && Math.random() < 0.07 ? 'cancelled' : 'booked',
         source: Math.random() < 0.15 ? 'walkin' : 'app',
-        createdAt: now.getTime() - Math.floor(Math.random() * 10) * 86400000,
+        createdAt: (pastDays ? fromKey(date).getTime() : now.getTime()) - Math.floor(Math.random() * 10) * 86400000,
         demo: true,
       };
       day.appointments.push({ ...appt, id: ref.id });
-      busy.push({ id: ref.id, start: appt.start, end: appt.end });
+      if (appt.status === 'booked') busy.push({ id: ref.id, start: appt.start, end: appt.end });
       ops.push((b) => b.set(ref, appt));
       added++;
     }
     ops.push((b) => b.set(dayRef(date), { busy }));
   }
   await commit(ops);
-  console.log(`added ${added} demo appointments from ${today} to ${monthEnd}`);
+  console.log(`added ${added} demo appointments from ${first} to ${monthEnd}`);
 }
 
 await (action === 'add' ? add() : remove());
