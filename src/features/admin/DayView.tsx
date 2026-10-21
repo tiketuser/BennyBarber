@@ -63,11 +63,33 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
   const free = rows.filter((r) => r.kind === 'free');
   const hasUpcoming = isToday && appts.some((r) => r.to > nowM && r.appt.phone);
+  // An empty or closed day offers a jump: to the next day with appointments, else the next day the shop is open.
+  const next = useMemo(() => {
+    if (appts.length) return null;
+    const booked = new Set(db.appointments.filter((a) => a.status === 'booked' && a.date > date).map((a) => a.date));
+    const soonest = [...booked].sort()[0];
+    if (soonest) return { date: soonest, label: 'ליום הבא עם תורים' };
+    for (let d = addDays(date, 1), i = 0; i < 60; d = addDays(d, 1), i++) if (hoursFor(db.settings, d)) return { date: d, label: 'ליום הפתוח הבא' };
+    return null;
+  }, [appts.length, db, date]);
 
   const timeline = (
     <div className={cx('flex flex-col gap-2.5', layout === 'phone' && 'px-4 pt-[18px]')}>
-      {!hours && <p className="rounded-2xl bg-surface p-6 text-center text-ink-soft">{SHOP.closed} ביום הזה</p>}
-      {hours && rows.length === 0 && <p className="rounded-2xl bg-surface p-6 text-center text-ink-soft">אין תורים</p>}
+      {(!hours || appts.length === 0) && (
+        <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center">
+          <p className="text-ink-soft">{hours ? 'אין תורים ביום הזה' : `${SHOP.closed} ביום הזה`}</p>
+          {next && (
+            <button
+              type="button"
+              onClick={() => setDate(next.date)}
+              className="press inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-semibold text-brand-accent"
+            >
+              {next.label} · {fmtShortDate(next.date)}
+              <ChevronLeft size={16} />
+            </button>
+          )}
+        </div>
+      )}
       <AnimatePresence initial={false}>
         {rows.map((r) => {
           const past = (isToday && r.to <= nowM) || date < today;
