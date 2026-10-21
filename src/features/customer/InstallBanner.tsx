@@ -69,7 +69,12 @@ export function InstallBanner() {
             className="mx-4 overflow-hidden"
           >
             <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
-              <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="" className="size-11 rounded-xl" />
+              {/* The shop's logo picture when it has one (trial shops), else its app icon. */}
+              <img
+                src={SHOP.logoUrl ?? `${import.meta.env.BASE_URL}pwa-192.png`}
+                alt=""
+                className={'size-11 shrink-0 object-cover ' + (SHOP.logoUrl ? 'rounded-full border border-line bg-white' : 'rounded-xl')}
+              />
               <p className="m-0 flex-1 text-[13px] leading-snug">
                 {g('התקן', 'התקיני', 'התקינו')} את האפליקציה של {SHOP.brand} למסך הבית לגישה מהירה
               </p>
