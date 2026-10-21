@@ -15,6 +15,7 @@ describe('link preview', () => {
   it('describes a shop by name and address, and the trial build generally', () => {
     expect(shareDescription({ fullName: 'יוסי וגיא', address: { street: 'הרצל 1', city: 'הוד השרון' } })).toBe('קביעת תור ביוסי וגיא, הרצל 1 הוד השרון');
     expect(shareDescription({ fullName: 'יוסי וגיא', address: { street: '', city: '' } })).toBe('קביעת תור ביוסי וגיא');
+    expect(shareDescription({ fullName: 'האדריכל', address: { street: '', city: '' } })).toBe('קביעת תור באדריכל');
     expect(shareDescription({ fullName: 'קביעת תורים', address: { street: '', city: '' }, trial: { contactName: '', contactPhone: '' } })).not.toContain('קביעת תורים');
   });
 

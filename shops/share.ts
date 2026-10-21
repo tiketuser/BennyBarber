@@ -6,7 +6,8 @@ import type { ShopConfig } from './types';
 export function shareDescription(shop: Pick<ShopConfig, 'fullName' | 'address' | 'trial'>): string {
   if (shop.trial) return 'קביעת תור אונליין, בכמה לחיצות';
   const where = [shop.address.street, shop.address.city].filter(Boolean).join(' ');
-  return `קביעת תור ב${shop.fullName}${where ? `, ${where}` : ''}`;
+  // "ב" swallows a leading "ה": "האדריכל" -> "באדריכל".
+  return `קביעת תור ב${shop.fullName.replace(/^ה/, '')}${where ? `, ${where}` : ''}`;
 }
 
 export interface ShareMeta {
