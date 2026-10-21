@@ -43,15 +43,23 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
     }
   };
 
-  const sendCode = () =>
-    run(async () => {
-      await backend.auth.sendCode(phone);
-      setCode('');
-      setStep('code');
+  // Admins type a fixed code, so nothing to wait for: straight to the code step while Google's check (reCAPTCHA) runs
+  // in the background; the code is confirmed once that is done.
+  const sent = useRef<Promise<void> | null>(null);
+  const sendCode = async () => {
+    setError(null);
+    setCode('');
+    setStep('code');
+    sent.current = backend.auth.sendCode(phone);
+    sent.current.catch((e: Error) => {
+      haptic('warning');
+      setError(e.message);
     });
+  };
 
   const verify = (c: string) =>
     run(async () => {
+      await sent.current;
       const s = await backend.auth.verifyCode(phone, c);
       setRole(s.role);
       if (s.role === 'customer' && !s.name) setStep('name');
@@ -85,7 +93,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
   const cta =
     step === 'phone'
       ? adminPhone
-        ? { label: g('שלח לי קוד', 'שלחי לי קוד', 'שלחו לי קוד'), ok: true, run: sendCode }
+        ? { label: g('המשך', 'המשיכי', 'המשיכו'), ok: true, run: sendCode }
         : { label: g('המשך', 'המשיכי', 'המשיכו'), ok: isValidMobile(phone), run: async () => toName() }
       : step === 'code'
         ? { label: 'אישור', ok: code.length === CODE_LENGTH, run: () => verify(code) }

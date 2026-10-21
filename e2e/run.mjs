@@ -122,7 +122,7 @@ async function login(phone, name) {
     await tap('שמור והמשך');
     await wait(500);
   } else {
-    await tap('שלח לי קוד');
+    await tap('המשך');
     if (FIREBASE) await page.locator('input[autocomplete="one-time-code"]').waitFor();
     await page.fill('input[autocomplete="one-time-code"]', FIREBASE ? await smsCode(phone) : '123456');
     await wait(800);
