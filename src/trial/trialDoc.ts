@@ -21,6 +21,7 @@ export interface TrialDoc {
   bookingMonthsAhead?: number;
   defaults?: { services?: ShopConfig['defaults']['services']; settings?: Partial<ShopConfig['defaults']['settings']> };
   galleryUrls?: string[];
+  logoUrl?: string;
   createdAt?: string;
   trialEndsAt?: string;
 }
@@ -69,6 +70,7 @@ export function toShopConfig(base: ShopConfig, doc: TrialDoc, slug: string): Sho
     shopId: slug,
     defaults: { services: doc.defaults?.services?.length ? doc.defaults.services : base.defaults.services, settings },
     galleryUrls: doc.galleryUrls ?? [],
+    logoUrl: str(doc.logoUrl),
     trialEndsAt: str(doc.trialEndsAt),
   };
 }

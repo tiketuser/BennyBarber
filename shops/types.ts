@@ -57,6 +57,8 @@ export interface ShopConfig {
   trialEndsAt?: string;
   /** Trial shops: starting photos (e.g. from Google Maps), shown until the admin's first sign-in copies them into the gallery. */
   galleryUrls?: string[];
+  /** A round logo picture shown in the badge and as the app icon (trial shops: shops/trial/public/logos/<slug>.png). */
+  logoUrl?: string;
 }
 
 export const defineShop = (config: ShopConfig) => config;

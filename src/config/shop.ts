@@ -27,6 +27,8 @@ export const SHOP = {
   ...placeForms(config.place),
   /** The shop's own mark (shops/<id>/public/logo-mark.svg) instead of the scissors; see ShopMark. */
   logoMark: __SHOP_LOGO_MARK__,
+  /** A round logo picture that fills the badge instead (trial shops); see ShopMark. */
+  logoUrl: config.logoUrl,
   tagline: config.tagline,
   address: `${config.address.street}, ${config.address.city}`,
   street: config.address.street,
