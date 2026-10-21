@@ -59,7 +59,7 @@ const ERRORS: Record<string, string> = {
   'auth/invalid-app-credential': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
   'auth/captcha-check-failed': `הכתובת הזו לא מורשית להתחברות. ${g('נסה', 'נסי', 'נסו')} מהאתר הרשמי`,
   // Google refuses to text this number right now (blocked, unused or flagged number, or the project's SMS limit).
-  'auth/error-code:-39': `לא ניתן לשלוח SMS למספר הזה כרגע. ${g('בדוק', 'בדקי', 'בדקו')} שהמספר נכון או ${g('נסה', 'נסי', 'נסו')} שוב מאוחר יותר`,
+  'auth/error-code:-39': 'למספר הזה עוד לא הוגדר קוד מנהל',
   'auth/missing-phone-number': 'צריך להזין מספר נייד',
   'auth/invalid-recaptcha-token': `בדיקת האבטחה של Google נכשלה. ${g('רענן', 'רענני', 'רעננו')} את הדף ${g('ונסה', 'ונסי', 'ונסו')} שוב`,
   'auth/missing-recaptcha-token': `בדיקת האבטחה של Google נכשלה. ${g('רענן', 'רענני', 'רעננו')} את הדף ${g('ונסה', 'ונסי', 'ונסו')} שוב`,
@@ -314,7 +314,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
       },
       signInCustomer: guard(async (phone, name) => {
         const digits = phoneDigits(phone);
-        if (ADMIN_PHONES.includes(digits)) throw new Error('למספר של המנהל נכנסים עם קוד ב-SMS');
+        if (ADMIN_PHONES.includes(digits)) throw new Error('למספר של המנהל נכנסים עם קוד מנהל');
         const clean = name.trim();
         const u = auth.currentUser?.isAnonymous ? auth.currentUser : (await signInAnonymously(auth)).user;
         await setDoc(doc(fs, root, 'users', u.uid), { name: clean, phone: digits }, { merge: true });

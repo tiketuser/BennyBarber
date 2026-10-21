@@ -15,7 +15,7 @@ type Step = 'phone' | 'code' | 'name' | 'done';
 const CODE_LENGTH = 6;
 
 /**
- * Customers: phone number and name, no code. Admin numbers: a 6-digit SMS code (Firebase phone auth always sends 6),
+ * Customers: phone number and name, no code. Admin numbers: their fixed 6-digit admin code (a Firebase test number, so no SMS goes out),
  * then the admin view.
  */
 export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without the logo header, inside the desktop card. */ bare?: boolean }) {
@@ -139,7 +139,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                 <>
                   <h1 className="m-0 text-2xl font-bold">{g('הזן את הקוד', 'הזיני את הקוד', 'הזינו את הקוד')}</h1>
                   <p className="m-0 text-[15px] text-ink-soft">
-                    קוד המנהל הקבוע שלך, או הקוד שנשלח ב-SMS ל-<span dir="ltr">{phone}</span>{' '}
+                    קוד המנהל הקבוע שלך עבור <span dir="ltr">{phone}</span>{' '}
                     <button type="button" className="text-sm font-semibold underline" onClick={() => setStep('phone')}>
                       שינוי
                     </button>
@@ -178,9 +178,6 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                       className="absolute inset-0 bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent"
                     />
                   </div>
-                  <button type="button" disabled={busy} onClick={sendCode} className="h-11 self-start text-sm font-medium text-ink-soft">
-                    לא הגיע? {g('שלח שוב', 'שלחי שוב', 'שלחו שוב')}
-                  </button>
                 </>
               )}
 
