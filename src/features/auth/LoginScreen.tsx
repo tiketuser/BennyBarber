@@ -127,7 +127,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
               {step === 'phone' && (
                 <>
                   <h1 className="m-0 text-2xl font-bold">מה המספר שלך?</h1>
-                  <p className="m-0 text-[15px] text-ink-soft">{adminPhone ? 'זה מספר של מנהל, נשלח לך קוד ב-SMS.' : 'כדי שנוכל לשמור לך את התור.'}</p>
+                  <p className="m-0 text-[15px] text-ink-soft">{adminPhone ? 'זה מספר של מנהל, נבקש ממך קוד בן 6 ספרות.' : 'כדי שנוכל לשמור לך את התור.'}</p>
                   <label htmlFor="lphone" className="sr-only">
                     מספר נייד
                   </label>
@@ -139,7 +139,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
                 <>
                   <h1 className="m-0 text-2xl font-bold">{g('הזן את הקוד', 'הזיני את הקוד', 'הזינו את הקוד')}</h1>
                   <p className="m-0 text-[15px] text-ink-soft">
-                    שלחנו קוד בן 6 ספרות ל-<span dir="ltr">{phone}</span>{' '}
+                    קוד המנהל הקבוע שלך, או הקוד שנשלח ב-SMS ל-<span dir="ltr">{phone}</span>{' '}
                     <button type="button" className="text-sm font-semibold underline" onClick={() => setStep('phone')}>
                       שינוי
                     </button>

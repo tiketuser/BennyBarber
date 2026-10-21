@@ -1,0 +1,29 @@
+# Run by hand from the Actions tab: gives admin numbers a fixed 6-digit sign-in code instead of an SMS
+# (scripts/admin-codes.mjs). Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy.
+name: Admin codes
+
+on:
+  workflow_dispatch:
+    inputs:
+      codes:
+        description: 'JSON {"05XXXXXXXX": "123456"}; "" removes a code'
+        required: true
+
+jobs:
+  admin-codes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Passed through the environment, never pasted into the script, so nothing in the input runs as code.
+          CODES: ${{ inputs.codes }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          node --experimental-strip-types --no-warnings scripts/admin-codes.mjs
