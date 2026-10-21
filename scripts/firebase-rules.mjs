@@ -189,6 +189,9 @@ writeFileSync(
         rewrites: [{ source: '**', destination: '/index.html' }],
         headers: [
           { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+          // The page itself (and its routes, like /<slug>) is always checked for a newer version.
+          { source: '**/*.html', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+          { regex: '^/[^.]*$', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
           { source: '/assets/**', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
         ],
       },
