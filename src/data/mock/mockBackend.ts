@@ -111,6 +111,16 @@ export function createMockBackend(): Backend {
         authListeners.add(l);
         return () => authListeners.delete(l);
       },
+      async signInCustomer(phone, name) {
+        await wait(300);
+        const digits = phoneDigits(phone);
+        if (ADMIN_PHONES.includes(digits)) throw new Error('למספר של המנהל נכנסים עם קוד ב-SMS');
+        const clean = name.trim();
+        save(NAMES_KEY, { ...loadNames(), [digits]: clean });
+        const s: Session = { phone: digits, name: clean, role: 'customer' };
+        setSession(s);
+        return s;
+      },
       async sendCode(phone) {
         await wait(400);
         pendingPhone = phoneDigits(phone);

@@ -39,6 +39,8 @@ jobs:
           failed=""
           for shop in $(node --experimental-strip-types --no-warnings scripts/list-shops.mjs); do
             echo "::group::$shop"
+            # Customers sign in without an SMS code (anonymous sign-in); only admin numbers get one.
+            SHOP=$shop node --experimental-strip-types --no-warnings scripts/auth-setup.mjs || failed="$failed $shop-auth"
             SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
             echo "::endgroup::"
           done

@@ -113,16 +113,19 @@ const expect = (cond, msg) => {
   if (!cond) throw new Error(msg);
 };
 
+/** Customers (with a name): number and name, no code. The admin (no name): number and SMS code. */
 async function login(phone, name) {
   await page.fill('#lphone', phone);
-  await tap('שלח לי קוד');
-  if (FIREBASE) await page.locator('input[autocomplete="one-time-code"]').waitFor();
-  await page.fill('input[autocomplete="one-time-code"]', FIREBASE ? await smsCode(phone) : '123456');
-  await wait(800);
   if (name) {
+    await tap('המשך');
     await page.fill('input[autocomplete="name"]', name);
     await tap('שמור והמשך');
     await wait(500);
+  } else {
+    await tap('שלח לי קוד');
+    if (FIREBASE) await page.locator('input[autocomplete="one-time-code"]').waitFor();
+    await page.fill('input[autocomplete="one-time-code"]', FIREBASE ? await smsCode(phone) : '123456');
+    await wait(800);
   }
   await tap(name ? 'לקביעת תור' : 'לתצוגת אדמין');
   await wait(500);
@@ -195,7 +198,7 @@ await step('reschedules and my appointments shows the new time right away', asyn
   await role('button', 'התורים שלי').click();
   await see('הבא בתור');
   await wait(1500);
-  const cards = page.locator("article");
+  const cards = page.locator('article');
   expect((await cards.count()) === 1, `expected one upcoming appointment, got ${await cards.count()}`);
   const after = await cards.first().innerText();
   expect(after.includes(time) && after !== before, `still shows the old time: ${after.replace(/\s+/g, ' ')}`);
@@ -262,7 +265,16 @@ await step('admin quick add, undo, and block', async () => {
     await role('button', 'יום הבא').click();
     if (!(await page.locator('[aria-label="תור מהיר או חסימה"]').count())) continue;
     await page.locator('[aria-label="תור מהיר או חסימה"]').click();
-    if (await page.locator('#walkin').waitFor({ timeout: 1500 }).then(() => true, () => false)) break;
+    if (
+      await page
+        .locator('#walkin')
+        .waitFor({ timeout: 1500 })
+        .then(
+          () => true,
+          () => false,
+        )
+    )
+      break;
     await page.keyboard.press('Escape');
     await wait(400);
   }

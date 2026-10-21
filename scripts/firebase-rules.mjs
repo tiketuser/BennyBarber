@@ -44,7 +44,7 @@ ${
 }    match /shops/${trial ? '{shopId}' : shop.shopId} {
     // Admin numbers come from ${trial ? "the shop's trialShops document (adminPhonesE164)" : 'shop.config.ts adminPhones'}. The app's admin view is only a convenience; this is the real check.
     function isAdmin() {
-      return request.auth != null && request.auth.token.phone_number in ${admins};
+      return request.auth != null && request.auth.token.get('phone_number', '') in ${admins};
     }
     // Trial shops: the shop exists, and new bookings only until its free week ends (trialEndsAt, a timestamp).
     function live() {
@@ -58,13 +58,26 @@ ${
     : '      return true;'
 }
     }
+    // Customers sign in with their number and name only (an anonymous sign-in), so a typed number proves nothing:
+    // what they booked is theirs by sign-in id (customerUid). Older SMS sign-ins also own by their verified number.
     function signedIn() {
-      return request.auth != null && request.auth.token.phone_number is string;
+      return request.auth != null;
+    }
+    function verified() {
+      return request.auth.token.get('phone_number', null) is string;
     }
     // "+972521234567" -> "0521234567", the form the app stores.
     function phone() {
       let p = request.auth.token.phone_number;
       return '0' + p[4:p.size()];
+    }
+    function mine(a) {
+      return a.get('customerUid', null) == request.auth.uid || (verified() && a.get('customerPhone', null) == phone());
+    }
+    // A new booking or waitlist entry carries its owner's sign-in id (and his verified number, if he has one).
+    function ownedNew(a) {
+      return a.get('customerUid', null) == request.auth.uid && a.get('customerPhone', null) is string
+        && (!verified() || a.customerPhone == phone());
     }
     function appt(id) {
       return getAfter(${shopPath}/appointments/$(id)).data;
@@ -75,11 +88,11 @@ ${
     }
     function ownsNew(date, e) {
       let a = appt(e.id);
-      return a.customerPhone == phone() && a.status == 'booked' && a.date == date && a.start == e.start && a.end == e.end;
+      return mine(a) && a.status == 'booked' && a.date == date && a.start == e.start && a.end == e.end;
     }
     function ownsCancelled(e) {
       let a = appt(e.id);
-      return a.customerPhone == phone() && a.status == 'cancelled';
+      return mine(a) && a.status == 'cancelled';
     }
     // A customer may add one own new appointment to a day and/or take one own cancelled appointment off it.
     function customerLedgerChange(date) {
@@ -122,14 +135,14 @@ ${
         allow update: if signedIn() && customerLedgerChange(date) && (open() || request.resource.data.busy.size() < resource.data.busy.size());
       }
       match /appointments/{id} {
-        allow read: if isAdmin() || (signedIn() && resource.data.customerPhone == phone());
+        allow read: if isAdmin() || (signedIn() && mine(resource.data));
         allow create: if isAdmin() || (signedIn() && open()
-          && request.resource.data.customerPhone == phone()
+          && ownedNew(request.resource.data)
           && request.resource.data.status == 'booked'
           && request.resource.data.source == 'app'
           && inLedger(id, request.resource.data));
         allow update: if isAdmin() || (signedIn()
-          && resource.data.customerPhone == phone()
+          && mine(resource.data)
           && resource.data.status == 'booked'
           && request.resource.data.status == 'cancelled'
           && request.resource.data.cancelledBy == 'customer'
@@ -138,8 +151,8 @@ ${
         allow delete: if isAdmin();
       }
       match /waitlist/{id} {
-        allow read, delete: if isAdmin() || (signedIn() && resource.data.customerPhone == phone());
-        allow create: if isAdmin() || (signedIn() && open() && request.resource.data.customerPhone == phone());
+        allow read, delete: if isAdmin() || (signedIn() && mine(resource.data));
+        allow create: if isAdmin() || (signedIn() && open() && ownedNew(request.resource.data));
       }
     }
   }
@@ -154,7 +167,7 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /shops/${trial ? '{shopId}' : shop.shopId}/gallery/{file} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.phone_number in ${trial ? storageAdmins : admins}
+      allow write: if request.auth != null && request.auth.token.get('phone_number', '') in ${trial ? storageAdmins : admins}
         && request.resource.size < 3 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }

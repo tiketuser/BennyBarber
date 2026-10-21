@@ -32,6 +32,14 @@ describe('mock backend', () => {
     expect(b.auth.getSession()?.name).toBe('יוסי לוי');
   });
 
+  it('signs customers in with number and name only, and sends admin numbers to the SMS code', async () => {
+    const s = await b.auth.signInCustomer(ME, ' דנה ');
+    expect(s).toEqual({ phone: '0521234567', name: 'דנה', role: 'customer' });
+    await b.auth.signOut();
+    await expect(b.auth.signInCustomer(ADMIN, 'x')).rejects.toThrow();
+    expect(b.auth.getSession()).toBeNull();
+  });
+
   it('remembers a returning customer by phone, so the name step is skipped', async () => {
     await signIn(b, ME, 'דני');
     await b.auth.signOut();

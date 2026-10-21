@@ -4,7 +4,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { useBackend } from '@/data/store';
 import { isValidMobile, phoneDigits } from '@/lib/phone';
 import { haptic } from '@/lib/platform';
-import { BACKEND, SHOP, g } from '@/config/shop';
+import { ADMIN_PHONES, BACKEND, SHOP, g } from '@/config/shop';
 import { Button, PhoneInput, TextInput } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
@@ -14,7 +14,10 @@ import { ShopMark } from '@/ui/ShopMark';
 type Step = 'phone' | 'code' | 'name' | 'done';
 const CODE_LENGTH = 6;
 
-/** Phone number + 6-digit SMS code (Firebase phone auth always sends 6). New customers give their name once; the admin number opens the admin view. */
+/**
+ * Customers: phone number and name, no code. Admin numbers: a 6-digit SMS code (Firebase phone auth always sends 6),
+ * then the admin view.
+ */
 export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without the logo header, inside the desktop card. */ bare?: boolean }) {
   const backend = useBackend();
   const [step, setStep] = useState<Step>('phone');
@@ -25,6 +28,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<'admin' | 'customer'>('customer');
   const codeRef = useRef<HTMLInputElement>(null);
+  const adminPhone = ADMIN_PHONES.includes(phoneDigits(phone));
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -57,9 +61,17 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
       }
     });
 
+  const toName = () => {
+    setRole('customer');
+    setError(null);
+    setStep('name');
+  };
+
   const saveName = () =>
     run(async () => {
-      await backend.auth.saveName(name);
+      // Signed in by SMS already (an older customer account without a name): just the name.
+      if (backend.auth.getSession()) await backend.auth.saveName(name);
+      else await backend.auth.signInCustomer(phone, name);
       haptic('success');
       setStep('done');
     });
@@ -72,7 +84,9 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
 
   const cta =
     step === 'phone'
-      ? { label: g('שלח לי קוד', 'שלחי לי קוד', 'שלחו לי קוד'), ok: isValidMobile(phone), run: sendCode }
+      ? adminPhone
+        ? { label: g('שלח לי קוד', 'שלחי לי קוד', 'שלחו לי קוד'), ok: true, run: sendCode }
+        : { label: g('המשך', 'המשיכי', 'המשיכו'), ok: isValidMobile(phone), run: async () => toName() }
       : step === 'code'
         ? { label: 'אישור', ok: code.length === CODE_LENGTH, run: () => verify(code) }
         : step === 'name'
@@ -113,7 +127,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
               {step === 'phone' && (
                 <>
                   <h1 className="m-0 text-2xl font-bold">מה המספר שלך?</h1>
-                  <p className="m-0 text-[15px] text-ink-soft">נשלח לך קוד ב-SMS.</p>
+                  <p className="m-0 text-[15px] text-ink-soft">{adminPhone ? 'זה מספר של מנהל, נשלח לך קוד ב-SMS.' : 'כדי שנוכל לשמור לך את התור.'}</p>
                   <label htmlFor="lphone" className="sr-only">
                     מספר נייד
                   </label>
@@ -173,7 +187,14 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
               {step === 'name' && (
                 <>
                   <h1 className="m-0 text-2xl font-bold">נעים להכיר! איך קוראים לך?</h1>
-                  <p className="m-0 text-[15px] text-ink-soft">נשמור את זה, ולא {g('תצטרך', 'תצטרכי', 'תצטרכו')} למלא שוב בכל תור.</p>
+                  <p className="m-0 text-[15px] text-ink-soft">
+                    נשמור את זה, ולא {g('תצטרך', 'תצטרכי', 'תצטרכו')} למלא שוב בכל תור.{' '}
+                    {!backend.auth.getSession() && (
+                      <button type="button" className="text-sm font-semibold underline" onClick={() => setStep('phone')}>
+                        שינוי מספר
+                      </button>
+                    )}
+                  </p>
                   <label htmlFor="lname" className="sr-only">
                     שם מלא
                   </label>
@@ -227,7 +248,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
           >
             {cta.label}
           </Button>
-          {step === 'phone' && BACKEND === 'firebase' && (
+          {step === 'phone' && adminPhone && BACKEND === 'firebase' && (
             // Google's required notice, in place of the floating reCAPTCHA badge that covered the button.
             <p className="m-0 mt-3 text-center text-[11px] leading-snug text-ink-mute">
               האתר מוגן על ידי reCAPTCHA ו

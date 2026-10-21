@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MotionConfig } from 'motion/react';
 import { useSession } from '@/data/store';
 import { DeskLogin } from '@/features/auth/DeskLogin';
@@ -8,7 +8,6 @@ import { AdminApp } from '@/features/admin/AdminApp';
 import { OverlayHost } from '@/ui/Overlay';
 import { ToastProvider } from '@/ui/Toast';
 import { useIsDesktop } from '@/ui/useIsDesktop';
-import { useOnChange } from '@/ui/useOnChange';
 import { DeskAdminApp } from '@/features/admin/desktop/DeskAdminApp';
 import { DeskCustomerApp } from '@/features/customer/desktop/DeskCustomerApp';
 import { TrialEnded } from '@/features/trial/TrialEnded';
@@ -23,7 +22,11 @@ export function App() {
   const session = useSession();
   // The login screen stays up after the code is verified, until its last step hands over.
   const [loggingIn, setLoggingIn] = useState(!session || (session.role === 'customer' && !session.name));
-  useOnChange(!session, (signedOut) => signedOut && setLoggingIn(true));
+  // In an effect, not during render: a render-phase update next to useSyncExternalStore can leave React thinking the
+  // session never changed, so a later sign-out would not re-render (React 18).
+  useEffect(() => {
+    if (!session) setLoggingIn(true);
+  }, [session]);
   const showLogin = !session || loggingIn;
   const desktop = useIsDesktop();
   // A trial shop after its free week: a notice instead of booking; "כניסה לבעל העסק" opens the login for the owner.

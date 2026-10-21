@@ -62,6 +62,8 @@ export interface Appointment {
   phone: string;
   /** Digits-only phone of the customer account that booked it (for "my appointments"). */
   customerPhone?: string;
+  /** Sign-in id of the customer who booked it (customers sign in without an SMS code; this is what makes it theirs). */
+  customerUid?: string;
   notes?: string;
   status: AppointmentStatus;
   source: AppointmentSource;
@@ -89,6 +91,7 @@ export interface WaitlistEntry {
   name: string;
   phone: string;
   customerPhone?: string;
+  customerUid?: string;
   createdAt: number;
 }
 

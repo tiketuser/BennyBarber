@@ -46,7 +46,12 @@ export interface Backend {
   auth: {
     getSession(): Session | null;
     subscribe(listener: () => void): () => void;
-    /** Sends the SMS code. Firebase: signInWithPhoneNumber + reCAPTCHA (web) / native plugin (Capacitor). */
+    /**
+     * Customers: phone and name, no SMS code (Firebase: an anonymous sign-in that owns its bookings). Admin numbers
+     * are refused here and go through the SMS code instead.
+     */
+    signInCustomer(phone: string, name: string): Promise<Session>;
+    /** Sends the SMS code (admin numbers). Firebase: signInWithPhoneNumber + reCAPTCHA (web) / native plugin (Capacitor). */
     sendCode(phone: string): Promise<void>;
     /** Verifies the code; role comes from the backend (admin phone list), never from the client. */
     verifyCode(phone: string, code: string): Promise<Session>;

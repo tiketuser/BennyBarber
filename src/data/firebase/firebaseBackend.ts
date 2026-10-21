@@ -1,7 +1,18 @@
-// Firebase implementation of the Backend contract: phone (SMS) sign-in, Firestore, Storage.
+// Firebase implementation of the Backend contract: phone and name for customers (anonymous sign-in), SMS code for
+// admin numbers, Firestore, Storage.
 // Data for one shop lives under shops/{shopId}; firestore.rules (generated from the shop config (shops/<id>/config.ts)) enforces who may do what.
 import { initializeApp } from 'firebase/app';
-import { RecaptchaVerifier, connectAuthEmulator, getAuth, onAuthStateChanged, signInWithPhoneNumber, signOut, type ConfirmationResult, type User } from 'firebase/auth';
+import {
+  RecaptchaVerifier,
+  connectAuthEmulator,
+  getAuth,
+  onAuthStateChanged,
+  signInAnonymously,
+  signInWithPhoneNumber,
+  signOut,
+  type ConfirmationResult,
+  type User,
+} from 'firebase/auth';
 import {
   collection,
   connectFirestoreEmulator,
@@ -165,7 +176,8 @@ export async function createFirebaseBackend(): Promise<Backend> {
         ),
       );
       if (session) {
-        const mine = where('customerPhone', '==', session.phone);
+        // Customers without an SMS code own what they booked by their sign-in id, not by the number they typed.
+        const mine = user?.isAnonymous ? where('customerUid', '==', user.uid) : where('customerPhone', '==', session.phone);
         scoped.push(onSnapshot(query(col('appointments'), mine), (s) => ((appointments = docs<Appointment>(s)), emit()), onErr));
         scoped.push(onSnapshot(query(col('waitlist'), mine), (s) => ((waitlist = docs<WaitlistEntry>(s)), emit()), onErr));
       }
@@ -181,11 +193,16 @@ export async function createFirebaseBackend(): Promise<Backend> {
     if (changedWho) watchScoped();
   };
 
-  const sessionFor = async (u: User): Promise<Session> => {
-    const phone = fromIntl(u.phoneNumber ?? '');
-    const role = ADMIN_PHONES.includes(phone) ? 'admin' : 'customer';
+  const sessionFor = async (u: User): Promise<Session | null> => {
     const profile = await getDoc(doc(fs, root, 'users', u.uid)).catch(() => null);
-    return { phone, role, name: (profile?.data()?.name as string | undefined) ?? null };
+    const name = (profile?.data()?.name as string | undefined) ?? null;
+    // A customer's number and name are in his profile; without one the sign-in never finished.
+    if (u.isAnonymous) {
+      const phone = profile?.data()?.phone as string | undefined;
+      return phone ? { phone, role: 'customer', name } : null;
+    }
+    const phone = fromIntl(u.phoneNumber ?? '');
+    return { phone, role: ADMIN_PHONES.includes(phone) ? 'admin' : 'customer', name };
   };
 
   /** A brand-new project starts with the services and hours from the shop config (shops/<id>/config.ts), written by the first admin sign-in. */
@@ -198,10 +215,14 @@ export async function createFirebaseBackend(): Promise<Backend> {
     await batch.commit();
   };
 
+  /** Bumped by every sign-in, so a slower auth-state lookup that started before it can't overwrite its session. */
+  let authGen = 0;
   const ready = new Promise<void>((resolve) => {
     onAuthStateChanged(auth, async (u) => {
+      const gen = ++authGen;
       user = u;
-      const s = u?.phoneNumber ? await sessionFor(u) : null;
+      const s = u ? await sessionFor(u) : null;
+      if (gen !== authGen) return resolve();
       setSession(s);
       if (s?.role === 'admin') seedIfEmpty().catch(() => {});
       resolve();
@@ -291,6 +312,18 @@ export async function createFirebaseBackend(): Promise<Backend> {
         authListeners.add(l);
         return () => authListeners.delete(l);
       },
+      signInCustomer: guard(async (phone, name) => {
+        const digits = phoneDigits(phone);
+        if (ADMIN_PHONES.includes(digits)) throw new Error('למספר של המנהל נכנסים עם קוד ב-SMS');
+        const clean = name.trim();
+        const u = auth.currentUser?.isAnonymous ? auth.currentUser : (await signInAnonymously(auth)).user;
+        await setDoc(doc(fs, root, 'users', u.uid), { name: clean, phone: digits }, { merge: true });
+        authGen++;
+        user = u;
+        const s: Session = { phone: digits, role: 'customer', name: clean };
+        setSession(s);
+        return s;
+      }),
       sendCode: guard(async (phone) => {
         confirmation = await signInWithPhoneNumber(auth, '+' + toIntl(phone), recaptcha());
       }),
@@ -298,7 +331,9 @@ export async function createFirebaseBackend(): Promise<Backend> {
         if (!confirmation) throw new Error(`${g('שלח', 'שלחי', 'שלחו')} קוד קודם`);
         const { user: u } = await confirmation.confirm(code);
         confirmation = null;
-        const s = await sessionFor(u);
+        authGen++;
+        user = u;
+        const s = (await sessionFor(u))!;
         setSession(s);
         if (s.role === 'admin') await seedIfEmpty();
         return s;
@@ -331,6 +366,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
             customerName: input.customerName.trim(),
             phone: phoneDigits(input.phone),
             customerPhone: me.phone,
+            customerUid: user!.uid,
             notes: input.notes?.trim() || undefined,
             status: 'booked',
             source: 'app',
@@ -419,7 +455,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
         const mine = requireSession().phone;
         const batch = writeBatch(fs);
         for (const w of db.waitlist.filter((x) => x.date === date && x.customerPhone === mine)) batch.delete(doc(col('waitlist'), w.id));
-        batch.set(doc(col('waitlist')), { date, part, name, phone: phoneDigits(phone), customerPhone: mine, createdAt: Date.now() });
+        batch.set(doc(col('waitlist')), { date, part, name, phone: phoneDigits(phone), customerPhone: mine, customerUid: user!.uid, createdAt: Date.now() });
         await batch.commit();
       }),
       leave: guard(async (id) => {

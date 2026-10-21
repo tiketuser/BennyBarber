@@ -9,14 +9,31 @@ const AUTH = `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1`;
 const DOCS = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`;
 const ROOT = `projects/${PROJECT}/databases/(default)/documents/shops/${SHOP}`;
 
+const post = (path, body) =>
+  fetch(`${AUTH}/${path}?key=fake`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
+/** Sign-in id of each token, for the customerUid field. */
+const uidOf = new Map();
 async function signIn(phone) {
-  const post = (path, body) =>
-    fetch(`${AUTH}/${path}?key=fake`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
   const { sessionInfo } = await post('accounts:sendVerificationCode', { phoneNumber: phone });
   const codes = await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/verificationCodes`)).json();
   const code = codes.verificationCodes.filter((c) => c.phoneNumber === phone).at(-1).code;
-  return (await post('accounts:signInWithPhoneNumber', { sessionInfo, code })).idToken;
+  const r = await post('accounts:signInWithPhoneNumber', { sessionInfo, code });
+  uidOf.set(r.idToken, r.localId);
+  return r.idToken;
 }
+/** A customer as the app signs one in: no SMS code, just an anonymous sign-in. */
+async function signInAnon() {
+  const r = await post('accounts:signUp', { returnSecureToken: true });
+  uidOf.set(r.idToken, r.localId);
+  return r.idToken;
+}
+/** documents:runQuery for one field equal to a value, like the app's "my appointments". */
+const queryBy = (token, collection, field, value) =>
+  fetch(`${DOCS}/shops/${SHOP}:runQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: enc(value) } } } }),
+  });
 
 const enc = (v) =>
   v === null
@@ -109,7 +126,10 @@ await expectDenied(
 await expectDenied('customer: cannot book without the day ledger', commitUrl(me, [put('appointments/a2', { ...appt, customerPhone: '0521112233' })]));
 await expectAllowed(
   'customer: can book own appointment with the ledger',
-  commitUrl(me, [put('appointments/a3', { ...appt, customerPhone: '0521112233' }), put('days/2099-01-04', { busy: [{ id: 'a3', start: 600, end: 630 }] })]),
+  commitUrl(me, [
+    put('appointments/a3', { ...appt, customerPhone: '0521112233', customerUid: uidOf.get(me) }),
+    put('days/2099-01-04', { busy: [{ id: 'a3', start: 600, end: 630 }] }),
+  ]),
 );
 await expectAllowed(
   'admin: can add a walk-in to the same day',
@@ -137,6 +157,54 @@ await expectDenied(
 );
 await expectDenied('customer: cannot upload to the gallery', upload(me, `shops/${SHOP}/gallery/x.jpg`));
 
+console.log('\nCustomers without an SMS code');
+const anon = await signInAnon();
+const anonId = uidOf.get(anon);
+await expectAllowed('customer: can save own number and name', req(anon, 'PATCH', `shops/${SHOP}/users/${anonId}`, { fields: fields({ name: 'x', phone: '0521112233' }) }));
+await expectDenied(
+  "customer: cannot book under someone else's sign-in",
+  commitUrl(anon, [
+    put('appointments/b1', { ...appt, date: '2099-01-06', customerPhone: '0521112233', customerUid: uidOf.get(me) }),
+    put('days/2099-01-06', { busy: [{ id: 'b1', start: 600, end: 630 }] }),
+  ]),
+);
+await expectAllowed(
+  'customer: can book own appointment',
+  commitUrl(anon, [
+    put('appointments/b2', { ...appt, date: '2099-01-06', customerPhone: '0521112233', customerUid: anonId }),
+    put('days/2099-01-06', { busy: [{ id: 'b2', start: 600, end: 630 }] }),
+  ]),
+);
+await expectAllowed('customer: can list own appointments', queryBy(anon, 'appointments', 'customerUid', anonId));
+await expectDenied("customer: typing someone's number does not show his appointments", queryBy(anon, 'appointments', 'customerPhone', '0521112233'));
+await expectDenied("customer: cannot read another customer's appointment", req(anon, 'GET', `shops/${SHOP}/appointments/a3`));
+await expectDenied(
+  "customer: cannot cancel another customer's appointment",
+  commitUrl(anon, [
+    put('appointments/a3', { ...appt, customerPhone: '0521112233', customerUid: uidOf.get(me), status: 'cancelled', cancelledBy: 'customer' }),
+    put('days/2099-01-04', { busy: [{ id: 'w1', start: 700, end: 730 }] }),
+  ]),
+);
+await expectAllowed(
+  'customer: can cancel own appointment',
+  commitUrl(anon, [
+    put('appointments/b2', { ...appt, date: '2099-01-06', customerPhone: '0521112233', customerUid: anonId, status: 'cancelled', cancelledBy: 'customer' }),
+    put('days/2099-01-06', { busy: [] }),
+  ]),
+);
+await expectAllowed(
+  'customer: can join the waitlist',
+  req(anon, 'PATCH', `shops/${SHOP}/waitlist/x2`, { fields: fields({ date: '2099-01-04', customerPhone: '0521112233', customerUid: anonId }) }),
+);
+await expectDenied('customer: cannot read the whole waitlist', req(anon, 'GET', `shops/${SHOP}/waitlist`));
+await expectAllowed(
+  "customer: typing the admin's number gives no admin rights (profile only)",
+  req(anon, 'PATCH', `shops/${SHOP}/users/${anonId}`, { fields: fields({ name: 'x', phone: adminPhones[0].replace(/\D/g, '') }) }),
+);
+await expectDenied('customer with the admin number typed: cannot change prices', req(anon, 'PATCH', `shops/${SHOP}/services/cut`, { fields: fields({ price: 1 }) }));
+await expectDenied("customer with the admin number typed: cannot list everyone's appointments", req(anon, 'GET', `shops/${SHOP}/appointments`));
+await expectDenied('customer with the admin number typed: cannot upload to the gallery', upload(anon, `shops/${SHOP}/gallery/y.jpg`));
+
 if (trial) {
   console.log('\nTrial shops');
   await expectAllowed("anyone: can read a trial shop's details", req(null, 'GET', `trialShops/${SHOP}`));
@@ -155,7 +223,10 @@ if (trial) {
   });
   await expectDenied(
     'customer: cannot book after the trial ended',
-    commitUrl(me, [put('appointments/a9', { ...appt, date: '2099-01-05', customerPhone: '0521112233' }), put('days/2099-01-05', { busy: [{ id: 'a9', start: 600, end: 630 }] })]),
+    commitUrl(me, [
+      put('appointments/a9', { ...appt, date: '2099-01-05', customerPhone: '0521112233', customerUid: uidOf.get(me) }),
+      put('days/2099-01-05', { busy: [{ id: 'a9', start: 600, end: 630 }] }),
+    ]),
   );
   await expectAllowed('admin: still sees the appointments after the trial ended', req(admin, 'GET', `shops/${SHOP}/appointments`));
 }
