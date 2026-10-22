@@ -35,6 +35,8 @@ export interface WalkInInput {
   start: Minutes;
   /** Admin-chosen end (half an hour, an hour, or a custom range). Defaults to the service's length. */
   end?: Minutes;
+  /** Admin squeezes the client in although the time overlaps other appointments. */
+  squeeze?: boolean;
   customerName?: string;
   phone?: string;
   notes?: string;

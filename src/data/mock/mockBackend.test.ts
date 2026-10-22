@@ -129,6 +129,14 @@ describe('mock backend', () => {
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked', noShow: undefined });
   });
 
+  it('squeezes a walk-in over a taken slot only when asked', async () => {
+    await signIn(b, ADMIN);
+    await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540, end: 600 });
+    await expect(b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 560, end: 580 })).rejects.toThrow();
+    const s = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 560, end: 580, squeeze: true });
+    expect(s.start).toBe(560);
+  });
+
   it('delays appointments and takes the delay back', async () => {
     await signIn(b, ADMIN);
     const w = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540 });

@@ -278,18 +278,18 @@ export async function createFirebaseBackend(): Promise<Backend> {
   /** Reads a day's busy list inside a transaction (all reads must come before writes). */
   const readDay = async (t: Transaction, date: DateKey) => ((await t.get(dayRef(date))).data()?.busy ?? []) as BusyEntry[];
   /** Throws like the mock when [start, end) is not free on that day. */
-  const checkFree = (date: DateKey, busy: BusyEntry[], start: Minutes, end: Minutes, ignoreId?: string, allowPast = false) => {
+  const checkFree = (date: DateKey, busy: BusyEntry[], start: Minutes, end: Minutes, ignoreId?: string, allow: { allowPast?: boolean; allowOverlap?: boolean } = {}) => {
     const view: DbSnapshot = { ...db, appointments: [], blocks: busy.filter((b) => b.id !== ignoreId).map((b) => ({ ...b, date })) };
-    assertBookable(view, date, start, end, { allowPast });
+    assertBookable(view, date, start, end, allow);
   };
 
   /** Books into the day ledger and creates the appointment in one transaction, so two people can't take one slot. */
-  const placeAppointment = async (appt: Omit<Appointment, 'id'>, replaces?: Appointment, allowPast = false) => {
+  const placeAppointment = async (appt: Omit<Appointment, 'id'>, replaces?: Appointment, allow: { allowPast?: boolean; allowOverlap?: boolean } = {}) => {
     const ref = doc(col('appointments'));
     await runTransaction(fs, async (t) => {
       const busy = await readDay(t, appt.date);
       const oldBusy = replaces && replaces.date !== appt.date ? await readDay(t, replaces.date) : null;
-      checkFree(appt.date, busy, appt.start, appt.end, replaces?.id, allowPast);
+      checkFree(appt.date, busy, appt.start, appt.end, replaces?.id, allow);
       const entry = { id: ref.id, start: appt.start, end: appt.end };
       let nextBusy = [...busy, entry];
       if (replaces) {
@@ -418,7 +418,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
             createdAt: Date.now(),
           },
           undefined,
-          true,
+          { allowPast: true, allowOverlap: !!input.squeeze },
         );
       }),
       cancel: guard(async (id) => {

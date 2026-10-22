@@ -189,7 +189,7 @@ export function createMockBackend(): Backend {
         const svc = service(input.serviceId);
         const end = walkInEnd(input, svc.durationMin);
         // The barber can also write down a client who already came earlier today.
-        assertBookable(db, input.date, input.start, end, { allowPast: true });
+        assertBookable(db, input.date, input.start, end, { allowPast: true, allowOverlap: !!input.squeeze });
         const appt: Appointment = {
           id: uid(),
           date: input.date,

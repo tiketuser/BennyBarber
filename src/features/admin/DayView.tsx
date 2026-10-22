@@ -108,7 +108,10 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
         </div>
       )}
       <AnimatePresence initial={false}>
-        {rows.map((r) => {
+        {rows.map((r, i) => {
+          const next = rows[i + 1];
+          // Back-to-back appointments have no free row between them: a small "+" squeezes a client in.
+          const squeezeAt = r.kind === 'appointment' && next?.kind === 'appointment' && next.from <= r.to && !(date < today) && !(isToday && r.to <= nowM) ? r.to : null;
           const past = (isToday && r.to <= nowM) || date < today;
           const current = isToday && r.from <= nowM && nowM < r.to;
           const key = r.kind === 'appointment' ? r.appt.id : r.kind === 'block' ? r.block.id : `${r.kind}-${r.from}`;
@@ -155,6 +158,17 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                       onNoShow={() => noShow(r.appt)}
                     />
                   ))}
+                {squeezeAt != null && (
+                  <button
+                    type="button"
+                    aria-label={`דחוף לקוח ב-${fmtTime(squeezeAt)}`}
+                    onClick={() => onQuick(squeezeAt)}
+                    className="press mx-auto -mb-1 mt-1 flex h-7 items-center gap-1 rounded-full border border-dashed border-line-strong px-3 text-[12px] font-semibold text-ink-soft"
+                  >
+                    <Plus size={13} />
+                    דחוף לקוח
+                  </button>
+                )}
                 {r.kind === 'block' && (
                   <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
                     <Ban size={16} />

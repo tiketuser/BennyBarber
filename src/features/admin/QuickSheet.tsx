@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Zap } from 'lucide-react';
 import { useBackend, useDb } from '@/data/store';
-import { freeGaps, hoursFor, nextFreeStart } from '@/domain/schedule';
+import { clashes, freeGaps, hoursFor, nextFreeStart } from '@/domain/schedule';
 import type { DateKey, Minutes } from '@/domain/types';
 import { haptic } from '@/lib/platform';
 import { formatPhone } from '@/lib/phone';
-import { fmtRange, fmtTime, todayKey } from '@/lib/time';
+import { fmtRange, fmtTime, nowMinutes, todayKey } from '@/lib/time';
 import { Button, Chip, TextInput } from '@/ui/controls';
 import { Sheet } from '@/ui/Sheet';
 import { useOnChange } from '@/ui/useOnChange';
@@ -33,25 +33,32 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
     setCustom(null);
   });
 
+  const hours = hoursFor(db.settings, date);
+  const isToday = date === todayKey();
+  // "Now", rounded to 5 minutes and kept inside opening hours: where "דחוף תור עכשיו" goes.
+  const nowStart = isToday && hours ? Math.min(Math.max(Math.ceil(nowMinutes() / 5) * 5, hours.from), hours.to - 5) : null;
   // Any free time at all (20 minutes is the shortest window), not just room for the first service.
-  const from = start ?? nextFreeStart(db, date, 20);
+  // A full day still opens the form: the barber can squeeze someone in.
+  const from = start ?? nextFreeStart(db, date, 20) ?? nowStart ?? hours?.from ?? null;
   const gap = from == null ? undefined : freeGaps(db, date, 20).find((g) => from >= g.from && from < g.to);
   const room = gap ? gap.to - from! : 0;
   // Picked service, else the first one that fits the free time here, else the first one.
   const service = services.find((s) => s.id === picked) ?? services.find((s) => s.durationMin <= room) ?? services[0];
-  const hours = hoursFor(db.settings, date);
   const serviceMin = service?.durationMin ?? 20;
   const length = lenMinutes(len, serviceMin);
   // A longer choice looks for the first window it fits in; if none, the clash message explains.
   const apptFrom = start ?? nextFreeStart(db, date, length) ?? from;
-  const isToday = date === todayKey();
   // The custom range starts where the quick one would, until the barber moves it.
   const range = from == null ? null : len === 'custom' ? (custom ?? { from: apptFrom!, to: apptFrom! + serviceMin }) : { from: apptFrom!, to: apptFrom! + length };
 
-  const addWalkIn = async () => {
-    if (!range || !service) return;
+  // The time runs into another appointment: adding it squeezes the client in.
+  const squeeze = !!range && clashes(db, date, range.from, range.to);
+
+  const addWalkIn = async (at = range, force = squeeze) => {
+    if (!at || !service) return;
+    const range = at;
     try {
-      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: range.from, end: range.to, customerName: name, phone });
+      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: range.from, end: range.to, customerName: name, phone, squeeze: force });
       haptic('success');
       onClose();
       toast({
@@ -126,9 +133,24 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
             onChange={(e) => setPhone(formatPhone(e.target.value))}
             className="mt-1.5 h-12 text-right"
           />
-          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!service || !range || range.to <= range.from}>
-            <span className="num">הוסף ליומן {range && fmtRange(range.from, range.to)}</span>
+          {squeeze && <p className="m-0 mt-3.5 text-[13px] text-danger">יש כבר תור בזמן הזה. הלקוח יידחף ביניהם, והתורים האחרים נשארים במקום.</p>}
+          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={() => addWalkIn()} disabled={!service || !range || range.to <= range.from}>
+            <span className="num">
+              {squeeze ? 'דחוף תור' : 'הוסף ליומן'} {range && fmtRange(range.from, range.to)}
+            </span>
           </Button>
+          {nowStart != null && range?.from !== nowStart && (
+            <Button
+              block
+              variant="secondary"
+              className="mt-2"
+              icon={<Zap size={18} />}
+              onClick={() => addWalkIn({ from: nowStart, to: nowStart + (len === 'custom' ? serviceMin : length) }, true)}
+              disabled={!service}
+            >
+              דחוף תור עכשיו ({fmtTime(nowStart)})
+            </Button>
+          )}
 
           <div aria-hidden className="mt-6 border-t border-line-soft" />
 

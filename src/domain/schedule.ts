@@ -44,6 +44,11 @@ export function busyFor(db: Pick<DbSnapshot, 'appointments' | 'blocks' | 'settin
 
 const overlaps = (a: Minutes, b: Minutes, busy: Busy[]) => busy.some((x) => a < x.to && b > x.from);
 
+/** True when start-end runs into an appointment, block or break that day. */
+export function clashes(db: Pick<DbSnapshot, 'appointments' | 'blocks' | 'settings'>, date: DateKey, start: Minutes, end: Minutes): boolean {
+  return overlaps(start, end, busyFor(db, date));
+}
+
 interface SlotView {
   start: Minutes;
   available: boolean;
@@ -118,14 +123,14 @@ export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = 
 }
 
 /** Throws a user-facing Hebrew message when a booking can't be placed. */
-export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date; allowPast?: boolean } = {}) {
-  const { ignoreId, now = new Date(), allowPast = false } = opts;
+export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date; allowPast?: boolean; allowOverlap?: boolean } = {}) {
+  const { ignoreId, now = new Date(), allowPast = false, allowOverlap = false } = opts;
   const h = hoursFor(db.settings, date);
   if (!h) throw new Error(`${SHOP.closed} ביום הזה`);
   if (!allowPast && isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
-  if (overlaps(start, end, busy)) throw new Error(`השעה הזו כבר נתפסה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
+  if (!allowOverlap && overlaps(start, end, busy)) throw new Error(`השעה הזו כבר נתפסה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
 }
 
 /** The days a customer can book: today through `months` months ahead. */
