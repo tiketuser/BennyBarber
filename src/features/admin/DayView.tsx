@@ -16,6 +16,7 @@ import { useReleaseBlock } from './useReleaseBlock';
 import { useNoShow } from './useNoShow';
 import { OpeningAlert } from './OpeningAlert';
 import { WaitlistPanel } from './WaitlistPanel';
+import { InstallBanner } from '../customer/InstallBanner';
 import { useOpenings } from './openings';
 import { SHOP } from '@/config/shop';
 
@@ -408,6 +409,8 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             חזרה להיום
           </button>
         )}
+
+        <InstallBanner />
 
         <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col gap-0.5 rounded-2xl bg-brand p-3 text-white">

@@ -19,6 +19,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 const KEY = 'bb.install.dismissed';
+/** A closed banner comes back after a week (older versions stored '1': that counts as long ago). */
+const QUIET_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Dismissible "add to home screen" prompt. Uses the real install prompt on Android/Chrome, instructions on iPhone. */
 export function InstallBanner() {
@@ -28,7 +30,7 @@ export function InstallBanner() {
   useEffect(() => {
     let dismissed = false;
     try {
-      dismissed = localStorage.getItem(KEY) === '1';
+      dismissed = Date.now() - Number(localStorage.getItem(KEY) ?? 0) < QUIET_MS;
     } catch {
       /* ignore */
     }
@@ -41,7 +43,7 @@ export function InstallBanner() {
   const dismiss = () => {
     setShow(false);
     try {
-      localStorage.setItem(KEY, '1');
+      localStorage.setItem(KEY, String(Date.now()));
     } catch {
       /* ignore */
     }
