@@ -167,6 +167,13 @@ export async function createFirebaseBackend(): Promise<Backend> {
   // Data that depends on who is signed in.
   let scoped: Unsubscribe[] = [];
   let retry: ReturnType<typeof setTimeout> | undefined;
+  /** The last listen was refused: listen again as soon as the app is back in front or online. */
+  let failed = false;
+  const relisten = () => {
+    if (failed && !retry) watchScoped();
+  };
+  window.addEventListener('online', relisten);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && relisten());
   const watchScoped = (attempt = 0) => {
     clearTimeout(retry);
     retry = undefined;
@@ -178,11 +185,21 @@ export async function createFirebaseBackend(): Promise<Backend> {
     days = new Map();
     // Right after signing in, Firestore can still send the old sign-in with the first request and be refused; a
     // refused listener stays dead, so the admin saw an empty diary until a refresh. Listen again shortly instead.
+    // It keeps trying (with a fresh sign-in token each time) until the data comes in: an empty diary is never left showing.
     const onErr = (e: Error) => {
       warn('your data')(e);
+      failed = true;
       emit();
-      if (attempt < 5 && !retry) retry = setTimeout(() => ((retry = undefined), watchScoped(attempt + 1)), 800 * (attempt + 1));
+      if (retry) return;
+      retry = setTimeout(
+        () => {
+          retry = undefined;
+          void (user?.getIdToken(true) ?? Promise.resolve()).catch(() => {}).then(() => watchScoped(attempt + 1));
+        },
+        Math.min(800 * (attempt + 1), 5000),
+      );
     };
+    failed = false;
     if (session?.role === 'admin') {
       scoped.push(onSnapshot(col('appointments'), (s) => ((appointments = docs<Appointment>(s)), emit()), onErr));
       scoped.push(onSnapshot(col('blocks'), (s) => ((blocks = docs<Block>(s)), emit()), onErr));

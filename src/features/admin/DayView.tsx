@@ -81,7 +81,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const appts = rows.filter((r): r is Extract<Row, { kind: 'appointment' }> => r.kind === 'appointment');
   const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
   const free = useMemo(() => freeGaps(db, date, 20, now), [db, date, now]);
-  const hasUpcoming = isToday && appts.some((r) => r.to > nowM);
   // An empty or closed day offers a jump: to the next day with appointments, else the next day the shop is open.
   const next = useMemo(() => {
     if (appts.length) return null;
@@ -283,7 +282,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                 <CalendarPlus size={18} />
                 כל התורים ליומן
               </button>
-              {hasUpcoming && (
+              {isToday && (
                 <button
                   type="button"
                   onClick={() => setDelayOpen(true)}
@@ -371,7 +370,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             <span className="text-sm text-ink-soft">{fmtLongDate(date)}</span>
           </div>
           <div className="flex items-center gap-1">
-            {hasUpcoming && (
+            {isToday && (
               <button
                 type="button"
                 onClick={() => setDelayOpen(true)}

@@ -275,7 +275,7 @@ await step('admin delay moves the next clients and can be taken back', async () 
   const btn = page.locator('button', { hasText: 'מתעכב' }).first();
   if (!(await btn.count())) return;
   await btn.click();
-  if (await page.getByText('אין עוד תורים היום').count()) {
+  if (await page.getByText('אין עוד תורים להיום').count()) {
     await page.keyboard.press('Escape');
     await wait(400);
     return;

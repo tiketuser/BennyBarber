@@ -257,7 +257,7 @@ export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => vo
             </div>
           )}
           {upcoming.length === 0 ? (
-            <p className="py-8 text-center text-ink-soft">אין עוד תורים היום.</p>
+            <p className="py-8 text-center text-ink-soft">אין עוד תורים להיום.</p>
           ) : (
             <>
               <h2 className="m-0 pt-2 text-xl font-bold">{delayed.length ? 'בכמה עוד אתה מתעכב?' : 'בכמה אתה מתעכב?'}</h2>
