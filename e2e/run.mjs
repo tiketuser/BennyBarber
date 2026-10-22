@@ -259,6 +259,26 @@ await step('admin signs in to the day view', async () => {
   await see('חלונות פנויים');
 });
 
+await step('admin delay moves the next clients and can be taken back', async () => {
+  // Only when today still has clients to come (the run may be late in the day).
+  const btn = page.locator('button', { hasText: 'מתעכב' }).first();
+  if (!(await btn.count())) return;
+  await btn.click();
+  if (await page.getByText('אין עוד תורים היום').count()) {
+    await page.keyboard.press('Escape');
+    await wait(400);
+    return;
+  }
+  await tap('הזז ', { exact: false });
+  await see('התורים זזו', { exact: false });
+  await page.keyboard.press('Escape');
+  await wait(400);
+  await btn.click();
+  await tap('בטל עיכוב');
+  await see('העיכוב בוטל', { exact: false });
+  await wait(400);
+});
+
 await step('admin quick add, undo, and block', async () => {
   // Today may already be over, and the sample bookings fill some days: move ahead to the first day with a free slot.
   for (let i = 0; i < 10; i++) {

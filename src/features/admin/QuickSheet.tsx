@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useBackend, useDb } from '@/data/store';
-import { hoursFor, nextFreeStart } from '@/domain/schedule';
+import { freeGaps, hoursFor, nextFreeStart } from '@/domain/schedule';
 import type { DateKey, Minutes } from '@/domain/types';
 import { haptic } from '@/lib/platform';
+import { formatPhone } from '@/lib/phone';
 import { fmtRange, fmtTime, todayKey } from '@/lib/time';
 import { Button, Chip, TextInput } from '@/ui/controls';
 import { Sheet } from '@/ui/Sheet';
@@ -21,21 +22,26 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
   const services = [...db.services].sort((a, b) => a.order - b.order);
   const [picked, setPicked] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [len, setLen] = useState<LenChoice>('service');
   const [custom, setCustom] = useState<{ from: Minutes; to: Minutes } | null>(null);
   useOnChange(open, (isOpen) => {
     if (!isOpen) return;
     setName('');
+    setPhone('');
     setLen('service');
     setCustom(null);
   });
 
-  // Falls back to the first service when nothing is picked or the picked one was deleted.
-  const service = services.find((s) => s.id === picked) ?? services[0];
+  // Any free time at all (20 minutes is the shortest window), not just room for the first service.
+  const from = start ?? nextFreeStart(db, date, 20);
+  const gap = from == null ? undefined : freeGaps(db, date, 20).find((g) => from >= g.from && from < g.to);
+  const room = gap ? gap.to - from! : 0;
+  // Picked service, else the first one that fits the free time here, else the first one.
+  const service = services.find((s) => s.id === picked) ?? services.find((s) => s.durationMin <= room) ?? services[0];
   const hours = hoursFor(db.settings, date);
   const serviceMin = service?.durationMin ?? 20;
   const length = lenMinutes(len, serviceMin);
-  const from = start ?? nextFreeStart(db, date, serviceMin);
   // A longer choice looks for the first window it fits in; if none, the clash message explains.
   const apptFrom = start ?? nextFreeStart(db, date, length) ?? from;
   const isToday = date === todayKey();
@@ -45,7 +51,7 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
   const addWalkIn = async () => {
     if (!range || !service) return;
     try {
-      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: range.from, end: range.to, customerName: name });
+      const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start: range.from, end: range.to, customerName: name, phone });
       haptic('success');
       onClose();
       toast({
@@ -106,6 +112,20 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
             שם (לא חובה)
           </label>
           <TextInput id="walkin" placeholder="למשל: רון" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-12" />
+          <label htmlFor="walkin-phone" className="mt-3 block text-[13px] text-ink-soft">
+            טלפון (לא חובה)
+          </label>
+          <TextInput
+            id="walkin-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            dir="ltr"
+            placeholder="05X-XXXXXXX"
+            value={phone}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            className="mt-1.5 h-12 text-right"
+          />
           <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={addWalkIn} disabled={!service || !range || range.to <= range.from}>
             <span className="num">הוסף ליומן {range && fmtRange(range.from, range.to)}</span>
           </Button>

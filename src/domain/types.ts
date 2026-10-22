@@ -74,6 +74,8 @@ export interface Appointment {
   openingHandled?: boolean;
   /** Admin removed it because the client didn't come (a cancellation that frees the slot, no waitlist alert). */
   noShow?: boolean;
+  /** Minutes the barber pushed it back with "מתעכב" (removing the delay moves it back by this much). */
+  delayMin?: number;
 }
 
 export interface Block {

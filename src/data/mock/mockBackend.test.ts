@@ -129,6 +129,16 @@ describe('mock backend', () => {
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked', noShow: undefined });
   });
 
+  it('delays appointments and takes the delay back', async () => {
+    await signIn(b, ADMIN);
+    const w = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540 });
+    await b.appointments.delay(TUESDAY, [w.id], 15);
+    await b.appointments.delay(TUESDAY, [w.id], 10);
+    expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ start: 565, end: 585, delayMin: 25 });
+    await b.appointments.delay(TUESDAY, [w.id], -25);
+    expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ start: 540, end: 560, delayMin: undefined });
+  });
+
   it('publishes a new snapshot object on every change', async () => {
     const before = b.getSnapshot();
     const listener = vi.fn();

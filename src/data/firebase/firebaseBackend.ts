@@ -436,6 +436,18 @@ export async function createFirebaseBackend(): Promise<Backend> {
           }
         });
       }),
+      delay: guard(async (date, ids, minutes) => {
+        requireAdmin();
+        const moved = new Map(ids.map((id) => [id, appointment(id)]));
+        await runTransaction(fs, async (t) => {
+          const busy = await readDay(t, date);
+          for (const a of moved.values()) {
+            const total = (a.delayMin ?? 0) + minutes;
+            t.update(apptRef(a.id), { start: a.start + minutes, end: a.end + minutes, delayMin: total > 0 ? total : deleteField() });
+          }
+          t.set(dayRef(date), { busy: busy.map((b) => (moved.has(b.id) ? { ...b, start: b.start + minutes, end: b.end + minutes } : b)) });
+        });
+      }),
       markOpeningHandled: guard(async (id) => {
         requireAdmin();
         await updateDoc(apptRef(id), { openingHandled: true });

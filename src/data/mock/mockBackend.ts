@@ -222,6 +222,15 @@ export function createMockBackend(): Backend {
           return { ...a, status: 'booked', cancelledAt: undefined, cancelledBy: undefined, openingHandled: undefined, noShow: undefined };
         });
       },
+      async delay(date, ids, minutes) {
+        requireAdmin();
+        await wait(60);
+        patchAppointments((a) => {
+          if (a.date !== date || !ids.includes(a.id)) return a;
+          const total = (a.delayMin ?? 0) + minutes;
+          return { ...a, start: a.start + minutes, end: a.end + minutes, delayMin: total > 0 ? total : undefined };
+        });
+      },
       async markOpeningHandled(id) {
         requireAdmin();
         patchAppointments((a) => (a.id === id ? { ...a, openingHandled: true } : a));

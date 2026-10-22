@@ -76,7 +76,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const appts = rows.filter((r): r is Extract<Row, { kind: 'appointment' }> => r.kind === 'appointment');
   const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
   const free = useMemo(() => freeGaps(db, date, 20, now), [db, date, now]);
-  const hasUpcoming = isToday && appts.some((r) => r.to > nowM && r.appt.phone);
+  const hasUpcoming = isToday && appts.some((r) => r.to > nowM);
   // An empty or closed day offers a jump: to the next day with appointments, else the next day the shop is open.
   const next = useMemo(() => {
     if (appts.length) return null;
@@ -451,6 +451,7 @@ function AppointmentCard({
           <span className="truncate text-base font-semibold">
             {appt.customerName}
             {appt.source === 'walkin' && <span className="mr-1.5 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">נכנס מהרחוב</span>}
+            {appt.delayMin ? <span className="mr-1.5 rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger">מתעכב {appt.delayMin} דק׳</span> : null}
           </span>
           <span className="flex items-center gap-1 text-[13px] text-ink-soft">
             {appt.serviceName} • {fmtRange(appt.start, appt.end)}
