@@ -118,11 +118,11 @@ export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = 
 }
 
 /** Throws a user-facing Hebrew message when a booking can't be placed. */
-export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date } = {}) {
-  const { ignoreId, now = new Date() } = opts;
+export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date; allowPast?: boolean } = {}) {
+  const { ignoreId, now = new Date(), allowPast = false } = opts;
   const h = hoursFor(db.settings, date);
   if (!h) throw new Error(`${SHOP.closed} ביום הזה`);
-  if (isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
+  if (!allowPast && isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
   if (overlaps(start, end, busy)) throw new Error(`השעה הזו כבר נתפסה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);

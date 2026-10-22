@@ -66,7 +66,10 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
           : { kind: 'break', from: b.from, to: b.to },
     );
     // Calendar style: every time a client can start gets its own row.
-    for (const g of freeGaps(db, date, 20, now)) {
+    // From the day's opening, not from now, so a client who already came can still be written down.
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    for (const g of freeGaps(db, date, 20, dayStart)) {
       const starts = slotStarts(g.from, g.to);
       starts.forEach((t, i) => out.push({ kind: 'slot', from: t, to: starts[i + 1] ?? g.to }));
     }
