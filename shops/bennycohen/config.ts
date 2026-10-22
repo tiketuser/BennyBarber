@@ -18,6 +18,8 @@ export default defineShop({
   phone: '050-0000000',
   /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
   adminPhones: ['054-4437070', '052-8887726'],
+  /** The round logo picture in the header and sign-in badge (the app icon). */
+  logoUrl: '/pwa-512.png',
   /** Instagram handle without "@", or null to hide Instagram. */
   instagram: '[שם באינסטגרם]',
   /**
