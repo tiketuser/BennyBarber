@@ -18,6 +18,7 @@ import {
   collection,
   connectFirestoreEmulator,
   deleteDoc,
+  deleteField,
   doc,
   documentId,
   getDoc,
@@ -420,6 +421,20 @@ export async function createFirebaseBackend(): Promise<Backend> {
         const s = requireSession();
         const a = appointment(id);
         await runTransaction(fs, async (t) => (await cancelIn(t, a, s.role, false))());
+      }),
+      setNoShow: guard(async (id, noShow) => {
+        requireAdmin();
+        const a = appointment(id);
+        await runTransaction(fs, async (t) => {
+          const busy = (await readDay(t, a.date)).filter((b) => b.id !== a.id);
+          if (noShow) {
+            t.update(apptRef(a.id), { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'admin', openingHandled: true, noShow: true });
+            t.set(dayRef(a.date), { busy });
+          } else {
+            t.update(apptRef(a.id), { status: 'booked', cancelledAt: deleteField(), cancelledBy: deleteField(), openingHandled: deleteField(), noShow: deleteField() });
+            t.set(dayRef(a.date), { busy: [...busy, { id: a.id, start: a.start, end: a.end }] });
+          }
+        });
       }),
       markOpeningHandled: guard(async (id) => {
         requireAdmin();

@@ -213,6 +213,15 @@ export function createMockBackend(): Backend {
         const by = session!.role;
         patchAppointments((a) => (a.id === id ? { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: by, openingHandled: false } : a));
       },
+      async setNoShow(id, noShow) {
+        requireAdmin();
+        await wait(60);
+        patchAppointments((a) => {
+          if (a.id !== id) return a;
+          if (noShow) return { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'admin', openingHandled: true, noShow: true };
+          return { ...a, status: 'booked', cancelledAt: undefined, cancelledBy: undefined, openingHandled: undefined, noShow: undefined };
+        });
+      },
       async markOpeningHandled(id) {
         requireAdmin();
         patchAppointments((a) => (a.id === id ? { ...a, openingHandled: true } : a));

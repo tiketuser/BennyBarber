@@ -72,6 +72,8 @@ export interface Appointment {
   cancelledBy?: Role;
   /** Admin dismissed the "התפנה תור" alert for this cancellation. */
   openingHandled?: boolean;
+  /** Admin removed it because the client didn't come (a cancellation that frees the slot, no waitlist alert). */
+  noShow?: boolean;
 }
 
 export interface Block {

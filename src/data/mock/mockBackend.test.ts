@@ -118,6 +118,17 @@ describe('mock backend', () => {
     expect(b.getSnapshot().services.map((s) => s.id)).toEqual(['cut', 'cut-beard', 'beard']);
   });
 
+  it('walk-ins take a chosen end, and a no-show frees the slot until undone', async () => {
+    await signIn(b, ADMIN);
+    await expect(b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540, end: 540 })).rejects.toThrow('שעת הסיום');
+    const w = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540, end: 600 });
+    expect(w.end).toBe(600);
+    await b.appointments.setNoShow(w.id, true);
+    expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'cancelled', noShow: true, openingHandled: true });
+    await b.appointments.setNoShow(w.id, false);
+    expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked', noShow: undefined });
+  });
+
   it('publishes a new snapshot object on every change', async () => {
     const before = b.getSnapshot();
     const listener = vi.fn();

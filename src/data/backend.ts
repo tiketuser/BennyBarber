@@ -66,6 +66,8 @@ export interface Backend {
     addWalkIn(input: WalkInInput): Promise<Appointment>;
     /** Customers can cancel their own appointments, the admin any. Frees the slot for the waitlist alert. */
     cancel(id: string): Promise<void>;
+    /** Admin: the client didn't come. Takes the appointment off the day; false puts it back (undo). */
+    setNoShow(id: string, noShow: boolean): Promise<void>;
     markOpeningHandled(id: string): Promise<void>;
     /** Admin: new times for some appointments of one day (a longer or shorter appointment, and the ones after it). */
     retime(date: DateKey, times: { id: string; start: Minutes; end: Minutes }[]): Promise<void>;

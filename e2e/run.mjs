@@ -279,7 +279,7 @@ await step('admin quick add, undo, and block', async () => {
     await wait(400);
   }
   await page.fill('#walkin', 'רון');
-  await page.locator('[role=dialog] button[aria-pressed]', { hasText: /^שעה$/ }).click();
+  await page.locator('[role=dialog] button[aria-pressed]', { hasText: /^חצי שעה$/ }).click();
   await tap('הוסף ליומן ', { exact: false });
   await see('נוסף ליומן', { exact: false });
   await tap('ביטול');
@@ -426,10 +426,10 @@ await step('admin desktop: quick add page adds a client with WhatsApp confirm', 
   await page.locator('nav button', { hasText: 'תור מהיר' }).click();
   await page.fill('#qname', 'אבי בדיקה');
   await page.fill('#qphone', '0541234567');
-  // A custom from-to range: 45 minutes from the suggested start.
+  // A custom from-to range: half an hour from the suggested free start (sample bookings may follow it).
   await page.locator('section button', { hasText: 'משעה עד שעה' }).click();
   const [h, m] = (await page.inputValue('#appt-from')).split(':').map(Number);
-  const to = h * 60 + m + 45;
+  const to = h * 60 + m + 30;
   await page.fill('#appt-to', `${String(Math.floor(to / 60)).padStart(2, '0')}:${String(to % 60).padStart(2, '0')}`);
   await page.locator('section button', { hasText: 'הוסף ליומן - ' }).click();
   await see('נוסף ליומן', { exact: false });

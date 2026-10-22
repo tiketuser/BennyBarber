@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, Timer, MessageCircle, Phone, Plus, StickyNote, X } from 'lucide-react';
+import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, Timer, MessageCircle, Phone, Plus, StickyNote, UserX, X } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
 import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
@@ -13,6 +13,7 @@ import { spring } from '@/ui/motion';
 import { firstName, money } from '../format';
 import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, DurationSheet, FreeSlotsSheet } from './DaySheets';
 import { useReleaseBlock } from './useReleaseBlock';
+import { useNoShow } from './useNoShow';
 import { OpeningAlert } from './OpeningAlert';
 import { useOpenings } from './openings';
 import { SHOP } from '@/config/shop';
@@ -53,6 +54,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const openings = useOpenings();
   const releaseBlock = useReleaseBlock();
+  const noShow = useNoShow();
   const hours = hoursFor(db.settings, date);
 
   const rows = useMemo<Row[]>(() => {
@@ -130,9 +132,25 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                         {r.appt.customerName} • {r.appt.serviceName}
                       </span>
                       <span className="font-semibold">{money(r.appt.price)}</span>
+                      <button
+                        type="button"
+                        aria-label={`${r.appt.customerName} לא הגיע`}
+                        onClick={() => noShow(r.appt)}
+                        className="press -my-1 -ml-1.5 flex h-9 items-center gap-1 rounded-[10px] bg-danger-soft px-2.5 text-[13px] font-semibold text-danger"
+                      >
+                        <UserX size={15} />
+                        לא הגיע
+                      </button>
                     </div>
                   ) : (
-                    <AppointmentCard appt={r.appt} today={today} current={current} onCancel={() => setCancelAppt(r.appt)} onDuration={() => setDurationAppt(r.appt)} />
+                    <AppointmentCard
+                      appt={r.appt}
+                      today={today}
+                      current={current}
+                      onCancel={() => setCancelAppt(r.appt)}
+                      onDuration={() => setDurationAppt(r.appt)}
+                      onNoShow={() => noShow(r.appt)}
+                    />
                   ))}
                 {r.kind === 'block' && (
                   <div className="flex h-[52px] items-center gap-2 rounded-[14px] bg-danger-soft px-3.5 text-sm font-medium text-danger">
@@ -410,7 +428,21 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   );
 }
 
-function AppointmentCard({ appt, today, current, onCancel, onDuration }: { appt: Appointment; today: DateKey; current: boolean; onCancel: () => void; onDuration: () => void }) {
+function AppointmentCard({
+  appt,
+  today,
+  current,
+  onCancel,
+  onDuration,
+  onNoShow,
+}: {
+  appt: Appointment;
+  today: DateKey;
+  current: boolean;
+  onCancel: () => void;
+  onDuration: () => void;
+  onNoShow: () => void;
+}) {
   const reminder = `היי ${firstName(appt.customerName)}, תזכורת לתור שלך ${appt.date === today ? 'היום' : `ב${fmtShortDate(appt.date)}`} ב-${fmtTime(appt.start)} ${SHOP.inPlace}. נתראה!`;
   return (
     <div className={cx('flex flex-col gap-2.5 rounded-2xl px-3.5 py-3', current ? 'border-2 border-brand' : 'border border-line')}>
@@ -457,6 +489,12 @@ function AppointmentCard({ appt, today, current, onCancel, onDuration }: { appt:
           </>
         ) : (
           <span className="flex h-11 flex-1 items-center text-[13px] text-ink-soft">בלי מספר טלפון</span>
+        )}
+        {current && (
+          <button type="button" onClick={onNoShow} className="press flex h-11 items-center gap-1 rounded-xl bg-danger-soft px-3 text-sm font-semibold text-danger">
+            <UserX size={17} />
+            לא הגיע
+          </button>
         )}
         <button type="button" aria-label="ביטול תור" onClick={onCancel} className="press flex h-11 w-[52px] items-center justify-center rounded-xl bg-danger-soft text-danger">
           <X size={18} />

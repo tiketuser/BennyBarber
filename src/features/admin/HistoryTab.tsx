@@ -262,7 +262,7 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
                         cancelled ? 'bg-danger-soft text-danger' : 'bg-open-soft text-open-text',
                       )}
                     >
-                      {cancelled ? 'בוטל' : 'הגיע'}
+                      {a.noShow ? 'לא הגיע' : cancelled ? 'בוטל' : 'הגיע'}
                     </span>
                   </span>
                   <span role="cell" className={cx('num text-left text-[15px] font-semibold', cancelled && 'text-ink-faint line-through')}>
@@ -412,7 +412,7 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
                 <span className="truncate text-[15px] font-medium">{a.customerName}</span>
                 <span className="truncate text-xs text-ink-soft">
                   {a.serviceName}
-                  {cancelled ? ' • בוטל' : ''}
+                  {a.noShow ? ' • לא הגיע' : cancelled ? ' • בוטל' : ''}
                 </span>
               </div>
               <span className={cx('num text-[15px] font-semibold', cancelled && 'text-danger')}>{cancelled ? '-' : money(a.price)}</span>
