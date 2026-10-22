@@ -111,8 +111,8 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
       <AnimatePresence initial={false}>
         {rows.map((r, i) => {
           const next = rows[i + 1];
-          // Back-to-back appointments have no free row between them: a small "+" squeezes a client in.
-          const squeezeAt = r.kind === 'appointment' && next?.kind === 'appointment' && next.from <= r.to && !(date < today) && !(isToday && r.to <= nowM) ? r.to : null;
+          // Two appointments with no free row between them (back to back, or a gap under 20 minutes): a small "+" squeezes a client in.
+          const squeezeAt = r.kind === 'appointment' && next?.kind === 'appointment' && !(date < today) && !(isToday && r.to <= nowM) ? r.to : null;
           const past = (isToday && r.to <= nowM) || date < today;
           const current = isToday && r.from <= nowM && nowM < r.to;
           const key = r.kind === 'appointment' ? r.appt.id : r.kind === 'block' ? r.block.id : `${r.kind}-${r.from}`;
