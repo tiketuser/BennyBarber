@@ -278,13 +278,20 @@ export async function createFirebaseBackend(): Promise<Backend> {
   /** Reads a day's busy list inside a transaction (all reads must come before writes). */
   const readDay = async (t: Transaction, date: DateKey) => ((await t.get(dayRef(date))).data()?.busy ?? []) as BusyEntry[];
   /** Throws like the mock when [start, end) is not free on that day. */
-  const checkFree = (date: DateKey, busy: BusyEntry[], start: Minutes, end: Minutes, ignoreId?: string, allow: { allowPast?: boolean; allowOverlap?: boolean } = {}) => {
+  const checkFree = (
+    date: DateKey,
+    busy: BusyEntry[],
+    start: Minutes,
+    end: Minutes,
+    ignoreId?: string,
+    allow: { allowPast?: boolean; allowOverlap?: boolean; anyHour?: boolean } = {},
+  ) => {
     const view: DbSnapshot = { ...db, appointments: [], blocks: busy.filter((b) => b.id !== ignoreId).map((b) => ({ ...b, date })) };
     assertBookable(view, date, start, end, allow);
   };
 
   /** Books into the day ledger and creates the appointment in one transaction, so two people can't take one slot. */
-  const placeAppointment = async (appt: Omit<Appointment, 'id'>, replaces?: Appointment, allow: { allowPast?: boolean; allowOverlap?: boolean } = {}) => {
+  const placeAppointment = async (appt: Omit<Appointment, 'id'>, replaces?: Appointment, allow: { allowPast?: boolean; allowOverlap?: boolean; anyHour?: boolean } = {}) => {
     const ref = doc(col('appointments'));
     await runTransaction(fs, async (t) => {
       const busy = await readDay(t, appt.date);
@@ -418,7 +425,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
             createdAt: Date.now(),
           },
           undefined,
-          { allowPast: true, allowOverlap: !!input.squeeze },
+          { allowPast: true, allowOverlap: !!input.squeeze, anyHour: true },
         );
       }),
       cancel: guard(async (id) => {

@@ -34,11 +34,11 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
 
   const hours = hoursFor(db.settings, date);
   const isToday = date === todayKey();
-  // "Now", rounded to 5 minutes and kept inside opening hours: where "דחוף תור עכשיו" goes.
-  const nowStart = isToday && hours ? Math.min(Math.max(Math.ceil(nowMinutes() / 5) * 5, hours.from), hours.to - 5) : null;
+  // "Now", rounded to 5 minutes: where "דחוף תור עכשיו" goes, opening hours or not.
+  const nowStart = isToday ? Math.min(Math.ceil(nowMinutes() / 5) * 5, 23 * 60 + 30) : null;
   // Any free time at all (20 minutes is the shortest window), not just room for the first service.
   // A full day still opens the form: the barber can squeeze someone in.
-  const from = start ?? nextFreeStart(db, date, 20) ?? nowStart ?? hours?.from ?? null;
+  const from: number = start ?? nextFreeStart(db, date, 20) ?? nowStart ?? hours?.from ?? 9 * 60;
   const gap = from == null ? undefined : freeGaps(db, date, 20).find((g) => from >= g.from && from < g.to);
   const room = gap ? gap.to - from! : 0;
   // Picked service, else the first one that fits the free time here, else the first one.
@@ -90,86 +90,84 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
 
   return (
     <Sheet open={open} onClose={onClose} label="תור מהיר או חסימה">
-      {from == null || !hours ? (
-        <div className="py-8 text-center">
-          <h2 className="m-0 text-xl font-bold">{hours ? 'אין זמן פנוי ביום הזה' : closedText(db.settings, date)}</h2>
-          <p className="text-ink-soft">אפשר לעבור ליום אחר ביומן.</p>
+      <>
+        <h2 className="m-0 pt-2 text-[22px] font-bold">{isToday && start == null ? 'לקוח נכנס עכשיו' : 'הוספת לקוח'}</h2>
+        {!hours && <p className="m-0 mt-1 text-[13px] text-ink-soft">{closedText(db.settings, date)}, אבל אפשר להוסיף לקוח בכל שעה.</p>}
+        <div className="mt-3.5 flex flex-wrap gap-2">
+          {services.map((s) => (
+            <Chip key={s.id} on={s.id === service?.id} onClick={() => setPicked(s.id)}>
+              {s.shortName} {money(s.price)}
+            </Chip>
+          ))}
         </div>
-      ) : (
-        <>
-          <h2 className="m-0 pt-2 text-[22px] font-bold">{isToday && start == null ? 'לקוח נכנס עכשיו' : 'הוספת לקוח'}</h2>
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {services.map((s) => (
-              <Chip key={s.id} on={s.id === service?.id} onClick={() => setPicked(s.id)}>
-                {s.shortName} {money(s.price)}
-              </Chip>
-            ))}
-          </div>
-          <span className="mt-3.5 block text-[13px] text-ink-soft">כמה זמן</span>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            {lenChoices(serviceMin).map((c) => (
-              <Chip key={c.id} on={c.id === len} onClick={() => setLen(c.id)}>
-                {c.label}
-              </Chip>
-            ))}
-          </div>
-          {len === 'custom' && range && <FromTo className="mt-3" from={range.from} to={range.to} onChange={(f, t) => setCustom({ from: f, to: t })} />}
-          <label htmlFor="walkin" className="mt-3.5 block text-[13px] text-ink-soft">
-            שם (לא חובה)
-          </label>
-          <TextInput id="walkin" placeholder="למשל: רון" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-12" />
-          <label htmlFor="walkin-phone" className="mt-3 block text-[13px] text-ink-soft">
-            טלפון (לא חובה)
-          </label>
-          <TextInput
-            id="walkin-phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="off"
-            dir="ltr"
-            placeholder="05X-XXXXXXX"
-            value={phone}
-            onChange={(e) => setPhone(formatPhone(e.target.value))}
-            className="mt-1.5 h-12 text-right"
-          />
-          {squeeze && <p className="m-0 mt-3.5 text-[13px] text-danger">יש כבר תור בזמן הזה. הלקוח יידחף ביניהם, והתורים האחרים נשארים במקום.</p>}
-          <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={() => addWalkIn()} disabled={!service || !range || range.to <= range.from}>
-            <span className="num">
-              {squeeze ? 'דחוף תור' : 'הוסף ליומן'} {range && fmtRange(range.from, range.to)}
-            </span>
+        <span className="mt-3.5 block text-[13px] text-ink-soft">כמה זמן</span>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {lenChoices(serviceMin).map((c) => (
+            <Chip key={c.id} on={c.id === len} onClick={() => setLen(c.id)}>
+              {c.label}
+            </Chip>
+          ))}
+        </div>
+        {len === 'custom' && range && <FromTo className="mt-3" from={range.from} to={range.to} onChange={(f, t) => setCustom({ from: f, to: t })} />}
+        <label htmlFor="walkin" className="mt-3.5 block text-[13px] text-ink-soft">
+          שם (לא חובה)
+        </label>
+        <TextInput id="walkin" placeholder="למשל: רון" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-12" />
+        <label htmlFor="walkin-phone" className="mt-3 block text-[13px] text-ink-soft">
+          טלפון (לא חובה)
+        </label>
+        <TextInput
+          id="walkin-phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="off"
+          dir="ltr"
+          placeholder="05X-XXXXXXX"
+          value={phone}
+          onChange={(e) => setPhone(formatPhone(e.target.value))}
+          className="mt-1.5 h-12 text-right"
+        />
+        {squeeze && <p className="m-0 mt-3.5 text-[13px] text-danger">יש כבר תור בזמן הזה. הלקוח יידחף ביניהם, והתורים האחרים נשארים במקום.</p>}
+        <Button block className="mt-3.5" icon={<Plus size={20} />} onClick={() => addWalkIn()} disabled={!service || !range || range.to <= range.from}>
+          <span className="num">
+            {squeeze ? 'דחוף תור' : 'הוסף ליומן'} {range && fmtRange(range.from, range.to)}
+          </span>
+        </Button>
+        {nowStart != null && range?.from !== nowStart && (
+          <Button
+            block
+            variant="secondary"
+            className="mt-2"
+            icon={<Zap size={18} />}
+            onClick={() => addWalkIn({ from: nowStart, to: nowStart + (len === 'custom' ? serviceMin : length) }, true)}
+            disabled={!service}
+          >
+            דחוף תור עכשיו ({fmtTime(nowStart)})
           </Button>
-          {nowStart != null && range?.from !== nowStart && (
-            <Button
-              block
-              variant="secondary"
-              className="mt-2"
-              icon={<Zap size={18} />}
-              onClick={() => addWalkIn({ from: nowStart, to: nowStart + (len === 'custom' ? serviceMin : length) }, true)}
-              disabled={!service}
-            >
-              דחוף תור עכשיו ({fmtTime(nowStart)})
-            </Button>
-          )}
+        )}
 
-          <div aria-hidden className="mt-6 border-t border-line-soft" />
+        {hours && (
+          <>
+            <div aria-hidden className="mt-6 border-t border-line-soft" />
 
-          <h2 className="m-0 mt-5 text-[22px] font-bold">לחסום זמן</h2>
-          <p className="m-0 mt-1 text-[13px] text-ink-soft">לקוחות לא יוכלו לקבוע בזמן הזה. החל מ-{fmtTime(from)}.</p>
-          <div className="mt-3.5 grid grid-cols-3 gap-2 pb-2">
-            {(
-              [
-                [30, '30 דק׳'],
-                [60, 'שעה'],
-                ['end', 'עד הסוף'],
-              ] as const
-            ).map(([len, label]) => (
-              <Button key={label} variant="danger" size="lg" className="text-base" onClick={() => block(len)}>
-                {label}
-              </Button>
-            ))}
-          </div>
-        </>
-      )}
+            <h2 className="m-0 mt-5 text-[22px] font-bold">לחסום זמן</h2>
+            <p className="m-0 mt-1 text-[13px] text-ink-soft">לקוחות לא יוכלו לקבוע בזמן הזה. החל מ-{fmtTime(from)}.</p>
+            <div className="mt-3.5 grid grid-cols-3 gap-2 pb-2">
+              {(
+                [
+                  [30, '30 דק׳'],
+                  [60, 'שעה'],
+                  ['end', 'עד הסוף'],
+                ] as const
+              ).map(([len, label]) => (
+                <Button key={label} variant="danger" size="lg" className="text-base" onClick={() => block(len)}>
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
+      </>
     </Sheet>
   );
 }

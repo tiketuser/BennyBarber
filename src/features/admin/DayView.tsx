@@ -293,16 +293,14 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                   מתעכב
                 </button>
               )}
-              {hours && (
-                <button
-                  type="button"
-                  onClick={() => onQuick(null)}
-                  className="press flex h-11 items-center gap-2 rounded-xl bg-brand px-[18px] text-sm font-semibold text-brand-accent"
-                >
-                  <Plus size={18} />
-                  תור חדש
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => onQuick(null)}
+                className="press flex h-11 items-center gap-2 rounded-xl bg-brand px-[18px] text-sm font-semibold text-brand-accent"
+              >
+                <Plus size={18} />
+                תור חדש
+              </button>
             </div>
           </div>
 
@@ -434,17 +432,15 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
         {timeline}
       </div>
 
-      {hours && (
-        <button
-          type="button"
-          aria-label="תור מהיר או חסימה"
-          onClick={() => onQuick(null)}
-          className="press absolute left-5 z-[5] flex size-[60px] items-center justify-center rounded-full bg-brand text-brand-accent shadow-[0_8px_24px_rgba(17,17,17,0.28)]"
-          style={{ bottom: `calc(${TAB_BAR_SPACE} + 20px)` }}
-        >
-          <Plus size={28} />
-        </button>
-      )}
+      <button
+        type="button"
+        aria-label="תור מהיר או חסימה"
+        onClick={() => onQuick(null)}
+        className="press absolute left-5 z-[5] flex size-[60px] items-center justify-center rounded-full bg-brand text-brand-accent shadow-[0_8px_24px_rgba(17,17,17,0.28)]"
+        style={{ bottom: `calc(${TAB_BAR_SPACE} + 20px)` }}
+      >
+        <Plus size={28} />
+      </button>
 
       {sheets}
     </>

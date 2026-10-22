@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Backend } from '../backend';
-import { appt, emptyDb, MONDAY_MORNING, TUESDAY } from '@/test/fixtures';
+import { appt, emptyDb, MONDAY_MORNING, SATURDAY, TUESDAY } from '@/test/fixtures';
 import { createMockBackend } from './mockBackend';
 import { ADMIN_PHONES } from '@/config/shop';
 
@@ -105,7 +105,8 @@ describe('mock backend', () => {
     const snap = b.getSnapshot();
     expect(snap.appointments[0].status).toBe('cancelled');
     expect(snap.settings.vacations).toHaveLength(1);
-    await expect(b.appointments.addWalkIn({ serviceId: 'cut', date: TUESDAY, start: 700 })).rejects.toThrow('בחופשה');
+    // The admin can still write someone in by hand; customers can't book the day.
+    await expect(b.appointments.addWalkIn({ serviceId: 'cut', date: TUESDAY, start: 700 })).resolves.toBeTruthy();
   });
 
   it('adds walk-ins and restores a deleted service in its place', async () => {
@@ -127,6 +128,14 @@ describe('mock backend', () => {
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'cancelled', noShow: true, openingHandled: true });
     await b.appointments.setNoShow(w.id, false);
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked', noShow: undefined });
+  });
+
+  it('admin walk-ins may go outside opening hours and on closed days', async () => {
+    await signIn(b, ADMIN);
+    const late = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 22 * 60, end: 22 * 60 + 30 });
+    expect(late.start).toBe(22 * 60);
+    const sat = await b.appointments.addWalkIn({ serviceId: 'beard', date: SATURDAY, start: 600, end: 630 });
+    expect(sat.date).toBe(SATURDAY);
   });
 
   it('squeezes a walk-in over a taken slot only when asked', async () => {

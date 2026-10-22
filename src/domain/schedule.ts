@@ -152,13 +152,15 @@ export function assertBookable(
   date: DateKey,
   start: Minutes,
   end: Minutes,
-  opts: { ignoreId?: string; now?: Date; allowPast?: boolean; allowOverlap?: boolean } = {},
+  opts: { ignoreId?: string; now?: Date; allowPast?: boolean; allowOverlap?: boolean; anyHour?: boolean } = {},
 ) {
-  const { ignoreId, now = new Date(), allowPast = false, allowOverlap = false } = opts;
+  const { ignoreId, now = new Date(), allowPast = false, allowOverlap = false, anyHour = false } = opts;
+  // anyHour: the admin adds a client whenever he likes, closed day or after hours included.
+  if (start < 0 || end > 24 * 60 || end <= start) throw new Error('שעה לא תקינה');
   const h = hoursFor(db.settings, date);
-  if (!h) throw new Error(closedText(db.settings, date));
+  if (!h && !anyHour) throw new Error(closedText(db.settings, date));
   if (!allowPast && isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
-  if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
+  if (!anyHour && h && (start < h.from || end > h.to)) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));
   if (!allowOverlap && overlaps(start, end, busy)) throw new Error(`השעה הזו כבר נתפסה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
 }

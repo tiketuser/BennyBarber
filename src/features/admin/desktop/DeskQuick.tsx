@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ban, Check, MessageCircle, Plus } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import { busyFor, closedText, freeGaps, hoursFor } from '@/domain/schedule';
+import { busyFor, clashes, closedText, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
@@ -66,16 +66,16 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
   }, [db, date, need, now]);
   const quickStart = picked != null && options.includes(picked) ? picked : (options[0] ?? null);
   // A custom range starts at the picked slot until the barber moves it; it can be any time that day.
-  const start = isCustom && hours ? (custom?.from ?? quickStart ?? hours.from) : quickStart;
+  const start = isCustom ? (custom?.from ?? quickStart ?? hours?.from ?? 9 * 60) : quickStart;
 
   const items = busyFor(db, date);
   let end: Minutes | null = null;
-  if (start != null && hours) {
+  if (start != null && (hours || isAppt)) {
     if (isAppt) end = isCustom ? (custom?.to ?? start + serviceMin) : start + need;
     else {
       const len = LENGTHS[lenIdx].len;
-      const nextBusy = Math.min(hours.to, ...items.filter((b) => b.from >= start + 1).map((b) => b.from));
-      end = len === 0 ? hours.to : Math.min(start + len, nextBusy);
+      const nextBusy = Math.min(hours!.to, ...items.filter((b) => b.from >= start + 1).map((b) => b.from));
+      end = len === 0 ? hours!.to : Math.min(start + len, nextBusy);
     }
   }
   const after = !isAppt && start != null && LENGTHS[lenIdx].len === 0 ? items.filter((b) => b.kind === 'appointment' && b.from >= start).length : 0;
@@ -107,7 +107,7 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
     setBusy(true);
     try {
       if (isAppt) {
-        const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start, end, customerName: name, phone, notes });
+        const a = await backend.appointments.addWalkIn({ serviceId: service.id, date, start, end, customerName: name, phone, notes, squeeze: clashes(db, date, start, end) });
         const confirm = phoneOk && wa;
         if (confirm)
           openExternal(
@@ -275,7 +275,7 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
                   <button
                     key={d}
                     type="button"
-                    disabled={closed}
+                    disabled={closed && !isAppt}
                     aria-pressed={on}
                     aria-label={closed ? `${fmtShortDate(d)} סגור` : fmtLongDate(d)}
                     onClick={() => {
@@ -325,7 +325,11 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
               </div>
             ) : (
               <div className="rounded-[14px] border border-dashed border-ink-faint px-4 py-3.5 text-sm text-ink-soft">
-                {!hours ? `${closedText(db.settings, date)}.` : isAppt ? `אין ביום הזה חלון פנוי של ${need} דק׳. נסה יום אחר או טיפול קצר יותר.` : 'אין זמן פנוי לחסום ביום הזה.'}
+                {isAppt
+                  ? `${hours ? `אין ביום הזה חלון פנוי של ${need} דק׳.` : `${closedText(db.settings, date)}.`} אפשר לבחור "משעה עד שעה" ולהוסיף בכל שעה.`
+                  : !hours
+                    ? `${closedText(db.settings, date)}.`
+                    : 'אין זמן פנוי לחסום ביום הזה.'}
               </div>
             )}
             {warn && !done && <span className="text-[13px] text-danger">{warn}</span>}
