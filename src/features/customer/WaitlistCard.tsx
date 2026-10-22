@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Bell, Check } from 'lucide-react';
 import { PART_LABELS } from '@/domain/schedule';
 import type { DateKey, DayPart } from '@/domain/types';
 import { DAY_LETTERS, fmtShortDate, weekdayOf } from '@/lib/time';
+import { Button } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
 import type { WaitlistState } from './useWaitlist';
 import { g } from '@/config/shop';
 
-/** A full day: pick when it would suit you, or see that you're already on the list. */
-export function WaitlistCard({ date, waitlist, className = 'mx-4 mt-5' }: { date: DateKey; waitlist: WaitlistState; className?: string }) {
+/** A full day (or no time that suits): pick when it would suit you, or see that you're already on the list. */
+export function WaitlistCard({ date, waitlist, full = true, className = 'mx-4 mt-5' }: { date: DateKey; waitlist: WaitlistState; full?: boolean; className?: string }) {
   const { mine, part, setPart, leave } = waitlist;
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -41,8 +43,8 @@ export function WaitlistCard({ date, waitlist, className = 'mx-4 mt-5' }: { date
               <Bell size={20} />
             </span>
             <div className="flex flex-col gap-[3px]">
-              <span className="text-lg font-bold">יום {DAY_LETTERS[weekdayOf(date)]} מלא לגמרי</span>
-              <span className="text-sm text-ink-soft">אבל כמעט תמיד מישהו מבטל ברגע האחרון</span>
+              <span className="text-lg font-bold">{full ? `יום ${DAY_LETTERS[weekdayOf(date)]} מלא לגמרי` : `אין שעה שמתאימה ביום ${DAY_LETTERS[weekdayOf(date)]}?`}</span>
+              <span className="text-sm text-ink-soft">{full ? 'אבל כמעט תמיד מישהו מבטל ברגע האחרון' : 'נעדכן אותך בוואטסאפ אם תתפנה שעה'}</span>
             </div>
           </div>
           <div className="text-sm font-semibold">מתי יתאים לך אם יתפנה?</div>
@@ -62,5 +64,30 @@ export function WaitlistCard({ date, waitlist, className = 'mx-4 mt-5' }: { date
         </motion.section>
       )}
     </AnimatePresence>
+  );
+}
+
+/** A day with free times can still take a waitlist entry, for someone who needs an hour that's taken. */
+export function WaitlistOffer({ date, waitlist, className = '' }: { date: DateKey; waitlist: WaitlistState; className?: string }) {
+  const [open, setOpen] = useState(false);
+  if (waitlist.mine) return <WaitlistCard date={date} waitlist={waitlist} full={false} className={className} />;
+  if (!open)
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cx('press flex h-11 items-center justify-center gap-2 text-sm font-semibold text-ink-soft underline', className)}
+      >
+        <Bell size={16} />
+        השעה שרצית תפוסה? {g('היכנס', 'היכנסי', 'היכנסו')} לרשימת המתנה
+      </button>
+    );
+  return (
+    <div className={cx('flex flex-col gap-3', className)}>
+      <WaitlistCard date={date} waitlist={waitlist} full={false} className="" />
+      <Button block disabled={waitlist.joining} onClick={waitlist.join} icon={<Bell size={20} />}>
+        {g('היכנס', 'היכנסי', 'היכנסו')} לרשימת המתנה
+      </Button>
+    </div>
   );
 }

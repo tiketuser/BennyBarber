@@ -15,6 +15,7 @@ import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, DurationSheet,
 import { useReleaseBlock } from './useReleaseBlock';
 import { useNoShow } from './useNoShow';
 import { OpeningAlert } from './OpeningAlert';
+import { WaitlistPanel } from './WaitlistPanel';
 import { useOpenings } from './openings';
 import { SHOP } from '@/config/shop';
 
@@ -334,6 +335,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             </section>
             <div className="sticky top-7 flex min-w-[280px] flex-[0_1_340px] flex-col gap-4">
               <AnimatePresence initial={false}>{openings[0] && <OpeningAlert key={openings[0].id} appt={openings[0]} className="" />}</AnimatePresence>
+              <WaitlistPanel date={date} today={today} setDate={setDate} className="" />
               <section aria-labelledby="h-free" className="flex flex-col gap-2.5 rounded-[20px] border border-line p-[18px]">
                 <h2 id="h-free" className="m-0 text-base font-bold">
                   {isToday ? 'חלונות פנויים היום' : 'חלונות פנויים'}
@@ -424,6 +426,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
         </div>
 
         <AnimatePresence initial={false}>{openings[0] && <OpeningAlert key={openings[0].id} appt={openings[0]} />}</AnimatePresence>
+        <WaitlistPanel date={date} today={today} setDate={setDate} />
 
         {timeline}
       </div>

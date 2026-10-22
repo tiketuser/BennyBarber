@@ -14,7 +14,7 @@ import { spring } from '@/ui/motion';
 import { useToast } from '@/ui/useToast';
 import { customerPrice } from '../../format';
 import { useWaitlist } from '../useWaitlist';
-import { WaitlistCard } from '../WaitlistCard';
+import { WaitlistCard, WaitlistOffer } from '../WaitlistCard';
 
 /** Days shown at once: two weeks, with arrows to the next ones. */
 const PAGE = 14;
@@ -271,6 +271,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
                     );
                   })}
                   {slots.length === 0 && <p className="m-0 py-4 text-center text-ink-soft">אין שעות פנויות ביום הזה</p>}
+                  {date && <WaitlistOffer date={date} waitlist={waitlist} />}
                 </div>
               )}
             </motion.div>

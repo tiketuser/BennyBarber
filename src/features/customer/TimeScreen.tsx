@@ -11,7 +11,7 @@ import { Button, ScreenHeader } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { customerPrice } from '../format';
 import { useWaitlist } from './useWaitlist';
-import { WaitlistCard } from './WaitlistCard';
+import { WaitlistCard, WaitlistOffer } from './WaitlistCard';
 
 interface Props {
   service: Service;
@@ -154,6 +154,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
                   );
                 })}
                 {selected && selected.status !== 'full' && slots.length === 0 && <p className="text-center text-ink-soft">אין שעות פנויות ביום הזה</p>}
+                {date && selected && <WaitlistOffer date={date} waitlist={waitlist} />}
               </div>
             )}
           </motion.div>

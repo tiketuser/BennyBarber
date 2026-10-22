@@ -225,6 +225,16 @@ await step('full day offers the waitlist, join and leave', async () => {
   await see('מתי יתאים לך אם יתפנה?');
 });
 
+await step('a day with free times still takes a waitlist entry', async () => {
+  const open = page.locator('[aria-label="בחר יום"] [role=radio]:not([aria-label$=" מלא"]):not([disabled])').first();
+  await open.click();
+  await wait(400);
+  await tap('השעה שרצית תפוסה?', { exact: false });
+  await see('אין שעה שמתאימה', { exact: false });
+  await role('button', 'היכנס לרשימת המתנה').click();
+  await see('אתה ברשימת ההמתנה');
+});
+
 await step('shop tab: gallery filters and course WhatsApp', async () => {
   await page
     .locator('button[aria-label="חזרה"]')
@@ -257,6 +267,7 @@ await step('customer signs out', async () => {
 await step('admin signs in to the day view', async () => {
   await login(ADMIN);
   await see('חלונות פנויים');
+  await see('ממתינים', { exact: false });
 });
 
 await step('admin delay moves the next clients and can be taken back', async () => {
