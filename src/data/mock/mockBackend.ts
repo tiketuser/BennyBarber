@@ -304,6 +304,10 @@ export function createMockBackend(): Backend {
         for (const d of days) next[d] = { ...hours };
         commit({ ...db, settings: { ...db.settings, hours: next } });
       },
+      async setLogo(photo) {
+        requireAdmin();
+        commit({ ...db, settings: { ...db.settings, logoUrl: photo ? URL.createObjectURL(photo) : null } });
+      },
       async setBreak(range) {
         requireAdmin();
         commit({ ...db, settings: { ...db.settings, breakTime: range } });

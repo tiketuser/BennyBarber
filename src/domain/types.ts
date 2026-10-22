@@ -44,6 +44,8 @@ export interface Settings {
   /** Fixed daily break, or null for none. */
   breakTime: TimeRange | null;
   vacations: Vacation[];
+  /** The admin's own profile picture (the round logo); unset = the one from the shop config. */
+  logoUrl?: string | null;
 }
 
 export type AppointmentStatus = 'booked' | 'cancelled';

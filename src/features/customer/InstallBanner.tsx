@@ -6,6 +6,7 @@ import { isIOS, isStandalone } from '@/lib/platform';
 import { Button } from '@/ui/controls';
 import { Sheet, SheetTitle } from '@/ui/Sheet';
 import { spring } from '@/ui/motion';
+import { useLogoUrl } from '@/ui/useLogoUrl';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -26,6 +27,7 @@ const QUIET_MS = 7 * 24 * 60 * 60 * 1000;
 export function InstallBanner() {
   const [show, setShow] = useState(false);
   const [help, setHelp] = useState(false);
+  const logoUrl = useLogoUrl();
 
   useEffect(() => {
     let dismissed = false;
@@ -73,9 +75,9 @@ export function InstallBanner() {
             <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white p-3 shadow-[0_6px_24px_rgba(28,25,23,0.07)]">
               {/* The shop's logo picture when it has one (trial shops), else its app icon. */}
               <img
-                src={SHOP.logoUrl ?? `${import.meta.env.BASE_URL}pwa-192.png`}
+                src={logoUrl ?? `${import.meta.env.BASE_URL}pwa-192.png`}
                 alt=""
-                className={'size-11 shrink-0 object-cover ' + (SHOP.logoUrl ? 'rounded-full border border-line bg-white' : 'rounded-xl')}
+                className={'size-11 shrink-0 object-cover ' + (logoUrl ? 'rounded-full border border-line bg-white' : 'rounded-xl')}
               />
               <p className="m-0 flex-1 text-[13px] leading-snug">
                 {g('התקן', 'התקיני', 'התקינו')} את האפליקציה של {SHOP.brand} למסך הבית לגישה מהירה

@@ -13,6 +13,7 @@ import { DeskCustomerApp } from '@/features/customer/desktop/DeskCustomerApp';
 import { TrialEnded } from '@/features/trial/TrialEnded';
 import { trialEnded } from '@/config/shop';
 import { AppShell } from './AppShell';
+import { useLogoIcons } from './useLogoIcons';
 
 /**
  * Routes by session: login → customer app, or admin app when the phone number is an admin's.
@@ -20,6 +21,7 @@ import { AppShell } from './AppShell';
  */
 export function App() {
   const session = useSession();
+  useLogoIcons();
   // The login screen stays up after the code is verified, until its last step hands over.
   const [loggingIn, setLoggingIn] = useState(!session || (session.role === 'customer' && !session.name));
   // In an effect, not during render: a render-phase update next to useSyncExternalStore can leave React thinking the

@@ -100,6 +100,8 @@ export interface Backend {
     setBreak(range: TimeRange | null): Promise<void>;
     addVacation(from: DateKey, to: DateKey): Promise<Vacation>;
     removeVacation(id: string): Promise<void>;
+    /** A new profile picture (already shrunk), or null to go back to the shop's own logo. */
+    setLogo(photo: Blob | null): Promise<void>;
   };
 
   gallery: {

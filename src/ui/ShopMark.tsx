@@ -1,5 +1,6 @@
 import { Scissors } from 'lucide-react';
 import { SHOP } from '@/config/shop';
+import { useLogoUrl } from './useLogoUrl';
 
 const url = `url(${import.meta.env.BASE_URL}logo-mark.svg)`;
 
@@ -9,9 +10,10 @@ const url = `url(${import.meta.env.BASE_URL}logo-mark.svg)`;
  * A logo picture (SHOP.logoUrl) is round already and covers the whole badge instead.
  */
 export function ShopMark({ size, className }: { size: number; className?: string }) {
-  if (SHOP.logoUrl) {
+  const logoUrl = useLogoUrl();
+  if (logoUrl) {
     const side = Math.round(size * 2.2);
-    return <img src={SHOP.logoUrl} alt="" aria-hidden className="block max-h-full max-w-full shrink-0 rounded-full bg-white object-cover" style={{ width: side, height: side }} />;
+    return <img src={logoUrl} alt="" aria-hidden className="block max-h-full max-w-full shrink-0 rounded-full bg-white object-cover" style={{ width: side, height: side }} />;
   }
   if (!SHOP.logoMark) return <Scissors size={size} className={className} />;
   const side = Math.round(size * 1.3);

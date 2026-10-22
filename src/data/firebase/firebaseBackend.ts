@@ -567,6 +567,18 @@ export async function createFirebaseBackend(): Promise<Backend> {
         for (const d of weekdays) next[d] = { ...hours };
         await setDoc(settingsRef, { ...db.settings, hours: next });
       }),
+      setLogo: guard(async (photo) => {
+        requireAdmin();
+        let logoUrl: string | null = null;
+        if (photo) {
+          if (!photo.type.startsWith('image/')) throw new Error('אפשר להעלות רק תמונות');
+          // Kept with the gallery photos, so the same upload rule covers it.
+          const file = ref(storage, `${root}/gallery/logo-${Date.now()}.jpg`);
+          await uploadBytes(file, photo, { contentType: photo.type, cacheControl: 'public, max-age=31536000' });
+          logoUrl = await getDownloadURL(file);
+        }
+        await setDoc(settingsRef, { ...db.settings, logoUrl });
+      }),
       setBreak: guard(async (range) => {
         requireAdmin();
         await setDoc(settingsRef, { ...db.settings, breakTime: range });

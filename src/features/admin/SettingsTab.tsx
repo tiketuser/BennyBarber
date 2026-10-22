@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Clock, Coffee, Eye, EyeOff, ImagePlus, Image
 import { useBackend, useDb, useNow } from '@/data/store';
 import type { Appointment, GalleryCategory, GalleryItem, Service, Weekday } from '@/domain/types';
 import { shrinkImage } from '@/lib/image';
+import { LogoCard } from './LogoCard';
 import { haptic } from '@/lib/platform';
 import { DAY_LETTERS, MONTHS, fmtDayMonth, fmtDayMonthRange, fmtRange, fmtTime, fromKey, toKey, todayKey } from '@/lib/time';
 import { Button, Chip, Stepper, Switch, TextInput } from '@/ui/controls';
@@ -187,6 +188,8 @@ export function SettingsTab({ layout = 'phone', onVacations }: { layout?: 'phone
         <span className="text-[13px] text-ink-soft">{db.gallery.length} תמונות</span>
         <ChevronLeft size={18} />
       </button>
+
+      <LogoCard className="mx-4 mt-4" />
 
       <button type="button" onClick={() => backend.auth.signOut()} className="mx-auto mt-6 flex h-11 items-center gap-2 px-4 text-sm font-medium text-ink-soft">
         <LogOut size={16} />
@@ -490,6 +493,8 @@ function DeskSettings({ services, onRemove, onEdit, onHours, onGallery, onVacati
             </span>
             <ChevronLeft size={18} />
           </button>
+
+          <LogoCard />
 
           <button type="button" onClick={onGallery} className="press flex items-center gap-3 rounded-[20px] border border-line p-[18px] text-right hover:border-ink-faint">
             <Images size={22} />

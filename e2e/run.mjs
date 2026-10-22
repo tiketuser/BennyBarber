@@ -473,7 +473,9 @@ await step('admin desktop: quick add page adds a client with WhatsApp confirm', 
 
 await step('admin desktop: quick block', async () => {
   await tap('חסימת זמן');
-  await page.getByRole('button', { name: 'שעה' }).click();
+  // Late in the day today may have no free time left: block on the next open day.
+  await page.locator('[aria-labelledby="l-day"] button:not([disabled])').nth(1).click();
+  await page.getByRole('button', { name: 'שעה', exact: true }).click();
   await page.locator('section button', { hasText: 'חסום ' }).click();
   await see('הזמן נחסם ביומן');
 });
@@ -513,7 +515,7 @@ await step('admin desktop: gallery upload, pin, delete with undo', async () => {
   await page.locator('button', { hasText: 'העלאה, מחיקה' }).click();
   const before = await page.locator('[role=dialog] img').count();
   await page.locator('[role=dialog] button', { hasText: 'זקן' }).click();
-  await page.setInputFiles('input[type=file]', { name: 'cut.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await page.setInputFiles('[role=dialog] input[type=file]', { name: 'cut.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
   await see('התמונה נוספה לגלריה');
   expect((await page.locator('[role=dialog] img').count()) === before + 1, 'photo not in the gallery');
   const src = await page.locator('[role=dialog] img').first().getAttribute('src');
@@ -530,6 +532,19 @@ await step('admin desktop: gallery upload, pin, delete with undo', async () => {
   await wait(300);
   expect((await page.locator('[role=dialog] img').count()) === before + 1, 'undo did not bring it back');
   await page.keyboard.press('Escape');
+});
+
+await step('admin desktop: profile picture change and back', async () => {
+  const png = await page.evaluate(() => {
+    const c = Object.assign(document.createElement('canvas'), { width: 900, height: 600 });
+    c.getContext('2d').fillRect(0, 0, 900, 600);
+    return c.toDataURL('image/png').split(',')[1];
+  });
+  await page.setInputFiles('input[aria-label="בחר תמונת פרופיל"]', { name: 'me.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await see('תמונת הפרופיל הוחלפה');
+  await see('חזרה ללוגו המקורי');
+  await tap('חזרה ללוגו המקורי');
+  await see('חזרנו ללוגו המקורי');
 });
 
 await step('admin desktop: vacation range with customer notice', async () => {
