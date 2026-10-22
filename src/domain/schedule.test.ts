@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appt, emptyDb, FRIDAY, MONDAY_MORNING, SATURDAY, TUESDAY } from '@/test/fixtures';
-import { assertBookable, assertWithinBookingWindow, bookingDays, dayStatus, freeGaps, nextFreeStart, slotsFor } from './schedule';
+import { assertBookable, assertWithinBookingWindow, bookingDays, closedText, dayStatus, freeGaps, nextFreeStart, slotsFor } from './schedule';
 
 const free = (db: ReturnType<typeof emptyDb>, date: string, len: number) =>
   slotsFor(db, date, len, MONDAY_MORNING)
@@ -40,6 +40,15 @@ describe('slotsFor', () => {
 
   it('has nothing on a closed day', () => {
     expect(slotsFor(emptyDb(), SATURDAY, 30, MONDAY_MORNING)).toEqual([]);
+  });
+});
+
+describe('closedText', () => {
+  it('says when a vacation ends and the next open day, skipping closed days', () => {
+    const db = emptyDb();
+    db.settings.vacations.push({ id: 'v', from: TUESDAY, to: FRIDAY });
+    expect(closedText(db.settings, TUESDAY)).toBe('בחופשה עד יום ו׳, 23.10. חוזרים ביום א׳, 25.10');
+    expect(closedText(db.settings, SATURDAY)).toMatch(/סגור/);
   });
 });
 

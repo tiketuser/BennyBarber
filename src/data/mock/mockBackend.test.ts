@@ -105,7 +105,7 @@ describe('mock backend', () => {
     const snap = b.getSnapshot();
     expect(snap.appointments[0].status).toBe('cancelled');
     expect(snap.settings.vacations).toHaveLength(1);
-    await expect(b.appointments.addWalkIn({ serviceId: 'cut', date: TUESDAY, start: 700 })).rejects.toThrow('סגורה');
+    await expect(b.appointments.addWalkIn({ serviceId: 'cut', date: TUESDAY, start: 700 })).rejects.toThrow('בחופשה');
   });
 
   it('adds walk-ins and restores a deleted service in its place', async () => {

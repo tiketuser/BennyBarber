@@ -1,6 +1,6 @@
 // Pure scheduling rules, shared by every backend implementation and the UI.
-import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Settings } from './types';
-import { addMonths, daysBetween, isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
+import type { Appointment, Block, DateKey, DayHours, DayPart, DbSnapshot, Minutes, Settings, Vacation } from './types';
+import { addDays, addMonths, daysBetween, fmtShortDate, isPast, nowMinutes, todayKey, weekdayOf } from '@/lib/time';
 import { SHOP, g } from '@/config/shop';
 
 const SLOT_STEP = 30;
@@ -17,6 +17,30 @@ export function partOf(m: Minutes): Exclude<DayPart, 'any'> {
 
 function isVacation(settings: Settings, date: DateKey): boolean {
   return settings.vacations.some((v) => date >= v.from && date <= v.to);
+}
+
+/** The first day the shop opens again after a vacation (null if nothing within two months). */
+export function backFrom(settings: Settings, v: Vacation): DateKey | null {
+  for (let d = addDays(v.to, 1), i = 0; i < 60; d = addDays(d, 1), i++) if (hoursFor(settings, d)) return d;
+  return null;
+}
+
+/** "בחופשה עד יום ו׳, 24.10. חוזרים ביום א׳, 25.10" */
+export function vacationText(settings: Settings, v: Vacation): string {
+  const back = backFrom(settings, v);
+  return `בחופשה עד ${fmtShortDate(v.to)}` + (back ? `. חוזרים ב${fmtShortDate(back)}` : '');
+}
+
+/** Why a day has no hours: the vacation and when he's back, or the plain weekly closed day. */
+export function closedText(settings: Settings, date: DateKey): string {
+  const v = settings.vacations.find((x) => date >= x.from && date <= x.to);
+  return v ? vacationText(settings, v) : `${SHOP.closed} ביום הזה`;
+}
+
+/** A vacation going on now or starting within two weeks, to tell customers ahead. */
+export function upcomingVacation(settings: Settings, today: DateKey): Vacation | null {
+  const soon = addDays(today, 14);
+  return settings.vacations.filter((v) => v.to >= today && v.from <= soon).sort((a, b) => (a.from < b.from ? -1 : 1))[0] ?? null;
 }
 
 /** Opening hours for a date, or null when the shop is closed (weekly off day or vacation). */
@@ -123,10 +147,16 @@ export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = 
 }
 
 /** Throws a user-facing Hebrew message when a booking can't be placed. */
-export function assertBookable(db: DbSnapshot, date: DateKey, start: Minutes, end: Minutes, opts: { ignoreId?: string; now?: Date; allowPast?: boolean; allowOverlap?: boolean } = {}) {
+export function assertBookable(
+  db: DbSnapshot,
+  date: DateKey,
+  start: Minutes,
+  end: Minutes,
+  opts: { ignoreId?: string; now?: Date; allowPast?: boolean; allowOverlap?: boolean } = {},
+) {
   const { ignoreId, now = new Date(), allowPast = false, allowOverlap = false } = opts;
   const h = hoursFor(db.settings, date);
-  if (!h) throw new Error(`${SHOP.closed} ביום הזה`);
+  if (!h) throw new Error(closedText(db.settings, date));
   if (!allowPast && isPast(date, start + 1, now)) throw new Error(`השעה הזו כבר עברה, ${g('בחר', 'בחרי', 'בחרו')} שעה אחרת`);
   if (start < h.from || end > h.to) throw new Error('השעה מחוץ לשעות הפתיחה');
   const busy = busyFor(db, date).filter((b) => !(b.kind === 'appointment' && b.ref?.id === ignoreId));

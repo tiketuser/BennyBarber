@@ -10,6 +10,7 @@ import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { customerPrice } from '../format';
 import { useMyAppointments, useOpenStatus } from './hooks';
 import { InstallBanner } from './InstallBanner';
+import { VacationNote } from './VacationNote';
 import { ShopMark } from '@/ui/ShopMark';
 
 interface Props {
@@ -66,6 +67,7 @@ export function BookHome({ serviceId, onSelectService, onNext, onOpenMine }: Pro
         </header>
 
         <InstallBanner />
+        <VacationNote />
 
         {next && (
           <section aria-label="התור הקרוב שלך" className="mx-4 mt-[18px] flex items-center gap-3.5 rounded-[20px] border border-line bg-surface px-4 py-3.5">

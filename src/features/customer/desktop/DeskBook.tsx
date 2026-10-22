@@ -15,6 +15,7 @@ import { useToast } from '@/ui/useToast';
 import { customerPrice } from '../../format';
 import { useWaitlist } from '../useWaitlist';
 import { WaitlistCard, WaitlistOffer } from '../WaitlistCard';
+import { VacationNote } from '../VacationNote';
 
 /** Days shown at once: two weeks, with arrows to the next ones. */
 const PAGE = 14;
@@ -159,6 +160,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
           <StepTitle id="h-day" n={2}>
             מתי נוח לך?
           </StepTitle>
+          <VacationNote className="" />
           <div className="flex items-center gap-2">
             <span className="flex-1 text-[15px] font-semibold">{monthsShown}</span>
             <button

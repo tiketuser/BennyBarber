@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ban, Check, MessageCircle, Plus } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
+import { busyFor, closedText, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
@@ -325,7 +325,7 @@ export function DeskQuick({ initialDate, initialStart }: { initialDate: DateKey;
               </div>
             ) : (
               <div className="rounded-[14px] border border-dashed border-ink-faint px-4 py-3.5 text-sm text-ink-soft">
-                {!hours ? `${SHOP.closed} ביום הזה.` : isAppt ? `אין ביום הזה חלון פנוי של ${need} דק׳. נסה יום אחר או טיפול קצר יותר.` : 'אין זמן פנוי לחסום ביום הזה.'}
+                {!hours ? `${closedText(db.settings, date)}.` : isAppt ? `אין ביום הזה חלון פנוי של ${need} דק׳. נסה יום אחר או טיפול קצר יותר.` : 'אין זמן פנוי לחסום ביום הזה.'}
               </div>
             )}
             {warn && !done && <span className="text-[13px] text-danger">{warn}</span>}

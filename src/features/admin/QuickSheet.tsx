@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Zap } from 'lucide-react';
 import { useBackend, useDb } from '@/data/store';
-import { clashes, freeGaps, hoursFor, nextFreeStart } from '@/domain/schedule';
+import { clashes, closedText, freeGaps, hoursFor, nextFreeStart } from '@/domain/schedule';
 import type { DateKey, Minutes } from '@/domain/types';
 import { haptic } from '@/lib/platform';
 import { formatPhone } from '@/lib/phone';
@@ -11,7 +11,6 @@ import { Sheet } from '@/ui/Sheet';
 import { useOnChange } from '@/ui/useOnChange';
 import { useToast } from '@/ui/useToast';
 import { money } from '../format';
-import { SHOP } from '@/config/shop';
 import { FromTo, lenChoices, lenMinutes, type LenChoice } from './apptLength';
 
 /** Walk-in in two taps, or block 30 / 60 minutes / until closing. */
@@ -93,7 +92,7 @@ export function QuickSheet({ open, onClose, date, start }: { open: boolean; onCl
     <Sheet open={open} onClose={onClose} label="תור מהיר או חסימה">
       {from == null || !hours ? (
         <div className="py-8 text-center">
-          <h2 className="m-0 text-xl font-bold">{hours ? 'אין זמן פנוי ביום הזה' : `${SHOP.closed} ביום הזה`}</h2>
+          <h2 className="m-0 text-xl font-bold">{hours ? 'אין זמן פנוי ביום הזה' : closedText(db.settings, date)}</h2>
           <p className="text-ink-soft">אפשר לעבור ליום אחר ביומן.</p>
         </div>
       ) : (

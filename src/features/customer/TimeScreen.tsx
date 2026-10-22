@@ -11,6 +11,7 @@ import { Button, ScreenHeader } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { customerPrice } from '../format';
 import { useWaitlist } from './useWaitlist';
+import { VacationNote } from './VacationNote';
 import { WaitlistCard, WaitlistOffer } from './WaitlistCard';
 
 interface Props {
@@ -88,6 +89,7 @@ export function TimeScreen({ service, date, start, onPick, onBack, onContinue, r
           </button>
         </div>
 
+        <VacationNote />
         <div className="px-5 pb-2.5 pt-5 text-[15px] font-semibold">{date ? MONTHS[fromKey(date).getMonth()] : ''}</div>
         <div
           ref={stripRef}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Ban, CalendarPlus, Check, ChevronLeft, ChevronRight, Coffee, Hourglass, Timer, MessageCircle, Phone, Plus, StickyNote, UserX, X } from 'lucide-react';
 import { useDb, useNow } from '@/data/store';
-import { busyFor, freeGaps, hoursFor } from '@/domain/schedule';
+import { busyFor, closedText, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { openExternal } from '@/lib/platform';
@@ -96,7 +96,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
     <div className={cx('flex flex-col gap-2.5', layout === 'phone' && 'px-4 pt-[18px]')}>
       {(!hours || appts.length === 0) && (
         <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center">
-          <p className="text-ink-soft">{hours ? 'אין תורים ביום הזה' : `${SHOP.closed} ביום הזה`}</p>
+          <p className="text-ink-soft">{hours ? 'אין תורים ביום הזה' : closedText(db.settings, date)}</p>
           {next && (
             <button
               type="button"
@@ -341,7 +341,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
                 <h2 id="h-free" className="m-0 text-base font-bold">
                   {isToday ? 'חלונות פנויים היום' : 'חלונות פנויים'}
                 </h2>
-                {free.length === 0 && <span className="text-sm text-ink-soft">{hours ? 'אין חלונות פנויים' : `${SHOP.closed} ביום הזה`}</span>}
+                {free.length === 0 && <span className="text-sm text-ink-soft">{hours ? 'אין חלונות פנויים' : closedText(db.settings, date)}</span>}
                 {free.map((g) => (
                   <div key={g.from} className="flex h-12 items-center gap-2 rounded-xl bg-open-soft pe-1.5 ps-3 text-open-text">
                     <span className="num flex-1 text-sm font-semibold">{fmtRange(g.from, g.to)}</span>
