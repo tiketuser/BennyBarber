@@ -8,6 +8,10 @@ on:
       codes:
         description: 'JSON {"05XXXXXXXX": "123456"}; "" removes a code'
         required: true
+      shop:
+        description: shop id (folder in shops/); empty = every shop's project
+        required: false
+        default: ''
 
 jobs:
   admin-codes:
@@ -23,6 +27,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           # Passed through the environment, never pasted into the script, so nothing in the input runs as code.
           CODES: ${{ inputs.codes }}
+          SHOP: ${{ inputs.shop }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
