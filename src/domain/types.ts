@@ -126,4 +126,6 @@ export interface DbSnapshot {
   blocks: Block[];
   waitlist: WaitlistEntry[];
   gallery: GalleryItem[];
+  /** The admin's appointments haven't arrived yet (first load): screens show a placeholder, not an empty day. */
+  loading?: boolean;
 }

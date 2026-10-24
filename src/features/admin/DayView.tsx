@@ -58,6 +58,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const releaseBlock = useReleaseBlock();
   const noShow = useNoShow();
   const hours = hoursFor(db.settings, date);
+  const loading = !!db.loading;
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = busyFor(db, date).map((b) =>
@@ -91,7 +92,20 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
     return null;
   }, [appts.length, db, date]);
 
-  const timeline = (
+  const timeline = loading ? (
+    <div role="status" aria-live="polite" className={cx('flex flex-col gap-2.5', layout === 'phone' && 'px-4 pt-[18px]')}>
+      <span className="flex items-center justify-center gap-2 py-1 text-sm font-medium text-ink-soft">
+        <span className="size-4 animate-spin rounded-full border-2 border-line-strong border-t-brand motion-reduce:animate-none" />
+        טוען את התורים...
+      </span>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-2.5" style={{ opacity: 1 - i * 0.2 }}>
+          <div className="skeleton mt-3.5 h-3.5 w-11 shrink-0 rounded-md" />
+          <div className="skeleton h-[120px] flex-1 rounded-[20px]" />
+        </div>
+      ))}
+    </div>
+  ) : (
     <div className={cx('flex flex-col gap-2.5', layout === 'phone' && 'px-4 pt-[18px]')}>
       {(!hours || appts.length === 0) && (
         <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center">
@@ -306,7 +320,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
             {tiles.slice(0, 2).map((t) => (
               <div key={t.label} className="flex flex-col gap-1.5 rounded-[18px] bg-surface p-[18px]">
-                <span className="num text-[30px] font-bold leading-none">{t.value}</span>
+                <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={t.value} />
                 <span className="text-sm text-ink-soft">{t.label}</span>
               </div>
             ))}
@@ -315,11 +329,11 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
               onClick={() => setFreeOpen(true)}
               className="press flex flex-col gap-1.5 rounded-[18px] border border-open-line bg-open-soft p-[18px] text-right text-open-text"
             >
-              <span className="num text-[30px] font-bold leading-none">{free.length}</span>
+              <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={free.length} bar="bg-open-line" />
               <span className="text-sm font-semibold">חלונות פנויים ←</span>
             </button>
             <div className="flex flex-col gap-1.5 rounded-[18px] bg-surface p-[18px]">
-              <span className="num text-[30px] font-bold leading-none">{tiles[2].value}</span>
+              <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={tiles[2].value} />
               <span className="text-sm text-ink-soft">{tiles[2].label}</span>
             </div>
           </div>
@@ -411,15 +425,15 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 
         <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col gap-0.5 rounded-2xl bg-brand p-3 text-white">
-            <span className="num text-[22px] font-bold text-brand-accent">{appts.length}</span>
+            <Stat loading={loading} className="num text-[22px] font-bold text-brand-accent" value={appts.length} bar="bg-white/20" />
             <span className="text-xs text-line-strong">{isToday ? 'תורים היום' : 'תורים'}</span>
           </div>
           <div className="flex flex-col gap-0.5 rounded-2xl bg-surface p-3">
-            <span className="num text-[22px] font-bold">{money(revenue)}</span>
+            <Stat loading={loading} className="num text-[22px] font-bold" value={money(revenue)} />
             <span className="text-xs text-ink-soft">{date < today ? 'הכנסה' : 'צפי הכנסה'}</span>
           </div>
           <button type="button" onClick={() => setFreeOpen(true)} className="press relative flex flex-col gap-0.5 rounded-2xl border border-open-line bg-open-soft p-3 text-right">
-            <span className="num text-[22px] font-bold text-open-text">{free.length}</span>
+            <Stat loading={loading} className="num text-[22px] font-bold text-open-text" value={free.length} bar="bg-open-line" />
             <span className="text-xs font-medium text-open-text">חלונות פנויים</span>
             <ChevronLeft size={16} className="absolute left-2 top-3 text-open-text" />
           </button>
@@ -443,6 +457,16 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 
       {sheets}
     </>
+  );
+}
+
+/** A summary number, or a soft placeholder bar while the appointments are still loading. */
+function Stat({ loading, value, className, bar = 'bg-surface-sunk' }: { loading: boolean; value: string | number; className: string; bar?: string }) {
+  if (!loading) return <span className={className}>{value}</span>;
+  return (
+    <span className={className} aria-label="טוען">
+      <span className={cx('inline-block h-[0.8em] w-[2.2em] animate-pulse rounded-md align-middle motion-reduce:animate-none', bar)} />
+    </span>
   );
 }
 

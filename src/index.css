@@ -81,6 +81,21 @@
   .num {
     font-variant-numeric: tabular-nums;
   }
+  /* Loading placeholder: a soft light sweeps across, so an empty screen never looks like "no data" */
+  .skeleton {
+    background: linear-gradient(90deg, theme('colors.surface.DEFAULT') 30%, theme('colors.surface.sunk') 50%, theme('colors.surface.DEFAULT') 70%);
+    background-size: 300% 100%;
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -94,6 +109,16 @@
 @media (prefers-reduced-motion: reduce) {
   .press:active {
     transform: none;
+  }
+  .skeleton {
+    animation: skeleton-fade 1.6s ease-in-out infinite alternate;
+    background: theme('colors.surface.DEFAULT');
+  }
+}
+
+@keyframes skeleton-fade {
+  to {
+    opacity: 0.55;
   }
 }
 

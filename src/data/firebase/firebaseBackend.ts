@@ -23,6 +23,8 @@ import {
   documentId,
   getDoc,
   initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   onSnapshot,
   query,
   runTransaction,
@@ -98,7 +100,8 @@ export async function createFirebaseBackend(): Promise<Backend> {
   const app = initializeApp(FIREBASE.config);
   const auth = getAuth(app);
   auth.languageCode = 'he';
-  const fs = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  // Kept on the device: after a refresh the diary shows at once from the last copy, then updates from the server.
+  const fs = initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
   const storage = getStorage(app);
   const emulator = import.meta.env.VITE_FIREBASE_EMULATOR as string | undefined;
   if (emulator) {
@@ -132,6 +135,8 @@ export async function createFirebaseBackend(): Promise<Backend> {
   let waitlist: WaitlistEntry[] = [];
   let session: Session | null = null;
   let user: User | null = null;
+  /** The admin's appointments came in at least once since the last (re)listen. */
+  let apptsLoaded = false;
 
   const build = (): DbSnapshot => {
     const mine = new Set(appointments.map((a) => a.id));
@@ -146,6 +151,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
       waitlist,
       // Until the admin's first sign-in seeds the shop, customers see its starting photos (trial shops).
       gallery: settings ? gallery : gallery.length ? gallery : STARTER_GALLERY,
+      loading: session?.role === 'admin' && !apptsLoaded,
     };
   };
   let db = build();
@@ -183,6 +189,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
     blocks = [];
     waitlist = [];
     days = new Map();
+    apptsLoaded = false;
     // Right after signing in, Firestore can still send the old sign-in with the first request and be refused; a
     // refused listener stays dead, so the admin saw an empty diary until a refresh. Listen again shortly instead.
     // It keeps trying (with a fresh sign-in token each time) until the data comes in: an empty diary is never left showing.
@@ -201,7 +208,19 @@ export async function createFirebaseBackend(): Promise<Backend> {
     };
     failed = false;
     if (session?.role === 'admin') {
-      scoped.push(onSnapshot(col('appointments'), (s) => ((appointments = docs<Appointment>(s)), emit()), onErr));
+      scoped.push(
+        onSnapshot(
+          col('appointments'),
+          { includeMetadataChanges: true },
+          (s) => {
+            appointments = docs<Appointment>(s);
+            // An empty answer from the device's copy may only mean nothing was saved yet: wait for the server.
+            if (!s.metadata.fromCache || !s.empty) apptsLoaded = true;
+            emit();
+          },
+          onErr,
+        ),
+      );
       scoped.push(onSnapshot(col('blocks'), (s) => ((blocks = docs<Block>(s)), emit()), onErr));
       scoped.push(onSnapshot(col('waitlist'), (s) => ((waitlist = docs<WaitlistEntry>(s)), emit()), onErr));
     } else {
