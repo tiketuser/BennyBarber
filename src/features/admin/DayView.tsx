@@ -11,7 +11,7 @@ import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { firstName, money } from '../format';
-import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, DurationSheet, FreeSlotsSheet } from './DaySheets';
+import { AdminCancelSheet, BlockSheet, CalendarSheet, DelaySheet, DurationSheet } from './DaySheets';
 import { useReleaseBlock } from './useReleaseBlock';
 import { useNoShow } from './useNoShow';
 import { OpeningAlert } from './OpeningAlert';
@@ -30,7 +30,7 @@ interface Props {
   date: DateKey;
   setDate: (d: DateKey) => void;
   onQuick: (start: Minutes | null) => void;
-  /** Phone: one scrolling column. Desk: stats row, timeline beside the waitlist alert and free windows. */
+  /** Phone: one scrolling column. Desk: stats row, timeline beside the waitlist alert. */
   layout?: 'phone' | 'desk';
 }
 
@@ -48,7 +48,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
   const today = todayKey(now);
   const isToday = date === today;
   const nowM = nowMinutes(now);
-  const [freeOpen, setFreeOpen] = useState(false);
   const [delayOpen, setDelayOpen] = useState(false);
   const [editBlock, setEditBlock] = useState<Block | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
@@ -81,7 +80,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 
   const appts = rows.filter((r): r is Extract<Row, { kind: 'appointment' }> => r.kind === 'appointment');
   const revenue = appts.reduce((t, r) => t + r.appt.price, 0);
-  const free = useMemo(() => freeGaps(db, date, 20, now), [db, date, now]);
   // An empty or closed day offers a jump: to the next day with appointments, else the next day the shop is open.
   const next = useMemo(() => {
     if (appts.length) return null;
@@ -232,15 +230,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 
   const sheets = (
     <>
-      <FreeSlotsSheet
-        open={freeOpen}
-        onClose={() => setFreeOpen(false)}
-        date={date}
-        onAdd={(start) => {
-          setFreeOpen(false);
-          onQuick(start);
-        }}
-      />
       <DelaySheet open={delayOpen} onClose={() => setDelayOpen(false)} />
       <BlockSheet block={editBlock} onClose={() => setEditBlock(null)} />
       <AdminCancelSheet appt={cancelAppt} onClose={() => setCancelAppt(null)} />
@@ -318,24 +307,12 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-            {tiles.slice(0, 2).map((t) => (
+            {tiles.map((t) => (
               <div key={t.label} className="flex flex-col gap-1.5 rounded-[18px] bg-surface p-[18px]">
                 <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={t.value} />
                 <span className="text-sm text-ink-soft">{t.label}</span>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => setFreeOpen(true)}
-              className="press flex flex-col gap-1.5 rounded-[18px] border border-open-line bg-open-soft p-[18px] text-right text-open-text"
-            >
-              <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={free.length} bar="bg-open-line" />
-              <span className="text-sm font-semibold">חלונות פנויים ←</span>
-            </button>
-            <div className="flex flex-col gap-1.5 rounded-[18px] bg-surface p-[18px]">
-              <Stat loading={loading} className="num text-[30px] font-bold leading-none" value={tiles[2].value} />
-              <span className="text-sm text-ink-soft">{tiles[2].label}</span>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-start gap-6">
@@ -348,25 +325,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             <div className="sticky top-7 flex min-w-[280px] flex-[0_1_340px] flex-col gap-4">
               <AnimatePresence initial={false}>{openings[0] && <OpeningAlert key={openings[0].id} appt={openings[0]} className="" />}</AnimatePresence>
               <WaitlistPanel date={date} today={today} setDate={setDate} className="" />
-              <section aria-labelledby="h-free" className="flex flex-col gap-2.5 rounded-[20px] border border-line p-[18px]">
-                <h2 id="h-free" className="m-0 text-base font-bold">
-                  {isToday ? 'חלונות פנויים היום' : 'חלונות פנויים'}
-                </h2>
-                {free.length === 0 && <span className="text-sm text-ink-soft">{hours ? 'אין חלונות פנויים' : closedText(db.settings, date)}</span>}
-                {free.map((g) => (
-                  <div key={g.from} className="flex h-12 items-center gap-2 rounded-xl bg-open-soft pe-1.5 ps-3 text-open-text">
-                    <span className="num flex-1 text-sm font-semibold">{fmtRange(g.from, g.to)}</span>
-                    <button type="button" onClick={() => onQuick(g.from)} className="press h-9 rounded-[10px] bg-white px-3 text-[13px] font-semibold">
-                      הוסף
-                    </button>
-                  </div>
-                ))}
-                {free.length > 0 && (
-                  <button type="button" onClick={() => setFreeOpen(true)} className="mt-0.5 self-start text-sm font-semibold underline-offset-4 hover:underline">
-                    שתף בסטטוס וואטסאפ
-                  </button>
-                )}
-              </section>
             </div>
           </div>
         </div>
@@ -423,7 +381,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
 
         <InstallBanner />
 
-        <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
+        <div className="mx-4 mt-4 grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-0.5 rounded-2xl bg-brand p-3 text-white">
             <Stat loading={loading} className="num text-[22px] font-bold text-brand-accent" value={appts.length} bar="bg-white/20" />
             <span className="text-xs text-line-strong">{isToday ? 'תורים היום' : 'תורים'}</span>
@@ -432,11 +390,6 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             <Stat loading={loading} className="num text-[22px] font-bold" value={money(revenue)} />
             <span className="text-xs text-ink-soft">{date < today ? 'הכנסה' : 'צפי הכנסה'}</span>
           </div>
-          <button type="button" onClick={() => setFreeOpen(true)} className="press relative flex flex-col gap-0.5 rounded-2xl border border-open-line bg-open-soft p-3 text-right">
-            <Stat loading={loading} className="num text-[22px] font-bold text-open-text" value={free.length} bar="bg-open-line" />
-            <span className="text-xs font-medium text-open-text">חלונות פנויים</span>
-            <ChevronLeft size={16} className="absolute left-2 top-3 text-open-text" />
-          </button>
         </div>
 
         <AnimatePresence initial={false}>{openings[0] && <OpeningAlert key={openings[0].id} appt={openings[0]} />}</AnimatePresence>

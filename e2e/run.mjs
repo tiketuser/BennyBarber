@@ -266,7 +266,7 @@ await step('customer signs out', async () => {
 
 await step('admin signs in to the day view', async () => {
   await login(ADMIN);
-  await see('חלונות פנויים');
+  await see('צפי הכנסה');
   await see('ממתינים', { exact: false });
 });
 
@@ -433,12 +433,6 @@ await step('admin desktop: day dashboard with side menu', async () => {
   await role('button', 'יום הבא').click();
   await role('button', 'יום הבא').click();
   await see('היומן');
-});
-
-await step('admin desktop: free windows panel and share', async () => {
-  await page.locator('button', { hasText: 'חלונות פנויים ←' }).click();
-  await wait(400);
-  await page.keyboard.press('Escape');
 });
 
 await step('admin desktop: every booked appointment into the calendar at once', async () => {

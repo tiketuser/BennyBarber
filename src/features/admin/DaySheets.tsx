@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Ban, CalendarPlus, Check, MessageCircle, Plus, Share2 } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, MessageCircle } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import { freeGaps, hoursFor } from '@/domain/schedule';
-import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
+import { hoursFor } from '@/domain/schedule';
+import type { Appointment, Block, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
-import { addToCalendar, downloadIcs, haptic, icsFile, openExternal, shareText, type CalendarEvent } from '@/lib/platform';
+import { addToCalendar, downloadIcs, haptic, icsFile, openExternal, type CalendarEvent } from '@/lib/platform';
 import { formatPhone } from '@/lib/phone';
 import { fmtRange, fmtShortDate, fmtTime, nowMinutes, todayKey } from '@/lib/time';
 import { Bubble, Button, Stepper } from '@/ui/controls';
@@ -16,82 +16,6 @@ import { useToast } from '@/ui/useToast';
 import { firstName } from '../format';
 import { useReleaseBlock } from './useReleaseBlock';
 import { useSendQueue } from './useSendQueue';
-
-/** "חלונות פנויים": every free window today, with add-client / block, and share to WhatsApp status. */
-export function FreeSlotsSheet({ open, onClose, date, onAdd }: { open: boolean; onClose: () => void; date: DateKey; onAdd: (start: Minutes) => void }) {
-  const db = useDb();
-  const backend = useBackend();
-  const toast = useToast();
-  const now = useNow();
-  const gaps = freeGaps(db, date, 20, now);
-  const total = gaps.reduce((t, g) => t + g.to - g.from, 0);
-  const isToday = date === todayKey(now);
-  const totalLabel = total >= 60 ? `${Math.floor(total / 60)} שע׳${total % 60 ? ` ו-${total % 60} דק׳` : ''}` : `${total} דק׳`;
-
-  const share = () => {
-    const when = isToday ? 'היום' : fmtShortDate(date);
-    shareText(`נשארו תורים פנויים ${when}: ${gaps.map((g) => fmtTime(g.from)).join(', ')}. לקביעה מהירה: ${SHOP.appUrl}`);
-  };
-
-  const block = async (from: Minutes, to: Minutes) => {
-    try {
-      const b = await backend.blocks.add(date, from, to, 'חסום');
-      haptic();
-      toast({ text: `נחסם ${fmtRange(from, to)}`, action: { label: 'ביטול', run: () => backend.blocks.remove(b.id) } });
-    } catch (e) {
-      toast({ text: (e as Error).message, tone: 'error' });
-    }
-  };
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      label="חלונות פנויים"
-      footer={
-        gaps.length > 0 && (
-          <Button block variant="open" icon={<Share2 size={20} />} onClick={share}>
-            שתף את השעות הפנויות בסטטוס
-          </Button>
-        )
-      }
-    >
-      <SheetTitle aside={gaps.length ? `${gaps.length === 1 ? 'חלון אחד' : `${gaps.length} חלונות`} • ${totalLabel} בסך הכל` : undefined}>
-        {isToday ? 'פנוי היום' : `פנוי ב${fmtShortDate(date)}`}
-      </SheetTitle>
-      {gaps.length === 0 && <p className="py-6 text-center text-ink-soft">היומן מלא. אין חלונות פנויים.</p>}
-      <div className="mt-4 flex flex-col gap-2.5 pb-2">
-        {gaps.map((g, i) => (
-          <article key={g.from} className="flex flex-col gap-3 rounded-[18px] border border-line p-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 self-stretch rounded-full bg-open-dot" />
-              <div className="flex flex-1 flex-col gap-[3px]">
-                <span className="num text-xl font-bold">{fmtRange(g.from, g.to)}</span>
-                <span className="text-[13px] text-ink-soft">
-                  {g.to - g.from} דק׳ • {fits(db.services, g.to - g.from)}
-                  {i === gaps.length - 1 && g.to === hoursFor(db.settings, date)?.to ? ' • התור האחרון של היום' : ''}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" icon={<Plus size={18} />} onClick={() => onAdd(g.from)}>
-                הוסף לקוח
-              </Button>
-              <Button size="sm" variant="danger" className="flex-1" icon={<Ban size={18} />} onClick={() => block(g.from, g.to)}>
-                חסום
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </Sheet>
-  );
-}
-
-function fits(services: { shortName: string; durationMin: number }[], len: number) {
-  const ok = services.filter((s) => s.durationMin <= len).map((s) => s.shortName);
-  return ok.length === services.length ? 'מתאים לכל טיפול' : ok.length ? `מתאים ל${ok.join(', ')}` : 'קצר מדי לטיפול';
-}
 
 /** "מתעכב": push the affected appointments later in the diary (with or without a phone), tell the ones with a phone, or take an earlier delay back. */
 export function DelaySheet({ open, onClose }: { open: boolean; onClose: () => void }) {
