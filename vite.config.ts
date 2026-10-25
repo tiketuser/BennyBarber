@@ -13,6 +13,8 @@ const trial = !!shop.trial && !process.env.SHOP_STATIC;
 const description = shareDescription(shop);
 // Each shop's own Hosting site; link previews need absolute URLs.
 const siteUrl = `https://${shop.firebase.projectId}.web.app`;
+// Link preview picture: the admin's uploaded profile picture when the deploy found one (scripts/og-image.mjs), else the app icon.
+const ogImage = process.env.OG_IMAGE || `${siteUrl}/pwa-512.png`;
 
 export default defineConfig({
   define: {
@@ -45,7 +47,13 @@ export default defineConfig({
     {
       // Fills the shop's name and link-preview tags into index.html (%SHOP_FULL_NAME% etc.).
       name: 'shop-html',
-      transformIndexHtml: (html) => html.replaceAll('%SHOP_FULL_NAME%', shop.fullName).replaceAll('%SHOP_BRAND%', shop.brand).replaceAll('%SHOP_DESCRIPTION%', description).replaceAll('%SHOP_URL%', siteUrl),
+      transformIndexHtml: (html) =>
+        html
+          .replaceAll('%SHOP_FULL_NAME%', shop.fullName)
+          .replaceAll('%SHOP_BRAND%', shop.brand)
+          .replaceAll('%SHOP_DESCRIPTION%', description)
+          .replaceAll('%SHOP_OG_IMAGE%', ogImage)
+          .replaceAll('%SHOP_URL%', siteUrl),
     },
     VitePWA({
       registerType: 'autoUpdate',

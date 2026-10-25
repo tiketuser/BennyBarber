@@ -75,7 +75,8 @@ async function sharePage(siteId, version, slug, doc) {
   const url = `https://${siteId}.web.app`;
   const files = await api(`${HOSTING}/${version}/files?pageSize=1000`);
   const hasLogo = (files.files ?? []).some((f) => f.path === `/logos/${slug}.png`);
-  const image = shop.logoUrl ?? (hasLogo ? `${url}/logos/${slug}.png` : `${url}/pwa-512.png`);
+  // The barber's own profile picture (uploaded in his settings) first, then his config logo.
+  const image = doc.ogImage ?? shop.logoUrl ?? (hasLogo ? `${url}/logos/${slug}.png` : `${url}/pwa-512.png`);
   const html = withShareMeta(await res.text(), {
     title: shop.fullName,
     brand: shop.brand,
@@ -146,7 +147,8 @@ if (command) {
     const version = await liveVersion();
     if (!version) throw new Error('The main trial site has no live build');
     for (const d of shops) {
-      const r = await publish(d.get('siteId'), version, d.id, d.data());
+      const logoUrl = (await db.doc(`shops/${d.id}/meta/settings`).get()).get('logoUrl');
+      const r = await publish(d.get('siteId'), version, d.id, { ...d.data(), ogImage: typeof logoUrl === 'string' ? logoUrl : undefined });
       console.log(d.get('siteId'), r.error ? `failed: ${r.error.message}` : 'updated');
     }
   } else if (command === 'cleanup') {

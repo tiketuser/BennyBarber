@@ -41,7 +41,9 @@ jobs:
             echo "::group::$shop"
             # Customers sign in without an SMS code (anonymous sign-in); only admin numbers get one.
             SHOP=$shop node --experimental-strip-types --no-warnings scripts/auth-setup.mjs || failed="$failed $shop-auth"
-            SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
+            # The link preview shows the admin's uploaded profile picture, if there is one.
+            og=$(SHOP=$shop node --experimental-strip-types --no-warnings scripts/og-image.mjs 2>/dev/null || true)
+            OG_IMAGE=$og SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
             echo "::endgroup::"
           done
           # Trial barbers with their own site get the new build too (scripts/trial-sites.mjs).
