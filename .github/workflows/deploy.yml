@@ -1,0 +1,56 @@
+# Publishes every barbershop in shops/ to its own Firebase project (site + security rules) on every push.
+# One key for all shops: the repository secret FIREBASE_SERVICE_ACCOUNT (service account github-deploy), which each
+# shop's Firebase project grants "Firebase Admin" + "Service Usage Consumer". Without the secret the job is skipped.
+# A shop is deployed once its config has backend: 'firebase' and its Firebase web config (scripts/list-shops.mjs).
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main, claude/build-barber-app-d1lrhc]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the deploy key is set
+        id: key
+        run: echo "present=${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}" >> "$GITHUB_OUTPUT"
+      - if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+      - if: steps.key.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.key.outputs.present == 'true'
+        run: npm ci
+      - if: steps.key.outputs.present == 'true'
+        name: Build and deploy each shop
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          failed=""
+          for shop in $(node --experimental-strip-types --no-warnings scripts/list-shops.mjs); do
+            echo "::group::$shop"
+            # Customers sign in without an SMS code (anonymous sign-in); only admin numbers get one.
+            SHOP=$shop node --experimental-strip-types --no-warnings scripts/auth-setup.mjs || failed="$failed $shop-auth"
+            # The link preview shows the admin's uploaded profile picture, if there is one.
+            og=$(SHOP=$shop node --experimental-strip-types --no-warnings scripts/og-image.mjs 2>/dev/null || true)
+            OG_IMAGE=$og SHOP=$shop npm run deploy -- --non-interactive || failed="$failed $shop"
+            echo "::endgroup::"
+          done
+          # Trial barbers with their own site get the new build too (scripts/trial-sites.mjs).
+          if node --experimental-strip-types --no-warnings scripts/list-shops.mjs | grep -qx trial && ! echo "$failed" | grep -qw trial; then
+            node --experimental-strip-types --no-warnings scripts/trial-sites.mjs sync || failed="$failed trial-sites"
+          fi
+          # One shop failing (e.g. its project is not set up yet) must not stop the others; report it at the end.
+          if [ -n "$failed" ]; then echo "::error::Deploy failed for:$failed"; exit 1; fi
+      - if: steps.key.outputs.present != 'true'
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set, skipping the deploy."

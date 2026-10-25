@@ -1,0 +1,140 @@
+// Thin platform layer: the only place that knows if we run as a website/PWA or inside Capacitor.
+// Swap these bodies for Capacitor plugins (@capacitor/haptics, @capacitor/share, @capacitor/app-launcher)
+// when the native shells are added; the rest of the app keeps calling the same functions.
+import { Capacitor } from '@capacitor/core';
+import type { DateKey, Minutes } from '@/domain/types';
+import { fromKey } from './time';
+
+const isNative = () => Capacitor.isNativePlatform();
+
+export const isStandalone = () =>
+  isNative() || window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+const isMobile = () => /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+
+export function openExternal(url: string) {
+  // On a phone WhatsApp opens its own app; a new tab for it would stay behind empty (about:blank in iPhone Chrome).
+  if (url.startsWith('tel:')) {
+    window.location.href = url;
+    return;
+  }
+  const whatsapp = isMobile() && /^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(url);
+  window.open(url, whatsapp ? '_self' : '_blank', 'noopener');
+}
+
+type HapticKind = 'light' | 'success' | 'warning';
+export function haptic(kind: HapticKind = 'light') {
+  const pattern = kind === 'success' ? [12, 40, 18] : kind === 'warning' ? [20, 60, 20] : 10;
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* not supported (iOS Safari) */
+  }
+}
+
+/** Native share sheet when available (WhatsApp status, etc.), otherwise WhatsApp with the text. */
+export async function shareText(text: string): Promise<void> {
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return;
+    }
+  }
+  openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+const icsStamp = (d: Date) =>
+  d
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
+const icsDate = (date: DateKey, m: Minutes) => {
+  const d = fromKey(date);
+  d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+  return icsStamp(d);
+};
+/** RFC 5545 text: commas, semicolons and backslashes must be escaped ("אריה שנקר 65, חולון"). */
+const icsText = (s: string) => s.replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+
+export interface CalendarEvent {
+  title: string;
+  date: DateKey;
+  start: Minutes;
+  end: Minutes;
+  location: string;
+  notes?: string;
+  /** Unique per appointment, so adding it again updates the event instead of duplicating it. */
+  uid?: string;
+  /** Reminder this many minutes before (default 60). */
+  alarmMin?: number;
+}
+
+const icsEvent = (e: CalendarEvent, i: number) => [
+  'BEGIN:VEVENT',
+  `UID:${e.uid ?? `${Date.now()}-${i}`}@barber-booking`,
+  `DTSTAMP:${icsStamp(new Date())}`,
+  `DTSTART:${icsDate(e.date, e.start)}`,
+  `DTEND:${icsDate(e.date, e.end)}`,
+  `SUMMARY:${icsText(e.title)}`,
+  `LOCATION:${icsText(e.location)}`,
+  e.notes ? `DESCRIPTION:${icsText(e.notes)}` : '',
+  'BEGIN:VALARM',
+  `TRIGGER:-PT${e.alarmMin ?? 60}M`,
+  'ACTION:DISPLAY',
+  'DESCRIPTION:תזכורת לתור',
+  'END:VALARM',
+  'END:VEVENT',
+];
+
+/** The .ics text for one or more events (Apple Calendar, and any calendar app that opens .ics files). */
+export const icsFile = (events: CalendarEvent[]) =>
+  ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Barbershop booking//HE', ...events.flatMap(icsEvent), 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+
+/** Where an .ics file can live at a real https address (the Firebase backend puts it in Storage). */
+let icsHost: ((ics: string) => Promise<string>) | null = null;
+export const setIcsHost = (host: typeof icsHost) => {
+  icsHost = host;
+};
+
+/** Google Calendar's "new event" page, already filled in (Android has no app that opens .ics files). */
+export const googleCalendarUrl = (e: CalendarEvent) =>
+  'https://calendar.google.com/calendar/render?' +
+  new URLSearchParams({
+    action: 'TEMPLATE',
+    text: e.title,
+    dates: `${icsDate(e.date, e.start)}/${icsDate(e.date, e.end)}`,
+    location: e.location,
+    ...(e.notes && { details: e.notes }),
+  });
+
+/** "הוסף ליומן": opens the phone's own calendar with the event(s) ready to add. */
+export async function addToCalendar(event: CalendarEvent | CalendarEvent[]) {
+  const events = Array.isArray(event) ? event : [event];
+  const ics = icsFile(events);
+  // iPhone shows its "Add to Calendar" sheet only for an .ics at a real web address: a downloaded file goes to
+  // Files, and Chrome and the home-screen app refuse a data: address.
+  if (isIOS()) {
+    const url = icsHost ? await icsHost(ics).catch(() => null) : null;
+    window.location.href = url ?? 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    return;
+  }
+  if (/android/i.test(navigator.userAgent) && events.length === 1) {
+    window.location.href = googleCalendarUrl(events[0]);
+    return;
+  }
+  downloadIcs(ics, events.length > 1 ? 'תורים.ics' : 'תור.ics');
+}
+
+/** Saves an .ics file (on iPhone too), e.g. to import into Google Calendar. */
+export function downloadIcs(ics: string, name: string) {
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
