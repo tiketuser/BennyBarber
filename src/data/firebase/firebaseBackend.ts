@@ -137,6 +137,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
   let user: User | null = null;
   /** The admin's appointments came in at least once since the last (re)listen. */
   let apptsLoaded = false;
+  let settingsIn = false;
 
   const build = (): DbSnapshot => {
     const mine = new Set(appointments.map((a) => a.id));
@@ -152,6 +153,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
       // Until the admin's first sign-in seeds the shop, customers see its starting photos (trial shops).
       gallery: settings ? gallery : gallery.length ? gallery : STARTER_GALLERY,
       loading: session?.role === 'admin' && !apptsLoaded,
+      settingsLoading: !settingsIn,
     };
   };
   let db = build();
@@ -167,7 +169,11 @@ export async function createFirebaseBackend(): Promise<Backend> {
   // Public data, for everyone (also signed out). On a read error the screens keep the defaults from the shop config (shops/<id>/config.ts).
   const warn = (what: string) => (e: Error) => console.warn(`Firebase: could not load ${what}`, e.message);
   onSnapshot(col('services'), (s) => ((services = s.empty ? null : docs<Service>(s).sort(byOrder)), emit()), warn('services'));
-  onSnapshot(settingsRef, (s) => ((settings = s.exists() ? (s.data() as Settings) : null), emit()), warn('settings'));
+  onSnapshot(
+    settingsRef,
+    (s) => ((settings = s.exists() ? (s.data() as Settings) : null), (settingsIn = true), emit()),
+    (e) => (warn('settings')(e), (settingsIn = true), emit()),
+  );
   onSnapshot(col('gallery'), (s) => ((gallery = docs<GalleryItem>(s).sort(byOrder)), emit()), warn('gallery'));
 
   // Data that depends on who is signed in.

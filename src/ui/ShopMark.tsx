@@ -1,6 +1,6 @@
 import { Scissors } from 'lucide-react';
 import { SHOP } from '@/config/shop';
-import { useLogoUrl } from './useLogoUrl';
+import { useLogo } from './useLogoUrl';
 
 const url = `url(${import.meta.env.BASE_URL}logo-mark.svg)`;
 
@@ -10,7 +10,9 @@ const url = `url(${import.meta.env.BASE_URL}logo-mark.svg)`;
  * A logo picture (SHOP.logoUrl) is round already and covers the whole badge instead.
  */
 export function ShopMark({ size, className }: { size: number; className?: string }) {
-  const logoUrl = useLogoUrl();
+  const { url: logoUrl, pending } = useLogo();
+  // Not known yet (first visit on this device): an empty badge, never the built-in logo flashing first.
+  if (pending) return <span aria-hidden className="block shrink-0" style={{ width: Math.round(size * 1.3), height: Math.round(size * 1.3) }} />;
   if (logoUrl) {
     const side = Math.round(size * 2.2);
     return <img src={logoUrl} alt="" aria-hidden className="block max-h-full max-w-full shrink-0 rounded-full bg-white object-cover" style={{ width: side, height: side }} />;

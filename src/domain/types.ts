@@ -128,4 +128,6 @@ export interface DbSnapshot {
   gallery: GalleryItem[];
   /** The admin's appointments haven't arrived yet (first load): screens show a placeholder, not an empty day. */
   loading?: boolean;
+  /** The shop's settings haven't arrived yet: `settings` still holds the config defaults. */
+  settingsLoading?: boolean;
 }

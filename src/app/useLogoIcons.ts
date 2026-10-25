@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useDb } from '@/data/store';
+import { useLogo } from '@/ui/useLogoUrl';
 
 const setLink = (rel: string, href: string) => {
   const el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`) ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel }));
@@ -11,7 +12,10 @@ const setLink = (rel: string, href: string) => {
  * for the next time someone adds the app (an icon already on a home screen stays until it's added again).
  */
 export function useLogoIcons() {
-  const logoUrl = useDb().settings.logoUrl;
+  const db = useDb();
+  const remembered = useLogo().url;
+  // Only the admin's own upload replaces the icons (the built-in ones are already in the page); a remembered one at once.
+  const logoUrl = db.settingsLoading ? remembered : db.settings.logoUrl;
   useEffect(() => {
     if (!logoUrl) return;
     setLink('icon', logoUrl);
