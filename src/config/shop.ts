@@ -5,6 +5,8 @@ import type { GalleryItem } from '@/domain/types';
 export const courseFrom = (c: { enabled: boolean; details: string }) => (c.enabled ? { details: c.details } : null);
 
 const where = `${config.address.street} ${config.address.city}`;
+/** The barber's own WhatsApp: the shop number, or (while it is still the template's 050-0000000) his admin number, listed last. */
+const barberPhone = phoneDigits(config.phone) !== '0500000000' ? config.phone : (config.adminPhones.at(-1) ?? config.phone);
 
 /** "המספרה" / "הסלון" with its "ב" and "ל" forms ("במספרה", "לסלון") and "סגורה" / "סגור" by the noun's gender. */
 export const placeForms = (place = 'המספרה') => {
@@ -34,7 +36,7 @@ export const SHOP = {
   street: config.address.street,
   city: config.address.city,
   /** Digits only. */
-  phone: phoneDigits(config.phone),
+  phone: phoneDigits(barberPhone),
   instagram: config.instagram,
   instagramUrl: config.instagram ? `https://instagram.com/${config.instagram}` : null,
   wazeUrl: 'https://waze.com/ul?q=' + encodeURIComponent(where) + '&navigate=yes',

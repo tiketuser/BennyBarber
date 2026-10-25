@@ -15,7 +15,7 @@ export default defineShop({
   tagline: 'תספורות גברים, זקן וילדים בלב חולון. קובעים תור אונליין בדקה, מגיעים ויושבים.',
   address: { street: 'אריה שנקר 65', city: 'חולון' },
   /** Shop WhatsApp / phone number. */
-  phone: '050-0000000',
+  phone: '052-8887726',
   /** Numbers that open the admin view after signing in. The Firebase security rules are generated from this list. */
   adminPhones: ['054-4437070', '052-8887726'],
   /** The round logo picture in the header and sign-in badge (the app icon). */
