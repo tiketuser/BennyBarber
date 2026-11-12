@@ -15,6 +15,8 @@ import {
   type User,
 } from 'firebase/auth';
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   connectFirestoreEmulator,
   deleteDoc,
@@ -22,6 +24,8 @@ import {
   doc,
   documentId,
   getDoc,
+  getDocs,
+  getDocsFromCache,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -32,6 +36,7 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type FieldValue,
   type Transaction,
   type Unsubscribe,
 } from 'firebase/firestore';
@@ -39,10 +44,10 @@ import { connectStorageEmulator, getDownloadURL, getStorage, ref, uploadBytes } 
 import { walkInEnd } from '../walkIn';
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Service, Session, Settings, WaitlistEntry } from '@/domain/types';
-import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
+import { assertBookable, assertNoShowUndoable, calendarUid, assertWithinBookingWindow } from '@/domain/schedule';
 import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE, STARTER_GALLERY, g } from '@/config/shop';
 import { fromIntl, phoneDigits, toIntl } from '@/lib/phone';
-import { todayKey } from '@/lib/time';
+import { addDays, todayKey } from '@/lib/time';
 
 /** One busy range on a day, published for customers without names or phones. */
 interface BusyEntry {
@@ -120,8 +125,9 @@ export async function createFirebaseBackend(): Promise<Backend> {
   setIcsHost(async (ics) => {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error('not signed in');
-    const file = ref(storage, `${root}/ics/${uid}/${Date.now()}.ics`);
-    await uploadBytes(file, new Blob([ics], { type: 'text/calendar' }), { contentType: 'text/calendar; charset=utf-8' });
+    // One file per user, replaced each time (never cached, so the phone always gets the latest).
+    const file = ref(storage, `${root}/ics/${uid}/calendar.ics`);
+    await uploadBytes(file, new Blob([ics], { type: 'text/calendar' }), { contentType: 'text/calendar; charset=utf-8', cacheControl: 'no-store' });
     return getDownloadURL(file);
   });
 
@@ -177,6 +183,32 @@ export async function createFirebaseBackend(): Promise<Backend> {
   onSnapshot(col('gallery'), (s) => ((gallery = docs<GalleryItem>(s).sort(byOrder)), emit()), warn('gallery'));
 
   // Data that depends on who is signed in.
+  /** Appointments older than this many days are not listened to live (see watchScoped). */
+  const OLD_AFTER_DAYS = 45;
+  /** Bumped on every (re)listen, so a slow load of old appointments can't land in a later session. */
+  let oldGen = 0;
+  const loadOld = async (cutoff: DateKey): Promise<Appointment[]> => {
+    const q = query(col('appointments'), where('date', '<', cutoff));
+    const key = `oldAppts:${FIREBASE.shopId}`;
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(key) ?? 0);
+    } catch {
+      /* storage blocked */
+    }
+    if (Date.now() - last < 7 * 864e5) {
+      const cached = await getDocsFromCache(q).catch(() => null);
+      if (cached && !cached.empty) return docs<Appointment>(cached);
+    }
+    const fresh = await getDocs(q).catch(() => null);
+    if (!fresh) return [];
+    try {
+      localStorage.setItem(key, String(Date.now()));
+    } catch {
+      /* storage blocked */
+    }
+    return docs<Appointment>(fresh);
+  };
   let scoped: Unsubscribe[] = [];
   let retry: ReturnType<typeof setTimeout> | undefined;
   /** The last listen was refused: listen again as soon as the app is back in front or online. */
@@ -214,12 +246,27 @@ export async function createFirebaseBackend(): Promise<Backend> {
     };
     failed = false;
     if (session?.role === 'admin') {
+      // Only the last weeks and everything ahead are listened to live; older ones (for "היסטוריה") hardly ever change,
+      // so they come from the device's copy and are fetched again from the server once a week. Without this every
+      // opening of the admin read every appointment the shop ever had.
+      const cutoff = addDays(todayKey(), -OLD_AFTER_DAYS);
+      let recent: Appointment[] = [];
+      let old: Appointment[] = [];
+      const joinAppts = () => (appointments = [...old, ...recent]);
+      const gen = ++oldGen;
+      void loadOld(cutoff).then((list) => {
+        if (gen !== oldGen) return;
+        old = list;
+        joinAppts();
+        emit();
+      });
       scoped.push(
         onSnapshot(
-          col('appointments'),
+          query(col('appointments'), where('date', '>=', cutoff)),
           { includeMetadataChanges: true },
           (s) => {
-            appointments = docs<Appointment>(s);
+            recent = docs<Appointment>(s);
+            joinAppts();
             // An empty answer from the device's copy may only mean nothing was saved yet: wait for the server.
             if (!s.metadata.fromCache || !s.empty) apptsLoaded = true;
             emit();
@@ -314,6 +361,15 @@ export async function createFirebaseBackend(): Promise<Backend> {
     const s = db.services.find((x) => x.id === id);
     if (!s) throw new Error('הטיפול לא נמצא');
     return s;
+  };
+
+  /**
+   * Changes only the named settings fields, so two admin phones editing at once don't undo each other (writing the
+   * whole settings object from one phone's copy did). Before the shop has saved settings, writes them whole.
+   */
+  const patchSettings = async (patch: Record<string, FieldValue | Partial<unknown> | null | undefined>, whole: Settings) => {
+    if (settings) await updateDoc(settingsRef, patch);
+    else await setDoc(settingsRef, whole);
   };
 
   // ---------------------------------------------------------------- day ledger
@@ -414,6 +470,20 @@ export async function createFirebaseBackend(): Promise<Backend> {
         setSession({ ...s, name: clean });
       }),
       signOut: guard(async () => {
+        // A customer's bookings belong to his anonymous sign-in: ending it would lose them for good (a new sign-in is a
+        // new id). So he only forgets his number and name here, and signing in again on this device brings them back.
+        const u = auth.currentUser;
+        if (u?.isAnonymous && session?.role === 'customer') {
+          const forgot = await setDoc(doc(fs, root, 'users', u.uid), { phone: deleteField() }, { merge: true }).then(
+            () => true,
+            () => false,
+          );
+          if (forgot) {
+            authGen++;
+            setSession(null);
+            return;
+          }
+        }
         await signOut(auth);
       }),
     },
@@ -437,6 +507,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
             customerPhone: me.phone,
             customerUid: user!.uid,
             notes: input.notes?.trim() || undefined,
+            calUid: replaces ? calendarUid(replaces) : undefined,
             status: 'booked',
             source: 'app',
             createdAt: Date.now(),
@@ -478,6 +549,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
       setNoShow: guard(async (id, noShow) => {
         requireAdmin();
         const a = appointment(id);
+        if (!noShow) assertNoShowUndoable(db, a);
         await runTransaction(fs, async (t) => {
           const busy = (await readDay(t, a.date)).filter((b) => b.id !== a.id);
           if (noShow) {
@@ -590,7 +662,7 @@ export async function createFirebaseBackend(): Promise<Backend> {
         requireAdmin();
         const next = { ...db.settings.hours };
         for (const d of weekdays) next[d] = { ...hours };
-        await setDoc(settingsRef, { ...db.settings, hours: next });
+        await patchSettings(Object.fromEntries(weekdays.map((d) => [`hours.${d}`, { ...hours }])), { ...db.settings, hours: next });
       }),
       setLogo: guard(async (photo) => {
         requireAdmin();
@@ -602,11 +674,11 @@ export async function createFirebaseBackend(): Promise<Backend> {
           await uploadBytes(file, photo, { contentType: photo.type, cacheControl: 'public, max-age=31536000' });
           logoUrl = await getDownloadURL(file);
         }
-        await setDoc(settingsRef, { ...db.settings, logoUrl });
+        await patchSettings({ logoUrl }, { ...db.settings, logoUrl });
       }),
       setBreak: guard(async (range) => {
         requireAdmin();
-        await setDoc(settingsRef, { ...db.settings, breakTime: range });
+        await patchSettings({ breakTime: range }, { ...db.settings, breakTime: range });
       }),
       addVacation: guard(async (from, to) => {
         requireAdmin();
@@ -619,13 +691,15 @@ export async function createFirebaseBackend(): Promise<Backend> {
           const busy = new Map(await Promise.all(dates.map(async (d) => [d, await readDay(t, d)] as const)));
           for (const a of affected) t.update(apptRef(a.id), { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'admin', openingHandled: true });
           for (const d of dates) t.set(dayRef(d), { busy: busy.get(d)!.filter((b) => !affected.some((a) => a.id === b.id)) });
-          t.set(settingsRef, { ...db.settings, vacations: [...db.settings.vacations, v] });
+          if (settings) t.update(settingsRef, { vacations: arrayUnion(v) });
+          else t.set(settingsRef, { ...db.settings, vacations: [...db.settings.vacations, v] });
         });
         return v;
       }),
       removeVacation: guard(async (id) => {
         requireAdmin();
-        await setDoc(settingsRef, { ...db.settings, vacations: db.settings.vacations.filter((v) => v.id !== id) });
+        const v = db.settings.vacations.find((x) => x.id === id);
+        if (v) await patchSettings({ vacations: arrayRemove(v) }, { ...db.settings, vacations: db.settings.vacations.filter((x) => x.id !== id) });
       }),
     },
 

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertTriangle, Bell, CalendarCheck, CalendarDays, MapPin, MessageCircle, Navigation, Repeat, RotateCcw, X } from 'lucide-react';
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
-import { PART_LABELS } from '@/domain/schedule';
+import { PART_LABELS, calendarUid } from '@/domain/schedule';
 import type { Appointment } from '@/domain/types';
 import { SHOP, g } from '@/config/shop';
 import { formatPhone } from '@/lib/phone';
@@ -352,7 +352,15 @@ function HeroCard({ appt, price, daysAway, state, onAsk, onKeep, onCancel, onUnd
               type="button"
               aria-pressed={inCalendar}
               onClick={() => {
-                addToCalendar({ title: `${appt.serviceName} - ${SHOP.fullName}`, date: appt.date, start: appt.start, end: appt.end, location: SHOP.address, notes: appt.notes });
+                addToCalendar({
+                  title: `${appt.serviceName} - ${SHOP.fullName}`,
+                  date: appt.date,
+                  start: appt.start,
+                  end: appt.end,
+                  location: SHOP.address,
+                  notes: appt.notes,
+                  uid: calendarUid(appt),
+                });
                 setInCalendar(true);
               }}
               className={cx(

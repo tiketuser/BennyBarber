@@ -146,6 +146,9 @@ export function nextFreeStart(db: DbSnapshot, date: DateKey, len: number, now = 
   return null;
 }
 
+/** The appointment's event id in calendars (see Appointment.calUid). */
+export const calendarUid = (a: Pick<Appointment, 'id' | 'calUid'>) => a.calUid ?? a.id;
+
 /** Throws a user-facing Hebrew message when a booking can't be placed. */
 export function assertBookable(
   db: DbSnapshot,
@@ -173,4 +176,14 @@ export function bookingDays(today: DateKey, months: number): DateKey[] {
 /** Customers book up to `months` ahead; the admin is not limited. */
 export function assertWithinBookingWindow(date: DateKey, months: number, now = new Date()) {
   if (date > addMonths(todayKey(now), months)) throw new Error(`אפשר לקבוע תור עד ${months === 1 ? 'חודש' : months + ' חודשים'} קדימה`);
+}
+
+/**
+ * Taking back "לא הגיע" puts the appointment back in the diary: refused when someone booked into its time after it
+ * was freed (an overlap the admin made on purpose earlier, like a squeezed walk-in, doesn't count).
+ */
+export function assertNoShowUndoable(db: Pick<DbSnapshot, 'appointments'>, a: Appointment) {
+  const freedAt = a.cancelledAt ?? 0;
+  const taken = db.appointments.some((x) => x.id !== a.id && x.status === 'booked' && x.date === a.date && x.start < a.end && x.end > a.start && x.createdAt > freedAt);
+  if (taken) throw new Error('בינתיים נקבע תור אחר בשעה הזו, אי אפשר להחזיר את התור');
 }

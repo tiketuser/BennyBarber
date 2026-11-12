@@ -114,7 +114,7 @@ export function ShopScreen({ onGallery, onCourse }: { onGallery: () => void; onC
           </span>
           <span className="flex flex-1 flex-col gap-[3px]">
             <span className="text-base font-semibold">{g('רוצה ללמוד לספר?', 'רוצה ללמוד לספר?', 'רוצים ללמוד לספר?')}</span>
-            <span className="text-[13px] text-line-strong">קורס ספרות גברים</span>
+            <span className="text-[13px] text-line-strong">{g('קורס ספרות גברים', 'קורס ספרות', 'קורס ספרות')}</span>
           </span>
           <ChevronLeft size={20} />
         </button>
@@ -183,7 +183,7 @@ export function CourseScreen({ onBack }: { onBack: () => void }) {
       <ScreenHeader onBack={onBack} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         <section className="mx-4 mt-1 flex flex-col gap-2 rounded-[22px] bg-brand p-5 text-white">
-          <span className="self-start rounded-full bg-brand-accent px-2.5 py-1 text-xs font-semibold text-brand">קורס ספרות גברים</span>
+          <span className="self-start rounded-full bg-brand-accent px-2.5 py-1 text-xs font-semibold text-brand">{g('קורס ספרות גברים', 'קורס ספרות', 'קורס ספרות')}</span>
           <h1 className="m-0 mt-1 font-brand text-[28px] font-normal leading-tight">ללמוד לספר</h1>
           <p className="m-0 text-[15px] leading-normal text-line-strong">משאירים פרטים ונחזור אליך עם כל המידע על הקורס.</p>
           <div className="mt-1 text-[13px] text-line-strong">{SHOP.course?.details}</div>

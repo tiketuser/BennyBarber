@@ -78,6 +78,9 @@ export interface Appointment {
   noShow?: boolean;
   /** Minutes the barber pushed it back with "מתעכב" (removing the delay moves it back by this much). */
   delayMin?: number;
+  /** Its event id in the customer's and admin's calendars, kept when it's moved to another time, so adding the new
+   * time to the calendar moves the old event instead of leaving it there. Missing: the appointment's own id. */
+  calUid?: string;
 }
 
 export interface Block {

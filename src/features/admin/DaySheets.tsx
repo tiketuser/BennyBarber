@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, CalendarPlus, Check, MessageCircle } from 'lucide-react';
 import { useBackend, useDb, useNow } from '@/data/store';
-import { hoursFor } from '@/domain/schedule';
+import { calendarUid, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, Minutes } from '@/domain/types';
 import { SHOP } from '@/config/shop';
 import { whatsappUrl } from '@/lib/links';
@@ -390,7 +390,7 @@ export const adminCalendarEvent = (a: Appointment): CalendarEvent => ({
   end: a.end,
   location: SHOP.address,
   notes: [a.phone && `טלפון: ${formatPhone(a.phone)}`, a.notes && `הערות: ${a.notes}`].filter(Boolean).join('\n') || undefined,
-  uid: a.id,
+  uid: calendarUid(a),
   alarmMin: 15,
 });
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Bell, CalendarCheck, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useBackend, useDb, useNow, useSession } from '@/data/store';
-import { PARTS, bookingDays, dayStatus, slotsFor } from '@/domain/schedule';
+import { PARTS, bookingDays, calendarUid, dayStatus, slotsFor } from '@/domain/schedule';
 import type { Appointment, DateKey, Minutes } from '@/domain/types';
 import { BOOKING_MONTHS, SHOP, g } from '@/config/shop';
 import { formatPhone } from '@/lib/phone';
@@ -351,6 +351,7 @@ export function DeskBook({ initialServiceId, replacing, onCancelReplace, onOpenM
                       end: booked.end,
                       location: SHOP.address,
                       notes: booked.notes,
+                      uid: calendarUid(booked),
                     })
                   }
                 >

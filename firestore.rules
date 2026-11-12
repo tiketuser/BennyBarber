@@ -5,7 +5,7 @@ service cloud.firestore {
     match /shops/bennycohen {
     // Admin numbers come from shop.config.ts adminPhones. The app's admin view is only a convenience; this is the real check.
     function isAdmin() {
-      return request.auth != null && request.auth.token.phone_number in ["+972544437070"];
+      return request.auth != null && request.auth.token.get('phone_number', '') in ["+972544437070","+972528887726"];
     }
     // Trial shops: the shop exists, and new bookings only until its free week ends (trialEndsAt, a timestamp).
     function live() {
@@ -14,13 +14,26 @@ service cloud.firestore {
     function open() {
       return true;
     }
+    // Customers sign in with their number and name only (an anonymous sign-in), so a typed number proves nothing:
+    // what they booked is theirs by sign-in id (customerUid). Older SMS sign-ins also own by their verified number.
     function signedIn() {
-      return request.auth != null && request.auth.token.phone_number is string;
+      return request.auth != null;
+    }
+    function verified() {
+      return request.auth.token.get('phone_number', null) is string;
     }
     // "+972521234567" -> "0521234567", the form the app stores.
     function phone() {
       let p = request.auth.token.phone_number;
       return '0' + p[4:p.size()];
+    }
+    function mine(a) {
+      return a.get('customerUid', null) == request.auth.uid || (verified() && a.get('customerPhone', null) == phone());
+    }
+    // A new booking or waitlist entry carries its owner's sign-in id (and his verified number, if he has one).
+    function ownedNew(a) {
+      return a.get('customerUid', null) == request.auth.uid && a.get('customerPhone', null) is string
+        && (!verified() || a.customerPhone == phone());
     }
     function appt(id) {
       return getAfter(/databases/$(database)/documents/shops/bennycohen/appointments/$(id)).data;
@@ -31,11 +44,33 @@ service cloud.firestore {
     }
     function ownsNew(date, e) {
       let a = appt(e.id);
-      return a.customerPhone == phone() && a.status == 'booked' && a.date == date && a.start == e.start && a.end == e.end;
+      return mine(a) && a.status == 'booked' && a.date == date && a.start == e.start && a.end == e.end;
     }
     function ownsCancelled(e) {
       let a = appt(e.id);
-      return a.customerPhone == phone() && a.status == 'cancelled';
+      return mine(a) && a.status == 'cancelled';
+    }
+    // A customer's own booking must look like one the app makes: the saved service's length and price, inside one day,
+    // from yesterday through the booking window. Stops a script from booking whole days, the past or years ahead.
+    function svcPath(a) {
+      return /databases/$(database)/documents/shops/bennycohen/services/$(a.serviceId);
+    }
+    function fairBooking(a) {
+      let len = a.end - a.start;
+      return a.start is int && a.end is int && a.start >= 0 && a.end <= 1440 && len >= 5 && len <= 240
+        && a.serviceId is string && a.date is string && a.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && inWindow(timestamp.date(int(a.date[0:4]), int(a.date[5:7]), int(a.date[8:10])))
+        && (!exists(svcPath(a)) || (get(svcPath(a)).data.durationMin == len && get(svcPath(a)).data.price == a.price));
+    }
+    function inWindow(d) {
+      return d > request.time - duration.value(2, 'd') && d < request.time + duration.value(3 * 31 + 2, 'd');
+    }
+    // e (a new busy range) does not overlap entry i of list l. Rules have no loops, so noOverlap() checks a day entry by entry.
+    function clear(l, i, e) {
+      return i >= l.size() || l[i].end <= e.start || l[i].start >= e.end;
+    }
+    function noOverlap(l, e) {
+      return l.size() <= 48 && clear(l, 0, e) && clear(l, 1, e) && clear(l, 2, e) && clear(l, 3, e) && clear(l, 4, e) && clear(l, 5, e) && clear(l, 6, e) && clear(l, 7, e) && clear(l, 8, e) && clear(l, 9, e) && clear(l, 10, e) && clear(l, 11, e) && clear(l, 12, e) && clear(l, 13, e) && clear(l, 14, e) && clear(l, 15, e) && clear(l, 16, e) && clear(l, 17, e) && clear(l, 18, e) && clear(l, 19, e) && clear(l, 20, e) && clear(l, 21, e) && clear(l, 22, e) && clear(l, 23, e) && clear(l, 24, e) && clear(l, 25, e) && clear(l, 26, e) && clear(l, 27, e) && clear(l, 28, e) && clear(l, 29, e) && clear(l, 30, e) && clear(l, 31, e) && clear(l, 32, e) && clear(l, 33, e) && clear(l, 34, e) && clear(l, 35, e) && clear(l, 36, e) && clear(l, 37, e) && clear(l, 38, e) && clear(l, 39, e) && clear(l, 40, e) && clear(l, 41, e) && clear(l, 42, e) && clear(l, 43, e) && clear(l, 44, e) && clear(l, 45, e) && clear(l, 46, e) && clear(l, 47, e);
     }
     // A customer may add one own new appointment to a day and/or take one own cancelled appointment off it.
     function customerLedgerChange(date) {
@@ -46,7 +81,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(['busy'])
         && added.size() <= 1 && removed.size() <= 1 && added.size() + removed.size() >= 1
         && next.size() == prev.size() + added.size() - removed.size()
-        && (added.size() == 0 || ownsNew(date, added[0]))
+        && (added.size() == 0 || (ownsNew(date, added[0]) && noOverlap(next.removeAll(added), added[0])))
         && (removed.size() == 0 || ownsCancelled(removed[0]));
     }
 
@@ -78,14 +113,15 @@ service cloud.firestore {
         allow update: if signedIn() && customerLedgerChange(date) && (open() || request.resource.data.busy.size() < resource.data.busy.size());
       }
       match /appointments/{id} {
-        allow read: if isAdmin() || (signedIn() && resource.data.customerPhone == phone());
+        allow read: if isAdmin() || (signedIn() && mine(resource.data));
         allow create: if isAdmin() || (signedIn() && open()
-          && request.resource.data.customerPhone == phone()
+          && ownedNew(request.resource.data)
+          && fairBooking(request.resource.data)
           && request.resource.data.status == 'booked'
           && request.resource.data.source == 'app'
           && inLedger(id, request.resource.data));
         allow update: if isAdmin() || (signedIn()
-          && resource.data.customerPhone == phone()
+          && mine(resource.data)
           && resource.data.status == 'booked'
           && request.resource.data.status == 'cancelled'
           && request.resource.data.cancelledBy == 'customer'
@@ -94,8 +130,8 @@ service cloud.firestore {
         allow delete: if isAdmin();
       }
       match /waitlist/{id} {
-        allow read, delete: if isAdmin() || (signedIn() && resource.data.customerPhone == phone());
-        allow create: if isAdmin() || (signedIn() && open() && request.resource.data.customerPhone == phone());
+        allow read, delete: if isAdmin() || (signedIn() && mine(resource.data));
+        allow create: if isAdmin() || (signedIn() && open() && ownedNew(request.resource.data));
       }
     }
   }

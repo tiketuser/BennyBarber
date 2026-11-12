@@ -66,9 +66,11 @@ describe('mock backend', () => {
   it('reschedules by cancelling the old appointment and freeing it for the waitlist', async () => {
     await signIn(b, ME);
     const first = await b.appointments.book({ serviceId: 'cut', date: TUESDAY, start: 630, customerName: 'יוסי', phone: ME });
-    await b.appointments.book({ serviceId: 'cut', date: TUESDAY, start: 700, customerName: 'יוסי', phone: ME, replacesId: first.id });
+    const moved = await b.appointments.book({ serviceId: 'cut', date: TUESDAY, start: 700, customerName: 'יוסי', phone: ME, replacesId: first.id });
     const old = b.getSnapshot().appointments.find((a) => a.id === first.id)!;
     expect(old).toMatchObject({ status: 'cancelled', openingHandled: false, cancelledBy: 'customer' });
+    // Same calendar event, so adding the new time to the calendar moves the old one.
+    expect(moved.calUid).toBe(first.id);
   });
 
   it("does not let a customer cancel someone else's appointment", async () => {
@@ -128,6 +130,15 @@ describe('mock backend', () => {
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'cancelled', noShow: true, openingHandled: true });
     await b.appointments.setNoShow(w.id, false);
     expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked', noShow: undefined });
+  });
+
+  it('does not take back a no-show when someone booked into its time meanwhile', async () => {
+    await signIn(b, ADMIN);
+    const w = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540, end: 600 });
+    await b.appointments.setNoShow(w.id, true);
+    await new Promise((r) => setTimeout(r, 5));
+    await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 560, end: 580 });
+    await expect(b.appointments.setNoShow(w.id, false)).rejects.toThrow('בינתיים');
   });
 
   it('admin walk-ins may go outside opening hours and on closed days', async () => {

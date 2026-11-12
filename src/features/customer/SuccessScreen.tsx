@@ -3,6 +3,7 @@ import { CalendarCheck } from 'lucide-react';
 import type { Appointment } from '@/domain/types';
 import { SHOP, g } from '@/config/shop';
 import { addToCalendar } from '@/lib/platform';
+import { calendarUid } from '@/domain/schedule';
 import { DAY_LETTERS, fmtDayShortMonth, fmtShortDate, fmtTime, weekdayOf } from '@/lib/time';
 import { Button } from '@/ui/controls';
 import { spring } from '@/ui/motion';
@@ -76,7 +77,15 @@ export function SuccessScreen({ appt, onHome }: { appt: Appointment; onHome: () 
           variant="secondary"
           icon={<CalendarCheck size={20} />}
           onClick={() =>
-            addToCalendar({ title: `${appt.serviceName} - ${SHOP.fullName}`, date: appt.date, start: appt.start, end: appt.end, location: SHOP.address, notes: appt.notes })
+            addToCalendar({
+              title: `${appt.serviceName} - ${SHOP.fullName}`,
+              date: appt.date,
+              start: appt.start,
+              end: appt.end,
+              location: SHOP.address,
+              notes: appt.notes,
+              uid: calendarUid(appt),
+            })
           }
         >
           {g('הוסף ליומן', 'הוסיפי ליומן', 'הוסיפו ליומן')}

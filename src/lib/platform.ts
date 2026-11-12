@@ -77,6 +77,8 @@ const icsEvent = (e: CalendarEvent, i: number) => [
   'BEGIN:VEVENT',
   `UID:${e.uid ?? `${Date.now()}-${i}`}@barber-booking`,
   `DTSTAMP:${icsStamp(new Date())}`,
+  // Newer each time, so adding an event again (same UID) replaces the copy already in the calendar.
+  `SEQUENCE:${Math.floor(Date.now() / 1000)}`,
   `DTSTART:${icsDate(e.date, e.start)}`,
   `DTEND:${icsDate(e.date, e.end)}`,
   `SUMMARY:${icsText(e.title)}`,

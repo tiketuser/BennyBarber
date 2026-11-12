@@ -3,7 +3,7 @@
 import { walkInEnd } from '../walkIn';
 import type { Backend, BookingInput, WalkInInput } from '../backend';
 import type { Appointment, DbSnapshot, Service, Session } from '@/domain/types';
-import { assertBookable, assertWithinBookingWindow } from '@/domain/schedule';
+import { assertBookable, assertNoShowUndoable, calendarUid, assertWithinBookingWindow } from '@/domain/schedule';
 import { ADMIN_PHONES, BOOKING_MONTHS, g } from '@/config/shop';
 import { phoneDigits } from '@/lib/phone';
 import { buildSeed } from './seed';
@@ -167,6 +167,7 @@ export function createMockBackend(): Backend {
           phone: phoneDigits(input.phone),
           customerPhone: me.phone,
           notes: input.notes?.trim() || undefined,
+          calUid: input.replacesId ? calendarUid(appointment(input.replacesId)) : undefined,
           status: 'booked',
           source: 'app',
           createdAt: Date.now(),
@@ -217,6 +218,10 @@ export function createMockBackend(): Backend {
       async setNoShow(id, noShow) {
         requireAdmin();
         await wait(60);
+        if (!noShow) {
+          const appt = db.appointments.find((x) => x.id === id);
+          if (appt) assertNoShowUndoable(db, appt);
+        }
         patchAppointments((a) => {
           if (a.id !== id) return a;
           if (noShow) return { ...a, status: 'cancelled', cancelledAt: Date.now(), cancelledBy: 'admin', openingHandled: true, noShow: true };

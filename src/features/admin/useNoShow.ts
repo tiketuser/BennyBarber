@@ -11,7 +11,13 @@ export function useNoShow() {
     try {
       await backend.appointments.setNoShow(a.id, true);
       haptic();
-      toast({ text: `${a.customerName} סומן שלא הגיע`, action: { label: 'ביטול', run: () => backend.appointments.setNoShow(a.id, false) } });
+      toast({
+        text: `${a.customerName} סומן שלא הגיע`,
+        action: {
+          label: 'ביטול',
+          run: () => backend.appointments.setNoShow(a.id, false).catch((e: Error) => toast({ text: e.message, tone: 'error' })),
+        },
+      });
     } catch (e) {
       toast({ text: (e as Error).message, tone: 'error' });
     }
