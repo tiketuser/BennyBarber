@@ -4,7 +4,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { useBackend } from '@/data/store';
 import { isValidMobile, phoneDigits } from '@/lib/phone';
 import { haptic } from '@/lib/platform';
-import { ADMIN_PHONES, BACKEND, SHOP, g } from '@/config/shop';
+import { ADMIN_PHONES, BACKEND, FIREBASE, SHOP, g } from '@/config/shop';
 import { Button, PhoneInput, TextInput } from '@/ui/controls';
 import { cx } from '@/ui/cx';
 import { spring } from '@/ui/motion';
@@ -12,6 +12,24 @@ import { firstName } from '../format';
 import { ShopMark } from '@/ui/ShopMark';
 
 type Step = 'phone' | 'code' | 'name' | 'done';
+
+/** The last customer on this device, so signing in again with the same number fills in the name. */
+const LAST_KEY = `lastCustomer:${FIREBASE.shopId}`;
+function lastNameFor(phone: string): string {
+  try {
+    const last = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null') as { phone?: string; name?: string } | null;
+    return last?.phone === phoneDigits(phone) ? (last.name ?? '') : '';
+  } catch {
+    return '';
+  }
+}
+function rememberCustomer(phone: string, name: string) {
+  try {
+    localStorage.setItem(LAST_KEY, JSON.stringify({ phone: phoneDigits(phone), name: name.trim() }));
+  } catch {
+    /* storage blocked */
+  }
+}
 const CODE_LENGTH = 6;
 
 /**
@@ -72,6 +90,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
   const toName = () => {
     setRole('customer');
     setError(null);
+    setName((n) => n || lastNameFor(phone));
     setStep('name');
   };
 
@@ -80,6 +99,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
       // Signed in by SMS already (an older customer account without a name): just the name.
       if (backend.auth.getSession()) await backend.auth.saveName(name);
       else await backend.auth.signInCustomer(phone, name);
+      rememberCustomer(phone, name);
       haptic('success');
       setStep('done');
     });
