@@ -18,7 +18,7 @@ import { GalleryTile } from '../shared/GalleryTile';
 import { groupHours } from '../shared/hours';
 import { useSendQueue } from './useSendQueue';
 import { vacationMessage } from './vacation';
-import { SHOP } from '@/config/shop';
+import { SHOP, g } from '@/config/shop';
 
 /**
  * "שירותים ושעות": prices, hidden prices, service types, opening hours, break, vacations, gallery picks.
@@ -123,7 +123,7 @@ export function SettingsTab({ layout = 'phone', onVacations }: { layout?: 'phone
         className="press mx-4 mt-2 flex h-[52px] w-[calc(100%-32px)] items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-ink-faint text-[15px] font-semibold"
       >
         <Plus size={18} />
-        הוסף סוג תספורת
+        {g('הוסף סוג תספורת', 'הוסף סוג טיפול', 'הוסף סוג טיפול')}
       </button>
 
       <div className="flex items-center justify-between pb-2 pe-4 ps-5 pt-5">
@@ -268,7 +268,7 @@ function DeskSettings({ services, onRemove, onEdit, onHours, onGallery, onVacati
           <div role="table" aria-label="סוגי תספורות ומחירים" className="overflow-hidden rounded-[20px] border border-line">
             <div role="row" className="flex h-11 items-center gap-3 bg-surface px-5 text-[13px] font-semibold text-ink-soft">
               <span role="columnheader" className="flex-1">
-                סוג תספורת
+                {g('סוג תספורת', 'סוג טיפול', 'סוג טיפול')}
               </span>
               <span role="columnheader" className="w-[148px] text-center">
                 מחיר
@@ -333,7 +333,7 @@ function DeskSettings({ services, onRemove, onEdit, onHours, onGallery, onVacati
             {adding && (
               <div role="row" className="flex min-h-[72px] flex-wrap items-center gap-3 border-t border-line-soft bg-surface/60 px-5 py-3">
                 <label htmlFor="newsvc" className="sr-only">
-                  שם סוג התספורת
+                  {g('שם סוג התספורת', 'שם סוג הטיפול', 'שם סוג הטיפול')}
                 </label>
                 <input
                   id="newsvc"
@@ -384,7 +384,7 @@ function DeskSettings({ services, onRemove, onEdit, onHours, onGallery, onVacati
               className="press flex h-[52px] items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-ink-faint text-[15px] font-semibold"
             >
               <Plus size={18} />
-              הוסף סוג תספורת
+              {g('הוסף סוג תספורת', 'הוסף סוג טיפול', 'הוסף סוג טיפול')}
             </button>
           )}
 
@@ -533,14 +533,14 @@ function ServiceSheet({ service, onClose }: { service: Service | 'new' | null; o
     <Sheet
       open={!!service}
       onClose={onClose}
-      label={isNew ? 'סוג תספורת חדש' : 'עריכת סוג תספורת'}
+      label={isNew ? g('סוג תספורת חדש', 'סוג טיפול חדש', 'סוג טיפול חדש') : g('עריכת סוג תספורת', 'עריכת סוג טיפול', 'עריכת סוג טיפול')}
       footer={
         <Button block disabled={name.trim().length < 2} onClick={save}>
           {isNew ? 'הוסף' : 'שמור'}
         </Button>
       }
     >
-      <SheetTitle>{isNew ? 'סוג תספורת חדש' : 'עריכת סוג תספורת'}</SheetTitle>
+      <SheetTitle>{isNew ? g('סוג תספורת חדש', 'סוג טיפול חדש', 'סוג טיפול חדש') : g('עריכת סוג תספורת', 'עריכת סוג טיפול', 'עריכת סוג טיפול')}</SheetTitle>
       <label htmlFor="svc-name" className="mt-4 block text-sm font-medium">
         שם
       </label>

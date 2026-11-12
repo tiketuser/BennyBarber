@@ -24,8 +24,6 @@ import {
   doc,
   documentId,
   getDoc,
-  getDocs,
-  getDocsFromCache,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -47,7 +45,7 @@ import type { Appointment, Block, DateKey, DbSnapshot, GalleryItem, Minutes, Ser
 import { assertBookable, assertNoShowUndoable, calendarUid, assertWithinBookingWindow } from '@/domain/schedule';
 import { ADMIN_PHONES, BOOKING_MONTHS, DEFAULTS, FIREBASE, STARTER_GALLERY, g } from '@/config/shop';
 import { fromIntl, phoneDigits, toIntl } from '@/lib/phone';
-import { addDays, todayKey } from '@/lib/time';
+import { todayKey } from '@/lib/time';
 
 /** One busy range on a day, published for customers without names or phones. */
 interface BusyEntry {
@@ -183,32 +181,6 @@ export async function createFirebaseBackend(): Promise<Backend> {
   onSnapshot(col('gallery'), (s) => ((gallery = docs<GalleryItem>(s).sort(byOrder)), emit()), warn('gallery'));
 
   // Data that depends on who is signed in.
-  /** Appointments older than this many days are not listened to live (see watchScoped). */
-  const OLD_AFTER_DAYS = 45;
-  /** Bumped on every (re)listen, so a slow load of old appointments can't land in a later session. */
-  let oldGen = 0;
-  const loadOld = async (cutoff: DateKey): Promise<Appointment[]> => {
-    const q = query(col('appointments'), where('date', '<', cutoff));
-    const key = `oldAppts:${FIREBASE.shopId}`;
-    let last = 0;
-    try {
-      last = Number(localStorage.getItem(key) ?? 0);
-    } catch {
-      /* storage blocked */
-    }
-    if (Date.now() - last < 7 * 864e5) {
-      const cached = await getDocsFromCache(q).catch(() => null);
-      if (cached && !cached.empty) return docs<Appointment>(cached);
-    }
-    const fresh = await getDocs(q).catch(() => null);
-    if (!fresh) return [];
-    try {
-      localStorage.setItem(key, String(Date.now()));
-    } catch {
-      /* storage blocked */
-    }
-    return docs<Appointment>(fresh);
-  };
   let scoped: Unsubscribe[] = [];
   let retry: ReturnType<typeof setTimeout> | undefined;
   /** The last listen was refused: listen again as soon as the app is back in front or online. */
@@ -246,27 +218,12 @@ export async function createFirebaseBackend(): Promise<Backend> {
     };
     failed = false;
     if (session?.role === 'admin') {
-      // Only the last weeks and everything ahead are listened to live; older ones (for "היסטוריה") hardly ever change,
-      // so they come from the device's copy and are fetched again from the server once a week. Without this every
-      // opening of the admin read every appointment the shop ever had.
-      const cutoff = addDays(todayKey(), -OLD_AFTER_DAYS);
-      let recent: Appointment[] = [];
-      let old: Appointment[] = [];
-      const joinAppts = () => (appointments = [...old, ...recent]);
-      const gen = ++oldGen;
-      void loadOld(cutoff).then((list) => {
-        if (gen !== oldGen) return;
-        old = list;
-        joinAppts();
-        emit();
-      });
       scoped.push(
         onSnapshot(
-          query(col('appointments'), where('date', '>=', cutoff)),
+          col('appointments'),
           { includeMetadataChanges: true },
           (s) => {
-            recent = docs<Appointment>(s);
-            joinAppts();
+            appointments = docs<Appointment>(s);
             // An empty answer from the device's copy may only mean nothing was saved yet: wait for the server.
             if (!s.metadata.fromCache || !s.empty) apptsLoaded = true;
             emit();

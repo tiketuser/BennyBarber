@@ -42,6 +42,7 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const prefilled = useRef('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<'admin' | 'customer'>('customer');
@@ -90,7 +91,10 @@ export function LoginScreen({ onDone, bare }: { onDone: () => void; /** Without 
   const toName = () => {
     setRole('customer');
     setError(null);
-    setName((n) => n || lastNameFor(phone));
+    // The remembered name for this number; a name filled in for another number is cleared, one typed by hand stays.
+    const remembered = lastNameFor(phone);
+    setName((n) => remembered || (n === prefilled.current ? '' : n));
+    prefilled.current = remembered;
     setStep('name');
   };
 

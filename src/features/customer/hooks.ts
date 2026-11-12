@@ -29,6 +29,9 @@ export function useOpenStatus() {
     const today = todayKey(now);
     const t = nowMinutes(now);
     const h = hoursFor(db.settings, today);
+    const br = db.settings.breakTime;
+    // On a break the shop is not open, though it's inside the day's hours.
+    if (h && br && t >= br.from && t < br.to && t >= h.from && t < h.to) return { open: false, text: `בהפסקה • חוזרים ב-${fmtTime(Math.min(br.to, h.to))}` };
     if (h && t >= h.from && t < h.to) return { open: true, text: 'פתוח עכשיו', closesAt: fmtTime(h.to) };
     if (h && t < h.from) return { open: false, text: `סגור • נפתח ב-${fmtTime(h.from)}` };
     for (let d = 1; d < 14; d++) {
