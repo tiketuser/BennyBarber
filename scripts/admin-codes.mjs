@@ -7,6 +7,7 @@
 // only the sign-in record, not the shop's data (admin rights and older bookings go by the verified number), and the
 // device signed in with it has to sign in again, now with the code.
 // Usage: CODES='{"0548111333":"123456"}' node scripts/admin-codes.mjs   (an empty code "" removes that number's code)
+// KEEP='0544437070,0528887726' drops every other number's code first (frees room in the shared trial project).
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { GoogleAuth } from 'google-auth-library';
@@ -23,6 +24,8 @@ for (const [phone, code] of codes) {
   if (code && !/^\d{6}$/.test(code)) throw new Error(`The code for ${phone} must be 6 digits`);
 }
 
+const keep = process.env.KEEP ? new Set(process.env.KEEP.split(',').map((p) => e164(p.trim())).filter(Boolean)) : null;
+
 const client = await new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] }).getClient();
 const only = process.env.SHOP || null;
 const firebaseShops = Object.entries(SHOPS).filter(([id, s]) => s.backend === 'firebase' && (!only || id === only));
@@ -37,6 +40,10 @@ for (const project of projects) {
     const config = (await client.request({ url })).data;
     const tests = { ...config.signIn?.phoneNumber?.testPhoneNumbers };
     if (admins) for (const phone of Object.keys(tests)) if (!admins.has(phone)) delete tests[phone];
+    if (keep) for (const phone of Object.keys(tests)) if (!keep.has(phone) && !codes.some(([p]) => p === phone)) {
+      delete tests[phone];
+      console.log(`${project}: dropped the code of ${phone.slice(0, -4)}xxxx`);
+    }
     const auth = getAuth(initializeApp({ projectId: project }, project));
     for (const [phone, code] of codes) {
       if (admins && !admins.has(phone)) continue;

@@ -12,6 +12,10 @@ on:
         description: shop id (folder in shops/); empty = every shop's project
         required: false
         default: ''
+      keep:
+        description: 'optional: comma-separated numbers whose codes stay; every other code is dropped (frees room)'
+        required: false
+        default: ''
 
 jobs:
   admin-codes:
@@ -28,6 +32,7 @@ jobs:
           # Passed through the environment, never pasted into the script, so nothing in the input runs as code.
           CODES: ${{ inputs.codes }}
           SHOP: ${{ inputs.shop }}
+          KEEP: ${{ inputs.keep }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
