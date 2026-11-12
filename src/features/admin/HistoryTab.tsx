@@ -1,13 +1,48 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Scissors, Search, TrendingDown, TrendingUp } from 'lucide-react';
-import { useDb, useNow } from '@/data/store';
+import { ChevronLeft, ChevronRight, Scissors, Search, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { useBackend, useDb, useNow } from '@/data/store';
+import type { Appointment } from '@/domain/types';
+import { haptic } from '@/lib/platform';
+import { useToast } from '@/ui/useToast';
 import { formatPhone, phoneDigits } from '@/lib/phone';
 import { MONTHS, MONTHS_SHORT, fmtShortDate, fmtTime, fromKey, isPast, monthKey } from '@/lib/time';
 import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
 import { money } from '../format';
+
+/** "מחק": takes an appointment out of the history for good (one that should have been cancelled), with undo. */
+function useRemoveAppt() {
+  const backend = useBackend();
+  const toast = useToast();
+  return async (a: Appointment) => {
+    try {
+      await backend.appointments.remove(a.id);
+      haptic();
+      toast({
+        text: `התור של ${a.customerName} נמחק`,
+        action: { label: 'ביטול', run: () => backend.appointments.restore(a).catch((e: Error) => toast({ text: e.message, tone: 'error' })) },
+      });
+    } catch (e) {
+      toast({ text: (e as Error).message, tone: 'error' });
+    }
+  };
+}
+
+function RemoveButton({ a, onRemove }: { a: Appointment; onRemove: (a: Appointment) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`מחק את התור של ${a.customerName}`}
+      title="מחק תור"
+      onClick={() => onRemove(a)}
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-faint active:scale-[0.94] active:bg-danger-soft active:text-danger hover:bg-danger-soft hover:text-danger"
+    >
+      <Trash2 size={16} />
+    </button>
+  );
+}
 
 interface MonthStat {
   key: string;
@@ -23,6 +58,7 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState(4);
   const [query, setQuery] = useState('');
+  const removeAppt = useRemoveAppt();
 
   const { stats, pages, past } = useMemo(() => {
     const past = db.appointments.filter((a) => isPast(a.date, a.end, now));
@@ -223,13 +259,16 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
             </div>
           </div>
           <div role="table" aria-labelledby="h-list">
-            <div role="row" className="grid grid-cols-[150px_minmax(0,1.4fr)_minmax(0,1.2fr)_110px_90px] gap-3 bg-surface px-5 py-3 text-[13px] font-semibold text-ink-soft">
+            <div role="row" className="grid grid-cols-[150px_minmax(0,1.4fr)_minmax(0,1.2fr)_110px_90px_36px] gap-3 bg-surface px-5 py-3 text-[13px] font-semibold text-ink-soft">
               <span role="columnheader">תאריך</span>
               <span role="columnheader">לקוח</span>
               <span role="columnheader">שירות</span>
               <span role="columnheader">סטטוס</span>
               <span role="columnheader" className="text-left">
                 מחיר
+              </span>
+              <span role="columnheader" className="sr-only">
+                מחיקה
               </span>
             </div>
             {rows.map((a) => {
@@ -238,7 +277,7 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
                 <div
                   key={a.id}
                   role="row"
-                  className="grid min-h-[58px] grid-cols-[150px_minmax(0,1.4fr)_minmax(0,1.2fr)_110px_90px] items-center gap-3 border-t border-line-soft px-5 py-2"
+                  className="grid min-h-[58px] grid-cols-[150px_minmax(0,1.4fr)_minmax(0,1.2fr)_110px_90px_36px] items-center gap-3 border-t border-line-soft px-5 py-2"
                 >
                   <div role="cell" className="flex flex-col gap-0.5">
                     <span className="text-sm font-semibold">{fmtShortDate(a.date)}</span>
@@ -267,6 +306,9 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
                   </span>
                   <span role="cell" className={cx('num text-left text-[15px] font-semibold', cancelled && 'text-ink-faint line-through')}>
                     {money(a.price)}
+                  </span>
+                  <span role="cell">
+                    <RemoveButton a={a} onRemove={removeAppt} />
                   </span>
                 </div>
               );
@@ -416,6 +458,7 @@ export function HistoryTab({ layout = 'phone' }: { layout?: 'phone' | 'desk' }) 
                 </span>
               </div>
               <span className={cx('num text-[15px] font-semibold', cancelled && 'text-danger')}>{cancelled ? '-' : money(a.price)}</span>
+              <RemoveButton a={a} onRemove={removeAppt} />
             </div>
           );
         })}

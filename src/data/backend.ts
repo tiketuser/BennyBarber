@@ -75,6 +75,10 @@ export interface Backend {
     markOpeningHandled(id: string): Promise<void>;
     /** Admin: new times for some appointments of one day (a longer or shorter appointment, and the ones after it). */
     retime(date: DateKey, times: { id: string; start: Minutes; end: Minutes }[]): Promise<void>;
+    /** Admin: deletes an appointment for good (from "היסטוריה", e.g. one that should have been cancelled). */
+    remove(id: string): Promise<void>;
+    /** Admin: puts a deleted appointment back (undo). */
+    restore(a: Appointment): Promise<void>;
   };
 
   blocks: {

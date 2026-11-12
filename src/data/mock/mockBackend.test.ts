@@ -141,6 +141,15 @@ describe('mock backend', () => {
     await expect(b.appointments.setNoShow(w.id, false)).rejects.toThrow('בינתיים');
   });
 
+  it('lets the admin delete an appointment from the history and undo it', async () => {
+    await signIn(b, ADMIN);
+    const w = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 540, end: 600 });
+    await b.appointments.remove(w.id);
+    expect(b.getSnapshot().appointments.some((a) => a.id === w.id)).toBe(false);
+    await b.appointments.restore(w);
+    expect(b.getSnapshot().appointments.find((a) => a.id === w.id)).toMatchObject({ status: 'booked' });
+  });
+
   it('admin walk-ins may go outside opening hours and on closed days', async () => {
     await signIn(b, ADMIN);
     const late = await b.appointments.addWalkIn({ serviceId: 'beard', date: TUESDAY, start: 22 * 60, end: 22 * 60 + 30 });

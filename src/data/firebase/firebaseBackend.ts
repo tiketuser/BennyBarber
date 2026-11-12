@@ -586,6 +586,23 @@ export async function createFirebaseBackend(): Promise<Backend> {
           t.set(dayRef(date), { busy: busy.map((b) => byId.get(b.id) ?? b) });
         });
       }),
+      remove: guard(async (id) => {
+        requireAdmin();
+        const a = appointment(id);
+        await runTransaction(fs, async (t) => {
+          const busy = await readDay(t, a.date);
+          t.delete(apptRef(a.id));
+          if (busy.some((b) => b.id === a.id)) t.set(dayRef(a.date), { busy: busy.filter((b) => b.id !== a.id) });
+        });
+      }),
+      restore: guard(async (a) => {
+        requireAdmin();
+        await runTransaction(fs, async (t) => {
+          const busy = await readDay(t, a.date);
+          t.set(apptRef(a.id), withoutId(a));
+          if (a.status === 'booked' && !busy.some((b) => b.id === a.id)) t.set(dayRef(a.date), { busy: [...busy, { id: a.id, start: a.start, end: a.end }] });
+        });
+      }),
     },
 
     blocks: {

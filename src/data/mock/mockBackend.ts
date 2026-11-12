@@ -249,6 +249,16 @@ export function createMockBackend(): Backend {
           return x ? { ...a, start: x.start, end: x.end } : a;
         });
       },
+      async remove(id) {
+        requireAdmin();
+        await wait(60);
+        commit({ ...db, appointments: db.appointments.filter((a) => a.id !== id) });
+      },
+      async restore(appt) {
+        requireAdmin();
+        await wait(60);
+        if (!db.appointments.some((a) => a.id === appt.id)) commit({ ...db, appointments: [...db.appointments, appt] });
+      },
     },
 
     blocks: {
