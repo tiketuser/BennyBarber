@@ -6,3 +6,7 @@ dev-dist
 ios/App/App/public
 android/app/src/main/assets/public
 *.tsbuildinfo
+
+# Firebase emulators
+*-debug.log
+.firebase

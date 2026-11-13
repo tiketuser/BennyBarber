@@ -1,0 +1,66 @@
+# Creates (or updates) one barber's free-trial app in the shared trial project: writes Firestore trialShops/{slug}.
+# Triggered by the outreach automation (n8n) through workflow_dispatch; the app is live at once (only storage rules redeploy).
+# Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy (granted "Firebase Admin" on the trial project).
+name: Create trial shop
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: address after the site name (lowercase latin, digits, dashes)
+        required: true
+      config:
+        description: 'the trialShops document as JSON (src/trial/trialDoc.ts); a new shop needs only what differs: {"brand","phone","address":{"city"}...}'
+        required: true
+      codes:
+        description: 'optional: fixed admin codes for new admin numbers, JSON {"05XXXXXXXX": "123456"} (no SMS is ever sent)'
+        required: false
+        default: ''
+      demo:
+        description: 'add made-up bookings: the past 30 days and the next 7 (for a new shop)'
+        type: boolean
+        default: false
+
+# One write per slug at a time; different barbers run side by side.
+concurrency:
+  group: create-trial-${{ inputs.slug }}
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Passed through the environment, never pasted into the script, so nothing in the inputs runs as code.
+          SLUG: ${{ inputs.slug }}
+          CONFIG: ${{ inputs.config }}
+          CODES: ${{ inputs.codes }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          # Frees the sites of trials that ended a week ago, to stay under Firebase's 36 sites per project.
+          node --experimental-strip-types --no-warnings scripts/trial-sites.mjs cleanup || echo "::warning::cleanup failed"
+          if [ -n "$CODES" ]; then node --experimental-strip-types --no-warnings scripts/admin-codes.mjs; fi
+          node --experimental-strip-types --no-warnings scripts/create-trial.mjs
+          # Lets his admin number upload gallery photos (storage.rules lists each trial shop's admins).
+          SHOP=trial npm run firebase:rules
+          npx firebase deploy --only storage --non-interactive
+      - if: inputs.demo
+        name: demo bookings
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TZ: Asia/Jerusalem
+          SHOP: trial
+          SLUG: ${{ inputs.slug }}
+          SHOP_STATIC: '1'
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          DAYS=7 npx vite-node scripts/demo-data.ts add
+          PAST=30 npx vite-node scripts/demo-data.ts add

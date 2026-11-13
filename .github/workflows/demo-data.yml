@@ -1,0 +1,54 @@
+# Run by hand from the Actions tab: adds made-up bookings to the live app (until the end of the month, or the next
+# `days` days), or removes them. Trial shops: shop = trial and the shop's slug.
+# Only appointments marked demo: true are ever touched. Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy.
+name: Demo data
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: add or remove
+        required: true
+        default: add
+        type: choice
+        options: [add, remove]
+      shop:
+        description: shop id (folder in shops/)
+        required: true
+        default: bennycohen
+      slug:
+        description: trial shops only (shop = trial) - the shop's slug
+        required: false
+        default: ''
+      days:
+        description: how many days ahead (empty = until the end of the month)
+        required: false
+        default: ''
+      past:
+        description: fill the last N days instead (finished appointments for the history tab)
+        required: false
+        default: ''
+
+jobs:
+  demo-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ${{ inputs.action }} demo appointments
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TZ: Asia/Jerusalem
+          SHOP: ${{ inputs.shop }}
+          SLUG: ${{ inputs.slug }}
+          DAYS: ${{ inputs.days }}
+          PAST: ${{ inputs.past }}
+          SHOP_STATIC: '1'
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx vite-node scripts/demo-data.ts ${{ inputs.action }}
