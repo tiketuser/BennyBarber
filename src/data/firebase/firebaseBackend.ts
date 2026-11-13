@@ -24,6 +24,7 @@ import {
   doc,
   documentId,
   getDoc,
+  getDocFromCache,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -260,7 +261,12 @@ export async function createFirebaseBackend(): Promise<Backend> {
   };
 
   const sessionFor = async (u: User): Promise<Session | null> => {
-    const profile = await getDoc(doc(fs, root, 'users', u.uid)).catch(() => null);
+    // The profile hardly ever changes: take the device's copy at once (the diary starts loading without waiting
+    // for the server), and refresh that copy in the background for next time. Only a first visit waits.
+    const profileRef = doc(fs, root, 'users', u.uid);
+    const cachedProfile = await getDocFromCache(profileRef).catch(() => null);
+    if (cachedProfile?.exists()) void getDoc(profileRef).catch(() => null);
+    const profile = cachedProfile?.exists() ? cachedProfile : await getDoc(profileRef).catch(() => null);
     const name = (profile?.data()?.name as string | undefined) ?? null;
     // A customer's number and name are in his profile; without one the sign-in never finished.
     if (u.isAnonymous) {

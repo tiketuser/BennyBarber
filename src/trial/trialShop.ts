@@ -58,8 +58,39 @@ function notice(title: string, body: string): never {
 }
 
 const offline = () => notice('אין חיבור כרגע', 'בדקו את החיבור לאינטרנט ונסו לרענן את הדף.');
-const slug = await findSlug().catch(offline);
-const doc = await load(slug).catch(offline);
+
+/**
+ * The last copy of this shop's details on this device. The app opens with it at once (two server reads saved
+ * before any screen shows) and the details are read again in the background, so a change shows on the next open.
+ */
+const cacheKey = `trialShop:${ownSite ?? `${host}/${slugFromPath(location.pathname)}`}`;
+const remember = (value: { slug: string; doc: TrialDoc } | null) => {
+  try {
+    if (value) localStorage.setItem(cacheKey, JSON.stringify(value));
+    else localStorage.removeItem(cacheKey);
+  } catch {
+    /* storage blocked */
+  }
+};
+const fetchShop = async () => {
+  const slug = await findSlug();
+  return { slug, doc: await load(slug) };
+};
+const readCached = (): { slug: string; doc: TrialDoc } | null => {
+  try {
+    return demo ? null : JSON.parse(localStorage.getItem(cacheKey) ?? 'null');
+  } catch {
+    return null;
+  }
+};
+const cached = readCached();
+const fresh = cached?.doc && cached.slug ? null : await fetchShop().catch(offline);
+if (!demo) {
+  if (fresh) remember(fresh.doc ? (fresh as { slug: string; doc: TrialDoc }) : null);
+  else void fetchShop().then((f) => remember(f.doc ? (f as { slug: string; doc: TrialDoc }) : null), () => {});
+}
+const slug = fresh ? fresh.slug : cached!.slug;
+const doc = fresh ? fresh.doc : cached!.doc;
 if (!doc) notice('הדף לא נמצא', 'כדאי לבדוק שהקישור הועתק במלואו.');
 
 /** This shop's address: its own site, or the main trial site plus /<slug>. */
