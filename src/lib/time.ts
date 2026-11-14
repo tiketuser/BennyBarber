@@ -89,6 +89,19 @@ export function fmtLongDate(key: DateKey): string {
   return `יום ${DAY_LETTERS[d.getDay()]}, ${d.getDate()} ב${MONTHS[d.getMonth()]}`;
 }
 
+const DAY_NAMES = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'] as const;
+
+/** "יום שישי" / "שבת" */
+export function fmtDayName(key: DateKey): string {
+  return DAY_NAMES[fromKey(key).getDay()];
+}
+
+/** "14 בנובמבר" */
+export function fmtDayFullMonth(key: DateKey): string {
+  const d = fromKey(key);
+  return `${d.getDate()} ב${MONTHS[d.getMonth()]}`;
+}
+
 /** "20 באוק׳" */
 export function fmtDayShortMonth(key: DateKey): string {
   const d = fromKey(key);

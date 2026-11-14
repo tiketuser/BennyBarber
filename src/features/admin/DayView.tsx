@@ -6,7 +6,7 @@ import { busyFor, closedText, freeGaps, hoursFor } from '@/domain/schedule';
 import type { Appointment, Block, DateKey, Minutes } from '@/domain/types';
 import { telUrl, whatsappUrl } from '@/lib/links';
 import { openExternal } from '@/lib/platform';
-import { addDays, fmtLongDate, fmtRange, fmtShortDate, fmtTime, greeting, nowMinutes, todayKey } from '@/lib/time';
+import { addDays, fmtDayFullMonth, fmtDayName, fmtRange, fmtShortDate, fmtTime, greeting, nowMinutes, todayKey } from '@/lib/time';
 import { cx } from '@/ui/cx';
 import { TAB_BAR_SPACE } from '@/ui/TabBar';
 import { spring } from '@/ui/motion';
@@ -249,11 +249,11 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
       <>
         <div className="mx-auto flex max-w-[1120px] flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-col gap-1">
-              <h1 className="m-0 font-brand text-[32px] font-normal leading-tight">{isToday ? greeting(now) : date < today ? 'יומן עבר' : 'יומן'}</h1>
-              <span className="text-[15px] text-ink-soft">
-                {fmtLongDate(date)} • {hours ? `פתוח ${fmtRange(hours.from, hours.to)}` : 'סגור'}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[15px] font-medium text-ink-soft">
+                {isToday ? greeting(now) : date < today ? 'יומן עבר' : 'יומן'} • {hours ? `פתוח ${fmtRange(hours.from, hours.to)}` : 'סגור'}
               </span>
+              <DayTitle date={date} today={today} size="desk" />
             </div>
             <div className="mr-auto flex gap-2.5">
               <div className="flex h-11 items-center rounded-xl border border-line">
@@ -337,10 +337,7 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
     <>
       <div className="absolute inset-0 overflow-y-auto pt-safe" style={{ paddingBottom: `calc(${TAB_BAR_SPACE} + 88px)` }}>
         <header className="flex items-center justify-between px-5 pt-5">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="m-0 font-brand text-[22px] font-normal leading-tight">{isToday ? greeting(now) : date < today ? 'יומן עבר' : 'יומן'}</h1>
-            <span className="text-sm text-ink-soft">{fmtLongDate(date)}</span>
-          </div>
+          <span className="text-[15px] font-medium text-ink-soft">{isToday ? greeting(now) : date < today ? 'יומן עבר' : 'יומן'}</span>
           <div className="flex items-center gap-1">
             {isToday && (
               <button
@@ -373,11 +370,14 @@ export function DayView({ date, setDate, onQuick, layout = 'phone' }: Props) {
             </button>
           </div>
         </header>
-        {!isToday && (
-          <button type="button" onClick={() => setDate(today)} className="mx-5 mt-1 h-8 text-[13px] font-semibold underline">
-            חזרה להיום
-          </button>
-        )}
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1 px-5 pt-1.5">
+          <DayTitle date={date} today={today} size="phone" />
+          {!isToday && (
+            <button type="button" onClick={() => setDate(today)} className="h-8 text-[13px] font-semibold underline">
+              חזרה להיום
+            </button>
+          )}
+        </div>
 
         <InstallBanner />
 
@@ -497,5 +497,17 @@ function AppointmentCard({
         </button>
       </div>
     </div>
+  );
+}
+
+/** The day being looked at, big and readable: "שבת" + "14 בנובמבר" with a היום/מחר/אתמול tag. */
+function DayTitle({ date, today, size }: { date: DateKey; today: DateKey; size: 'phone' | 'desk' }) {
+  const rel = date === today ? 'היום' : date === addDays(today, 1) ? 'מחר' : date === addDays(today, -1) ? 'אתמול' : null;
+  return (
+    <h1 aria-live="polite" className={cx('m-0 flex flex-wrap items-baseline gap-x-2.5 font-normal leading-tight', size === 'desk' ? 'text-[34px]' : 'text-[28px]')}>
+      <span className="font-brand">{fmtDayName(date)}</span>
+      <span className={cx('font-semibold tracking-tight', size === 'desk' ? 'text-[24px]' : 'text-[20px]')}>{fmtDayFullMonth(date)}</span>
+      {rel && <span className="self-center rounded-full bg-brand px-2.5 py-0.5 text-[13px] font-bold text-brand-accent">{rel}</span>}
+    </h1>
   );
 }
