@@ -26,8 +26,6 @@ import {
   getDoc,
   getDocFromCache,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   onSnapshot,
   query,
   runTransaction,
@@ -104,8 +102,9 @@ export async function createFirebaseBackend(): Promise<Backend> {
   const app = initializeApp(FIREBASE.config);
   const auth = getAuth(app);
   auth.languageCode = 'he';
-  // Kept on the device: after a refresh the diary shows at once from the last copy, then updates from the server.
-  const fs = initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+  // No copy kept on the device (memory only): on iPhones the stored copy could leave the diary waiting forever
+  // ("טוען את התורים..." until a refresh), with several tabs of the site open or after Safari froze the tab.
+  const fs = initializeFirestore(app, { ignoreUndefinedProperties: true });
   const storage = getStorage(app);
   const emulator = import.meta.env.VITE_FIREBASE_EMULATOR as string | undefined;
   if (emulator) {
@@ -219,6 +218,11 @@ export async function createFirebaseBackend(): Promise<Backend> {
     };
     failed = false;
     if (session?.role === 'admin') {
+      // Never leave the diary waiting: no answer from the server in a few seconds means listen again.
+      const watchdog = setTimeout(() => {
+        if (!apptsLoaded && session?.role === 'admin') watchScoped(attempt + 1);
+      }, 8000);
+      scoped.push(() => clearTimeout(watchdog));
       scoped.push(
         onSnapshot(
           col('appointments'),
