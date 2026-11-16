@@ -1,0 +1,21 @@
+{
+  "slug": "rami-hair-jerusalem",
+  "brand": "רמי עיצוב שיער",
+  "fullName": "רמי עיצוב שיער",
+  "kind": "ברברשופ",
+  "place": "המספרה",
+  "audience": "men",
+  "tagline": "תספורות גברים וזקנים במרכז העיר.",
+  "address": { "street": "יפו 120", "city": "ירושלים" },
+  "phone": "054-1234567",
+  "adminPhones": ["054-1234567", "054-4437070"],
+  "adminPhonesE164": ["+972541234567", "+972544437070"],
+  "instagram": "rami.hair",
+  "colors": { "brand": "#1E3A8A", "accent": "#FDE68A" },
+  "course": { "enabled": false, "details": "" },
+  "bookingMonthsAhead": 3,
+  "galleryUrls": [],
+  "createdAt": "2026-10-20T06:00:00Z",
+  "trialEndsAt": "2099-01-01T00:00:00Z",
+  "source": "instagram-bot"
+}

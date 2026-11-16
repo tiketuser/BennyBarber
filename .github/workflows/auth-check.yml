@@ -1,0 +1,29 @@
+# Run by hand from the Actions tab: prints a shop's phone sign-in settings (SMS region policy, test numbers, quota).
+# Read-only. Uses the same FIREBASE_SERVICE_ACCOUNT secret as the deploy.
+name: Auth check
+
+on:
+  workflow_dispatch:
+    inputs:
+      shop:
+        description: shop id (folder in shops/)
+        required: true
+        default: bennycohen
+
+jobs:
+  auth-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SHOP: ${{ inputs.shop }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          node --experimental-strip-types --no-warnings scripts/auth-check.mjs
